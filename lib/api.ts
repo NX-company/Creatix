@@ -176,7 +176,7 @@ ${uploadedImages.map((img, i) => `${i + 1}. "${img.name}" → используй
 - Для логотипов: max-width 150-200px, для иллюстраций: max-width 100%`
       : ''
     
-    const modernDesign = getModernDesignPrompt(docType)
+    const modernDesign = getModernDesignPrompt(docType as any)
     
     const prompt = `
 Создай СОВРЕМЕННЫЙ HTML документ на основе этого контента:
