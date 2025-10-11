@@ -10,9 +10,12 @@ import OnboardingTour from '@/components/OnboardingTour'
 import { useStore } from '@/lib/store'
 import { STORAGE_KEYS, MAX_RELOAD_ATTEMPTS, STORAGE_VERSION } from '@/lib/constants'
 import { getWelcomeMessage } from '@/lib/welcomeMessages'
+import { Menu, X } from 'lucide-react'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const projects = useStore((state) => state.projects)
   const createProject = useStore((state) => state.createProject)
   const loadHTMLFromIndexedDB = useStore((state) => state.loadHTMLFromIndexedDB)
@@ -89,16 +92,71 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-        <Sidebar />
-        <PanelGroup direction="horizontal">
-          <Panel defaultSize={25} minSize={15} maxSize={40}>
-            <ChatPanel />
-          </Panel>
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-primary text-primary-foreground rounded-lg shadow-lg"
+        >
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
+        {/* Sidebar - Hidden on mobile, overlay on tablet */}
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 transition-transform duration-300 h-full`}>
+          <Sidebar />
+        </div>
+
+        {/* Overlay for mobile sidebar */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Desktop Layout */}
+        <div className="hidden md:flex flex-1">
+          <PanelGroup direction="horizontal">
+            <Panel defaultSize={25} minSize={15} maxSize={40}>
+              <ChatPanel />
+            </Panel>
             <PanelResizeHandle className="w-1.5 bg-gradient-to-b from-border via-primary/30 to-border hover:from-primary hover:via-primary hover:to-primary transition-all cursor-col-resize shadow-sm" />
-          <Panel defaultSize={75} minSize={40}>
-            <RightPanel />
-          </Panel>
-        </PanelGroup>
+            <Panel defaultSize={75} minSize={40}>
+              <RightPanel />
+            </Panel>
+          </PanelGroup>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="md:hidden flex-1 flex flex-col">
+          {/* Mobile View Tabs */}
+          <div className="flex border-b border-border bg-background">
+            <button
+              onClick={() => setMobileView('chat')}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                mobileView === 'chat'
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              💬 Чат
+            </button>
+            <button
+              onClick={() => setMobileView('preview')}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                mobileView === 'preview'
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              👁️ Превью
+            </button>
+          </div>
+
+          {/* Mobile Content */}
+          <div className="flex-1 overflow-hidden">
+            {mobileView === 'chat' ? <ChatPanel /> : <RightPanel />}
+          </div>
+        </div>
       </div>
       <OnboardingTour />
     </ErrorBoundary>
