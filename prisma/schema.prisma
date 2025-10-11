@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  role          Role      @default(USER)
+  appMode       AppMode   @default(FREE)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  sessions      Session[]
+  apiUsage      ApiUsage[]
+  transactions  Transaction[]
+  projects      Project[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AppMode {
+  FREE
+  ADVANCED
+  PRO
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model ApiUsage {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String
+  model       String
+  endpoint    String
+  tokensUsed  Int      @default(0)
+  cost        Float    @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String
+  status      String
+  createdAt   DateTime @default(now())
+}
+
+model ModeSettings {
+  id              String   @id @default(uuid())
+  freeEnabled     Boolean  @default(true)
+  advancedEnabled Boolean  @default(true)
+  proEnabled      Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+model Project {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  docType       String
+  workMode      String   @default("plan")
+  styleConfig   String?
+  sections      String?
+  priceItems    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  messages      ProjectMessage[]
+  files         ProjectFile[]
+  planningData  ProjectPlanningData?
+}
+
+model ProjectMessage {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role        String
+  content     String
+  type        String?
+  timestamp   DateTime @default(now())
+}
+
+model ProjectFile {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileType    String
+  fileSize    Int
+  storagePath String
+  uploadedAt  DateTime @default(now())
+}
+
+model ProjectPlanningData {
+  id                    String   @id @default(uuid())
+  projectId             String   @unique
+  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  theme                 String?
+  targetAudience        String?
+  goals                 String?
+  keyMessages           String?
+  visualPreferences     String?
+  additionalNotes       String?
+  selectedQuestions     String?
+  pageCount             Int?
+  currentQuestionIndex  Int      @default(0)
+  answerMode            String?
+  collectedAnswers      String?
+  isComplete            Boolean  @default(false)
+}
