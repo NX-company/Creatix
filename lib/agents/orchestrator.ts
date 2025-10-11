@@ -166,7 +166,7 @@ export async function generateDocumentWithMode(params: {
         
         if (uploadedImages.length > 0) {
           notify(`👀 Анализирую ваши ${uploadedImages.length} ${uploadedImages.length === 1 ? 'изображение' : uploadedImages.length < 5 ? 'изображения' : 'изображений'}...`)
-          content = await generateContentWithImages(prompt, docType, uploadedImages, parsedWebsiteData, 'openai/gpt-4o')
+          content = await generateContentWithImages(prompt, docType, uploadedImages, 'openai/gpt-4o')
           notify(`✅ Изображения проанализированы`)
         } else {
           notify(`📝 Пишу текст документа...`)
