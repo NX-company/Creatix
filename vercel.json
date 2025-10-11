@@ -1,0 +1,6 @@
+{
+  "name": "nx-studio",
+  "buildCommand": "npm run vercel-build",
+  "framework": "nextjs"
+}
+

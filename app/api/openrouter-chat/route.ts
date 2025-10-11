@@ -26,14 +26,15 @@ export async function POST(request: NextRequest) {
     })
 
     const completion = await client.chat.completions.create({
-      extra_headers: {
-        "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "NX Studio Agent",
-      },
       model: model,
       messages: messages as any,
       temperature: temperature,
       ...(max_tokens ? { max_tokens } : {})
+    }, {
+      headers: {
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "NX Studio Agent",
+      }
     })
 
     const content = completion.choices[0]?.message?.content || ''

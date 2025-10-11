@@ -1,0 +1,36 @@
+# Переменные окружения для Vercel Dashboard
+# Копируйте по одной и добавляйте в: Settings → Environment Variables
+
+DATABASE_URL
+postgresql://neondb_owner:npg_0CS6NRBsDMeI@ep-red-silence-agh5gmzj-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require
+
+OPENROUTER_API_KEY
+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
+
+OPENAI_API_KEY
+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
+
+REPLICATE_API_TOKEN
+r8_60fbHrFNfAJ0Udh9gVQs0Yo3dQuxSDg3Hy63d
+
+PROXY_HOST
+63.125.89.9
+
+PROXY_PORT
+50100
+
+PROXY_LOGIN
+useneurox
+
+PROXY_PASSWORD
+sEEkkt2bMu
+
+NEXTAUTH_SECRET
+yX39jVjxhx/cA24bctYwhuD4H7GeH47AcX6zMhSeiQg=
+
+NEXTAUTH_URL
+https://nx-studio-qg6kw8p0e-alexanders-projects-73e83f2d.vercel.app
+
+---
+ВАЖНО: Для каждой переменной выберите: Production, Preview, Development
+
