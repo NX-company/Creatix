@@ -22,22 +22,22 @@ export default function ModeSelector() {
             <button
               key={mode}
               onClick={() => setAppMode(mode)}
-              disabled={false}
+              disabled={isProMode}
               className={cn(
                 'w-full flex items-center gap-2 rounded-md text-sm transition-all px-3 py-2 text-left',
-                isActive
+                isProMode && 'opacity-50 cursor-not-allowed grayscale',
+                !isProMode && isActive
                   ? mode === 'advanced'
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
-                    : mode === 'pro'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
                     : 'bg-primary text-primary-foreground shadow-md'
-                  : 'hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
+                  : !isProMode && 'hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
               )}
             >
               <span className="text-lg">{config.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="font-medium flex items-center gap-1">
                   {config.name}
+                  {isProMode && <span className="text-xs ml-1">(Скоро)</span>}
                 </div>
                 <div className="text-xs opacity-80 truncate">{config.description}</div>
                 {mode === 'advanced' && (

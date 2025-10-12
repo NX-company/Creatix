@@ -127,7 +127,7 @@ export const generateProposalPDFFile = async (
   ` : ''}
   
   <div class="footer">
-    <p>${inputData.company || 'NX Studio'} | Коммерческое предложение | ${timestamp}</p>
+    <p>${inputData.company || 'Creatix'} | Коммерческое предложение | ${timestamp}</p>
   </div>
 </body>
 </html>

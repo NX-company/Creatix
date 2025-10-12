@@ -74,6 +74,7 @@ export type UploadedImage = {
   name: string
   base64: string
   type: string
+  actionType?: 'use-as-is' | 'generate-similar' | 'use-as-reference'
 }
 
 export type Project = {
@@ -87,6 +88,7 @@ export type Project = {
   htmlPreviews?: Record<DocType, string>
   currentStep: Step
   styleConfig: {
+    name?: string
     primaryColor: string
     secondaryColor: string
     font: string
@@ -128,6 +130,7 @@ type Store = {
   loadHTMLFromIndexedDB: () => Promise<void>
   
   styleConfig: {
+    name?: string
     primaryColor: string
     secondaryColor: string
     font: string
@@ -188,6 +191,7 @@ type Store = {
     paragraphs: string[]
     images: string[]
     content: string
+    actionType?: 'copy-design' | 'content-only' | 'style-only'
   } | null
   setParsedWebsiteData: (data: any) => void
   clearParsedWebsiteData: () => void
@@ -216,6 +220,7 @@ const defaultSections: Section[] = [
 ]
 
 const defaultStyleConfig = {
+  name: '',
   primaryColor: '#3b82f6',
   secondaryColor: '#8b5cf6',
   font: 'Inter',
@@ -440,7 +445,7 @@ export const useStore = create<Store>()(
         set({ 
           docType: type,
           htmlPreview: '',
-          messages: [],
+          messages: get().messages,
           lastGeneratedContent: '',
           lastGeneratedImages: [],
           selectedElement: null,

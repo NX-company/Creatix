@@ -79,7 +79,7 @@ export async function verifyAdmin(req: NextRequest) {
 }
 
 export async function deleteSession(token: string) {
-  await prisma.session.delete({
+  await prisma.session.deleteMany({
     where: { token },
   })
 }

@@ -177,7 +177,7 @@ export const generateInvoicePDFFile = async (htmlContent: string, data: any, tim
   ` : ''}
   
   <div class="footer">
-    <p>Спасибо за сотрудничество! | ${data.company || 'NX Studio'} | ${timestamp}</p>
+    <p>Спасибо за сотрудничество! | ${data.company || 'Creatix'} | ${timestamp}</p>
   </div>
 </body>
 </html>

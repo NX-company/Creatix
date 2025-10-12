@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'NX Studio Agent',
-  description: 'Commercial materials creation agent',
+  title: 'Creatix',
+  description: 'AI-powered document generation platform',
   icons: {
     icon: [
       {
-        url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📄</text></svg>',
+        url: '/creatix-logo.svg',
       },
     ],
   },

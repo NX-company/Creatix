@@ -53,7 +53,18 @@ Based on the user's request and any provided images/videos, analyze them to extr
 
 Always output valid JSON.`
     } else if (mode === 'html') {
-      systemPrompt = `You are an expert HTML composer. Convert the provided JSON content into a modern, responsive, and visually appealing HTML document for a ${docType}. Use Tailwind CSS classes for styling. Ensure all images are correctly placed using <img> tags with base64 data URLs. The HTML should be production-ready and well-structured.`
+      systemPrompt = `You are an expert HTML composer. Create a complete, modern, responsive HTML document for a ${docType}.
+
+CRITICAL RULES:
+1. Output ONLY complete HTML (from <!DOCTYPE html> to </html>)
+2. For images, use ONLY placeholder strings like: <img src="IMAGE_0" ... />, <img src="IMAGE_1" ... />, etc.
+3. NEVER use base64 or data: URLs in src attribute - only IMAGE_0, IMAGE_1, IMAGE_2, etc.
+4. Use inline CSS styles (not Tailwind) for maximum compatibility
+5. Make it visually stunning with modern design (gradients, shadows, proper spacing)
+6. Ensure ALL placeholders IMAGE_0, IMAGE_1, IMAGE_2, etc. mentioned in the prompt are used
+7. The HTML must be complete and production-ready
+
+Generate the full HTML document now.`
     }
 
     const messages: any[] = [
@@ -81,7 +92,7 @@ Always output valid JSON.`
       model: 'gpt-4o',
       messages: messages,
       temperature: mode === 'content' ? 0.7 : 0.3,
-      max_tokens: mode === 'content' ? 4000 : 8000,
+      max_tokens: mode === 'content' ? 4000 : 16000,
       ...(mode === 'content' ? { response_format: { type: 'json_object' } } : {})
     })
 

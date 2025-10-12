@@ -258,6 +258,16 @@ const STYLE_PRESETS: Record<DocType, StylePreset[]> = {
       preview: 'linear-gradient(135deg, #ffcc00 0%, #000000 100%)',
     },
     {
+      id: 'product-avito',
+      name: 'Avito',
+      description: 'Стиль Avito - зеленый акцент, чистый фон',
+      primaryColor: '#00c853',
+      secondaryColor: '#ffffff',
+      font: 'Roboto',
+      spacing: 'normal',
+      preview: 'linear-gradient(135deg, #00c853 0%, #ffffff 100%)',
+    },
+    {
       id: 'product-premium',
       name: 'Премиум',
       description: 'Элегантный золотой стиль для дорогих товаров',
@@ -290,6 +300,7 @@ export default function StyleEditor() {
     setSelectedPresetId(preset.id)
     setSelectedStyleName(preset.name)
     updateStyleConfig({
+      name: preset.name,
       primaryColor: preset.primaryColor,
       secondaryColor: preset.secondaryColor,
       font: preset.font,
@@ -298,9 +309,13 @@ export default function StyleEditor() {
   }
 
   useEffect(() => {
-    setSelectedPresetId(null)
-    setSelectedStyleName(null)
-  }, [docType, setSelectedStyleName])
+    const currentPreset = availableStyles.find(s => s.name === selectedStyleName)
+    if (currentPreset) {
+      setSelectedPresetId(currentPreset.id)
+    } else {
+      setSelectedPresetId(null)
+    }
+  }, [docType, availableStyles, selectedStyleName])
 
   const getDocTypeName = () => {
     switch (docType) {

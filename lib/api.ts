@@ -176,24 +176,63 @@ ${uploadedImages.map((img, i) => `${i + 1}. "${img.name}" → используй
 - Для логотипов: max-width 150-200px, для иллюстраций: max-width 100%`
       : ''
     
-    const modernDesign = getModernDesignPrompt(docType as any)
+    const modernDesign = getModernDesignPrompt(docType as any, styleConfig)
     
     const prompt = `
-Создай СОВРЕМЕННЫЙ HTML документ на основе этого контента:
+🎯 ЗАДАЧА: Создай ПОЛНЫЙ, СОВРЕМЕННЫЙ HTML документ, который ИДЕАЛЬНО соответствует контексту и намерениям пользователя.
+
+📄 КОНТЕНТ ДЛЯ ДОКУМЕНТА:
 ${content}
 
+🎨 ПАРАМЕТРЫ:
 Тип документа: ${docType}
 Стиль: ${JSON.stringify(styleConfig)}${imagesInfo}
 
 ${modernDesign}
 
-Требования:
-- Полный HTML с встроенными CSS стилями
-- Адаптивный дизайн
-- СОВРЕМЕННЫЙ дизайн 2025 (не как газета!)
-- Используй указанные цвета и шрифт
+⚠️ КРИТИЧЕСКИ ВАЖНО - ОБЯЗАТЕЛЬНЫЕ ЦВЕТА:
+ИСПОЛЬЗУЙ ТОЛЬКО ЭТИ ЦВЕТА из выбранного стиля:
+- PRIMARY COLOR: ${styleConfig.primaryColor} - для всех кнопок, акцентов, цен, бейджей скидки, заголовков, границ
+- SECONDARY COLOR: ${styleConfig.secondaryColor} - для градиентов и фоновых элементов
+- FONT: ${styleConfig.font}
+
+🚫 ЗАПРЕЩЕНО использовать другие цвета (#667eea, #764ba2, #e31e24 и т.д.) для акцентов!
+
+🎨 ДЛЯ КАРТОЧЕК ТОВАРОВ (product-card):
+- Блок цены: background: linear-gradient(135deg, ${styleConfig.primaryColor}, ${styleConfig.secondaryColor})
+- Бейдж скидки: background: ${styleConfig.primaryColor}
+- Границы преимуществ: border: 2px solid ${styleConfig.primaryColor}
+- Фон документа: ВСЕГДА #FFFFFF (белый)
+
+🧠 ИНТЕЛЛЕКТУАЛЬНЫЙ ПОДХОД:
+
+1. ПОНИМАНИЕ КОНТЕКСТА:
+   - Внимательно прочитай контент и пойми его суть
+   - Определи тон (профессиональный, дружелюбный, минималистичный)
+   - Учти особенности типа документа (${docType})
+
+2. СТРУКТУРА И ДИЗАЙН:
+   - Создай логичную структуру для ${docType}
+   - Используй современный дизайн 2025 (НЕ КАК ГАЗЕТА!)
+   - Адаптивный layout с правильными отступами и типографикой
+   - Цвета: используй указанные цвета из styleConfig
+   - Шрифт: используй указанный шрифт
+
+3. ИЗОБРАЖЕНИЯ (если есть):
+   - Размещай согласно правилам выше
+   - ОБЯЗАТЕЛЬНО используй ВСЕ изображения (IMAGE_0, IMAGE_1, IMAGE_2...)
+   - Логично распределяй по документу
+
+⚠️ КРИТИЧЕСКИЕ ТРЕБОВАНИЯ:
+- Полный HTML документ (от <!DOCTYPE html> до </html>)
+- Встроенные CSS стили (inline + <style> в <head>)
+- Адаптивный дизайн (media queries для мобильных)
+- Современная типографика и spacing
 - На русском языке
-- Если есть изображения - размести их ЛОГИЧНО согласно правилам выше
+- НИКОГДА не вставляй base64 данные - только плейсхолдеры IMAGE_0, IMAGE_1
+- Документ должен быть ПОЛНЫМ и готовым к использованию
+
+СОЗДАЙ ИДЕАЛЬНЫЙ ДОКУМЕНТ, КОТОРЫЙ ПОНРАВИТСЯ ПОЛЬЗОВАТЕЛЮ!
 `
 
     const response = await fetchWithTimeout('/api/openrouter-chat', {
@@ -201,7 +240,37 @@ ${modernDesign}
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [
-          { role: "system", content: "Ты эксперт по созданию HTML документов. Создавай только валидный HTML с встроенными CSS стилями. НИКОГДА не вставляй base64 данные изображений - используй ТОЛЬКО текстовые плейсхолдеры IMAGE_0, IMAGE_1 и т.д." },
+          { role: "system", content: `Ты интеллектуальный эксперт по созданию HTML документов с глубоким пониманием контекста и дизайна.
+
+🎯 ТВОЯ ЗАДАЧА:
+- Понимать НАМЕРЕНИЯ пользователя и контекст документа
+- Создавать ПОЛНЫЕ, валидные HTML документы с современным дизайном
+- Использовать встроенные CSS стили (inline + <style>)
+- Адаптивный дизайн для всех устройств
+
+⚠️ КРИТИЧЕСКИ ВАЖНО ДЛЯ ИЗОБРАЖЕНИЙ:
+- НИКОГДА не вставляй base64, data:image, или URL изображений
+- Используй ТОЛЬКО текстовые плейсхолдеры: IMAGE_0, IMAGE_1, IMAGE_2 и т.д.
+- Плейсхолдер должен быть ТОЧНО таким: <img src="IMAGE_0" alt="..." />
+- НЕ ДОБАВЛЯЙ префикс data:image или любой другой префикс или слэш
+- Просто IMAGE_0, IMAGE_1, IMAGE_2 в атрибуте src (без / в начале!)
+
+ПРИМЕРЫ ПРАВИЛЬНЫХ ТЕГОВ:
+✅ <img src="IMAGE_0" alt="Главное изображение" style="width: 100%;" />
+✅ <img src="IMAGE_1" alt="Изображение 2" style="max-width: 300px;" />
+✅ <img src="IMAGE_2" alt="Изображение 3" />
+
+ПРИМЕРЫ НЕПРАВИЛЬНЫХ ТЕГОВ:
+❌ <img src="/IMAGE_0" /> - НЕТ слэша в начале!
+❌ <img src="./IMAGE_0" /> - НЕТ префикса!
+❌ <img src="data:image/png;base64,..." />
+❌ <img src="https://..." />
+❌ <img src="" />
+❌ НЕ используй пустые src
+
+ОБЯЗАТЕЛЬНО ВСТАВЬ ВСЕ ПЛЕЙСХОЛДЕРЫ, КОТОРЫЕ УКАЗАНЫ В ПРОМПТЕ!
+
+Ты создаешь документы, которые впечатляют!` },
           { role: "user", content: prompt }
         ],
         model: model,
@@ -226,11 +295,37 @@ ${modernDesign}
     // Убираем пробелы и переносы в начале
     html = html.trim()
     
-    // После генерации заменяем placeholder'ы на реальные base64
-    uploadedImages.forEach((img, i) => {
-      const placeholder = `IMAGE_${i}`
-      html = html.replace(new RegExp(placeholder, 'g'), img.base64)
-    })
+    // FALLBACK: Если Gemini не вставил IMAGE плейсхолдеры, вставляем их программно
+    const expectedImageCount = uploadedImages.length
+    if (expectedImageCount > 0) {
+      // Проверяем, есть ли IMAGE_0, IMAGE_1 и т.д. в HTML
+      const hasPlaceholders = /IMAGE_\d+/.test(html)
+      
+      if (!hasPlaceholders) {
+        console.log(`⚠️  Gemini didn't insert IMAGE placeholders! Adding them manually...`)
+        
+        // Вставляем плейсхолдеры в HTML
+        // Стратегия: ищем <body> и вставляем изображения после открывающего тега или в начало контента
+        const bodyMatch = html.match(/<body[^>]*>/i)
+        if (bodyMatch) {
+          const insertIndex = bodyMatch.index! + bodyMatch[0].length
+          
+          // Создаем HTML для изображений в зависимости от типа документа
+          let imageHTML = '<div style="margin: 20px 0; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">\n'
+          for (let i = 0; i < expectedImageCount; i++) {
+            imageHTML += `  <img src="IMAGE_${i}" alt="Image ${i + 1}" style="max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />\n`
+          }
+          imageHTML += '</div>\n'
+          
+          html = html.slice(0, insertIndex) + '\n' + imageHTML + html.slice(insertIndex)
+          console.log(`✅ Manually inserted ${expectedImageCount} IMAGE placeholders`)
+        }
+      }
+    }
+    
+    // ⚠️ ВАЖНО: НЕ заменяем placeholders здесь!
+    // Вся логика замены IMAGE_X на base64 происходит в imageAgent.ts:replaceImagePlaceholders()
+    // Там есть проверка всех вариантов placeholders и финальная очистка битых IMAGE_*
     
     return html
   } catch (error) {
@@ -241,7 +336,45 @@ ${modernDesign}
 
 const getSystemPrompt = (docType: string): string => {
   const config = PROMPTS[docType as DocType]
-  return config?.system || "Ты помощник по созданию документов."
+  const basePrompt = config?.system || "Ты помощник по созданию документов."
+  
+  // Добавляем интеллектуальное понимание контекста
+  const contextualPrompt = `${basePrompt}
+
+🧠 INTELLIGENT CONTEXT UNDERSTANDING:
+
+You are an AI that deeply understands user intent and context. Your task is to:
+
+1. ANALYZE the user's request carefully:
+   - What is the main subject/product/company/topic?
+   - What style/tone does the user want? (professional, casual, playful, serious, etc.)
+   - Are there specific requirements? (colors, structure, specific details, etc.)
+   - What is the user's REAL intent behind their words?
+
+2. EXTRACT all relevant information:
+   - Company/brand names mentioned
+   - Product names and details
+   - Specific numbers, dates, prices
+   - Context clues (industry, target audience, purpose)
+
+3. GENERATE content that:
+   - MATCHES the user's intent perfectly
+   - Uses appropriate tone and style for the context
+   - Includes all specific details mentioned
+   - Is detailed but concise
+   - Follows the document type structure
+
+⚠️ CRITICAL RULES:
+- If user mentions specific details (names, numbers, colors, etc.) → USE THEM
+- If user specifies "одно изображение" or "1 изображение" → understand they want 1 image
+- If user asks for specific style → apply that style
+- ALWAYS output valid JSON format
+- Extract company names, product names, prices from the request
+- Be intelligent: understand context, not just keywords
+
+RESPOND WITH UNDERSTANDING AND PRECISION.`
+  
+  return contextualPrompt
 }
 
 export const getPromptForAction = (

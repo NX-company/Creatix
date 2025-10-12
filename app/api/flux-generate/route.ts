@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Replicate API token not configured' }, { status: 500 })
     }
 
-    const isPro = model.includes('flux-pro')
-    const modelName = isPro ? 'Flux Pro' : 'Flux Schnell'
+    const isPro = model.includes('flux-pro') || model.includes('flux-1.1-pro')
+    const modelName = model.includes('flux-1.1-pro') ? 'Flux 1.1 Pro' : (isPro ? 'Flux Pro' : 'Flux Schnell')
     
     console.log(`🎨 ${modelName}: Starting generation...`)
     console.log(`   Model: ${model}`)
@@ -38,10 +38,14 @@ export async function POST(request: NextRequest) {
       height,
     }
     
-    // Flux Schnell дополнительно принимает эти параметры
+    // Flux Schnell/Dev дополнительно принимает эти параметры
     if (!isPro) {
       input.num_outputs = 1
       input.disable_safety_checker = false
+    } else if (model.includes('flux-1.1-pro')) {
+      // Flux 1.1 Pro принимает специфичные параметры
+      input.prompt_upsampling = false
+      input.safety_tolerance = 2
     }
     
     console.log(`📤 Input parameters:`, JSON.stringify(input, null, 2))
@@ -61,145 +65,70 @@ export async function POST(request: NextRequest) {
 
     // Обработка разных типов ответов от Replicate API
     try {
-      // Для Flux Pro: FileOutput объект
-      if (isPro && output && typeof output === 'object' && !Array.isArray(output)) {
-        console.log(`📦 Flux Pro FileOutput detected`)
+      // УНИВЕРСАЛЬНЫЙ ПОДХОД: сначала проверяем, это строка URL
+      if (typeof output === 'string') {
+        console.log(`📦 Direct string URL detected`)
+        imageUrl = output
+      }
+      // Если это массив - берем первый элемент
+      else if (Array.isArray(output) && output.length > 0) {
+        console.log(`📦 Array response with ${output.length} items`)
+        const firstItem = output[0]
         
-        // Проверяем метод blob() - он есть у FileOutput
-        if (typeof (output as any).blob === 'function') {
-          try {
-            console.log(`📦 Trying to get blob from FileOutput...`)
-            const blob = await (output as any).blob()
-            console.log(`📦 Got blob, size:`, blob?.size)
-            
-            if (blob && blob.size > 0) {
-              imageBuffer = await blob.arrayBuffer()
-              if (imageBuffer) {
-                console.log(`✅ Got buffer from blob: ${imageBuffer.byteLength} bytes`)
-              }
-            }
-          } catch (e) {
-            console.error(`❌ Error calling .blob():`, e)
+        if (typeof firstItem === 'string') {
+          console.log(`📦 First item is string URL`)
+          imageUrl = firstItem
+        } else if (firstItem && typeof firstItem === 'object') {
+          console.log(`📦 First item is object, trying to extract URL...`)
+          // Пробуем извлечь URL из объекта
+          if (typeof (firstItem as any).url === 'function') {
+            const urlResult = await (firstItem as any).url()
+            imageUrl = typeof urlResult === 'string' ? urlResult : urlResult?.href || urlResult?.toString()
+          } else if ((firstItem as any).url && typeof (firstItem as any).url === 'string') {
+            imageUrl = (firstItem as any).url
+          } else if ((firstItem as any).href && typeof (firstItem as any).href === 'string') {
+            imageUrl = (firstItem as any).href
           }
         }
+      }
+      // Если это объект (FileOutput для Pro моделей)
+      else if (output && typeof output === 'object' && !Array.isArray(output)) {
+        console.log(`📦 Object response (FileOutput) detected`)
         
-        // Если blob не сработал, пробуем url()
-        if (!imageBuffer && typeof (output as any).url === 'function') {
+        // Пробуем url() метод
+        if (typeof (output as any).url === 'function') {
           try {
-            console.log(`📦 Trying to get URL from FileOutput...`)
+            console.log(`📦 Calling .url() method...`)
             const urlResult = await (output as any).url()
-            console.log(`📦 URL result:`, urlResult)
-            console.log(`📦 URL result type:`, typeof urlResult)
             
-            // Если url() вернул строку URL
             if (typeof urlResult === 'string') {
               imageUrl = urlResult
-              console.log(`✅ Got URL from FileOutput:`, imageUrl)
+            } else if (urlResult?.href) {
+              imageUrl = urlResult.href
+            } else if (urlResult?.toString) {
+              imageUrl = urlResult.toString()
             }
-            // Если url() вернул объект с полем url или href
-            else if (urlResult && typeof urlResult === 'object') {
-              if (urlResult.url && typeof urlResult.url === 'string') {
-                imageUrl = urlResult.url
-                console.log(`✅ Got URL from result.url:`, imageUrl)
-              } else if (urlResult.href && typeof urlResult.href === 'string') {
-                imageUrl = urlResult.href
-                console.log(`✅ Got URL from result.href:`, imageUrl)
-              } else if (typeof urlResult.toString === 'function') {
-                imageUrl = urlResult.toString()
-                console.log(`✅ Got URL via toString():`, imageUrl)
-              }
+            
+            if (imageUrl) {
+              console.log(`✅ Got URL from FileOutput: ${imageUrl.substring(0, 100)}...`)
             }
           } catch (e) {
-            console.error(`❌ Error calling .url():`, e)
+            console.warn(`⚠️  .url() method failed:`, e)
           }
         }
         
-        // Если URL и buffer не получены, пробуем другие методы
-        if (!imageUrl && !imageBuffer) {
-          console.log(`📦 Trying other methods...`)
-          
-          // Пробуем toString() метод
-          if (typeof (output as any).toString === 'function') {
-            try {
-              const str = (output as any).toString()
-              console.log(`📦 toString() result:`, str?.substring(0, 100))
-            } catch (e) {
-              console.error(`❌ Error calling .toString():`, e)
+        // Если URL не получен, пробуем toString()
+        if (!imageUrl && typeof (output as any).toString === 'function') {
+          try {
+            const str = (output as any).toString()
+            if (str && str.startsWith('http')) {
+              imageUrl = str
+              console.log(`✅ Got URL via toString()`)
             }
-          }
-          
-          // Если output это Buffer напрямую
-          if (Buffer.isBuffer(output)) {
-            const slicedBuffer = output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength)
-            imageBuffer = slicedBuffer instanceof ArrayBuffer ? slicedBuffer : undefined
-            if (imageBuffer) {
-              console.log(`✅ Got buffer directly: ${imageBuffer.byteLength} bytes`)
-            }
-          } else if (typeof (output as any).arrayBuffer === 'function') {
-            const buffer = await (output as any).arrayBuffer()
-            imageBuffer = buffer instanceof ArrayBuffer ? buffer : undefined
-            if (imageBuffer) {
-              console.log(`✅ Got buffer via arrayBuffer(): ${imageBuffer.byteLength} bytes`)
-            }
+          } catch (e) {
+            console.warn(`⚠️  .toString() failed:`, e)
           }
         }
-      }
-      // Для Flux Schnell: массив с FileOutput элементами 
-      else if (Array.isArray(output) && output.length > 0) {
-        console.log(`📦 Array response detected`)
-        const firstElement = output[0]
-        
-        // Flux Schnell тоже может возвращать FileOutput в массиве
-        if (firstElement && typeof firstElement === 'object') {
-          console.log(`📦 Array element constructor:`, firstElement.constructor?.name)
-          
-          // Пробуем получить URL
-          if (typeof (firstElement as any).url === 'function') {
-            try {
-              console.log(`📦 Calling .url() on array element...`)
-              const urlResult = await (firstElement as any).url()
-              console.log(`📦 URL result type:`, typeof urlResult)
-              console.log(`📦 URL result value:`, urlResult)
-              
-              if (typeof urlResult === 'string') {
-                imageUrl = urlResult
-                console.log(`✅ Got URL from array element:`, imageUrl)
-              } else if (urlResult && typeof urlResult === 'object' && urlResult.href) {
-                imageUrl = urlResult.href
-                console.log(`✅ Got URL from .href:`, imageUrl)
-              }
-            } catch (e) {
-              console.error(`❌ Error calling .url() on array element:`, e)
-            }
-          }
-          
-          // Если URL не получен, пробуем как buffer
-          if (!imageUrl && !imageBuffer) {
-            if (Buffer.isBuffer(firstElement)) {
-              const slicedBuffer = firstElement.buffer.slice(firstElement.byteOffset, firstElement.byteOffset + firstElement.byteLength)
-              imageBuffer = slicedBuffer instanceof ArrayBuffer ? slicedBuffer : undefined
-              if (imageBuffer) {
-                console.log(`✅ Got buffer from array: ${imageBuffer.byteLength} bytes`)
-              }
-            } else if (typeof (firstElement as any).arrayBuffer === 'function') {
-              const buffer = await (firstElement as any).arrayBuffer()
-              imageBuffer = buffer instanceof ArrayBuffer ? buffer : undefined
-              if (imageBuffer) {
-                console.log(`✅ Got buffer via arrayBuffer() from array: ${imageBuffer.byteLength} bytes`)
-              }
-            }
-          }
-        } else if (typeof firstElement === 'string') {
-          // Обычная строка URL
-          imageUrl = firstElement
-          console.log(`✅ Got URL string from array:`, imageUrl)
-        }
-      }
-      // Если это напрямую строка
-      else if (typeof output === 'string') {
-        console.log(`📦 String response detected`)
-        imageUrl = output
-        console.log(`✅ Got URL as string:`, imageUrl)
       }
       
       if (imageUrl && !imageBuffer) {

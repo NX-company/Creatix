@@ -71,7 +71,11 @@ export async function generateImagesFromPlan(
   previousFeedback?: string,
   model: string = 'black-forest-labs/flux-schnell'
 ): Promise<GeneratedImage[]> {
-  const modelName = model.includes('flux-pro') ? 'Flux Pro' : 'Flux Schnell'
+  const modelName = model.includes('flux-1.1-pro') 
+    ? 'Flux 1.1 Pro' 
+    : model.includes('flux-pro') 
+    ? 'Flux Pro' 
+    : 'Flux Schnell'
   console.log(`🎨 Image Agent (${modelName}): Generating ${imagePlans.length} images from plan...`)
   
   if (previousFeedback) {
@@ -250,6 +254,7 @@ export function replaceImagePlaceholders(html: string, images: GeneratedImage[])
   console.log(`🔄 Replacing image placeholders: ${images.length} images`)
   
   let result = html
+  let imagesWithoutPlaceholders: GeneratedImage[] = []
 
   images.forEach((img, index) => {
     console.log(`   📸 Image ${index + 1}: slot=${img.slot}, dataUrl length=${img.dataUrl.length}`)
@@ -257,6 +262,8 @@ export function replaceImagePlaceholders(html: string, images: GeneratedImage[])
     // Различные варианты плейсхолдеров
     const placeholders = [
       `IMAGE_${img.slot}`,
+      `/IMAGE_${img.slot}`,
+      `./IMAGE_${img.slot}`,
       `IMAGE_SLOT_${img.slot}`,
       `\${IMAGE_${img.slot}}`,
       `{{IMAGE_${img.slot}}}`,
@@ -277,9 +284,65 @@ export function replaceImagePlaceholders(html: string, images: GeneratedImage[])
     
     if (replacementCount === 0) {
       console.warn(`      ⚠️  No placeholders found for image slot ${img.slot}`)
+      imagesWithoutPlaceholders.push(img)
     }
   })
 
+  // FALLBACK: Если плейсхолдеры не найдены, вставляем изображения программно
+  if (imagesWithoutPlaceholders.length > 0) {
+    console.log(`⚠️  Gemini didn't insert placeholders for ${imagesWithoutPlaceholders.length} images. Adding them manually...`)
+    
+    // Стратегия: ищем <body> и вставляем изображения в начало контента
+    const bodyMatch = result.match(/<body[^>]*>/i)
+    if (bodyMatch) {
+      const insertIndex = bodyMatch.index! + bodyMatch[0].length
+      
+      // Создаем HTML для изображений
+      let imageHTML = '\n<div style="margin: 20px auto; max-width: 1200px; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding: 20px;">\n'
+      imagesWithoutPlaceholders.forEach((img) => {
+        imageHTML += `  <img src="${img.dataUrl}" alt="AI Generated Image ${img.slot + 1}" style="max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.3s;" />\n`
+      })
+      imageHTML += '</div>\n'
+      
+      result = result.slice(0, insertIndex) + imageHTML + result.slice(insertIndex)
+      console.log(`✅ Manually inserted ${imagesWithoutPlaceholders.length} images into HTML`)
+    } else {
+      // Если нет <body>, вставляем перед </html>
+      const htmlEndMatch = result.match(/<\/html>/i)
+      if (htmlEndMatch) {
+        const insertIndex = htmlEndMatch.index!
+        let imageHTML = '<div style="margin: 20px auto; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">\n'
+        imagesWithoutPlaceholders.forEach((img) => {
+          imageHTML += `  <img src="${img.dataUrl}" alt="AI Generated Image ${img.slot + 1}" style="max-width: 300px; height: auto;" />\n`
+        })
+        imageHTML += '</div>\n'
+        result = result.slice(0, insertIndex) + imageHTML + result.slice(insertIndex)
+        console.log(`✅ Manually inserted ${imagesWithoutPlaceholders.length} images before </html>`)
+      }
+    }
+  }
+
+  // КРИТИЧЕСКАЯ ФИНАЛЬНАЯ ОЧИСТКА: убираем ВСЕ оставшиеся битые IMAGE_* placeholders
+  const remainingPlaceholders = result.match(/IMAGE_\d+/g)
+  if (remainingPlaceholders && remainingPlaceholders.length > 0) {
+    const uniquePlaceholders = Array.from(new Set(remainingPlaceholders))
+    console.warn(`⚠️ Found ${uniquePlaceholders.length} unreplaced placeholders: ${uniquePlaceholders.join(', ')}. Removing them...`)
+    
+    // АГРЕССИВНАЯ ОЧИСТКА: удаляем ВСЕ теги <img>, которые содержат IMAGE_ в любом месте
+    result = result.replace(/<img[^>]*IMAGE_\d+[^>]*\/?>/gi, '')
+    
+    // Дополнительно: удаляем любые src="IMAGE_X" или src='IMAGE_X' без тегов
+    result = result.replace(/src=["']IMAGE_\d+["']/gi, '')
+    
+    // Удаляем плейсхолдеры, которые остались как текст
+    uniquePlaceholders.forEach(placeholder => {
+      const regex = new RegExp(placeholder, 'g')
+      result = result.replace(regex, '')
+    })
+    
+    console.log(`✅ Removed ${uniquePlaceholders.length} broken placeholder tags`)
+  }
+  
   console.log(`✅ Placeholder replacement complete`)
   return result
 }

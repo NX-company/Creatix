@@ -44,40 +44,72 @@ export async function analyzeContentForImages(
   
   console.log(`🎨 Images to generate: ${numImages} (default for ${docType}: ${defaultCount})`)
   
-  const analysisPrompt = `You are a Content Analyzer AI that creates image generation plans.
+  const analysisPrompt = `You are an intelligent Content Analyzer AI that deeply understands user intent and creates precise image generation plans.
 
+🎯 CONTEXT ANALYSIS:
 USER REQUEST: "${userPrompt}"
 DOCUMENT TYPE: ${docType}
-IMAGES NEEDED: ${numImages}
+EXACT IMAGES NEEDED: ${numImages}
 
 GENERATED CONTENT:
 ${JSON.stringify(contentData, null, 2).substring(0, 2000)}
 
-${previousFeedback ? `\nPREVIOUS QA FEEDBACK:\n${previousFeedback}\n` : ''}
+${previousFeedback ? `\n📋 PREVIOUS QA FEEDBACK:\n${previousFeedback}\n` : ''}
 
-Your task:
-1. Extract the MAIN THEME from the content (company name, product, industry, subject)
-2. Create ${numImages} SPECIFIC image generation prompts that MATCH the content
-3. Make prompts detailed and relevant to the actual content, NOT generic
+🧠 YOUR INTELLIGENT TASK:
 
-Requirements:
-- If content mentions a specific company name → use it in prompts
-- If content is about a product → create product-focused prompts
-- If content has industry context → reflect it in style
-- Be SPECIFIC, avoid generic terms like "business logo", "corporate background"
-- Use English for prompts (translate if needed)
+1. DEEPLY UNDERSTAND the user's intent:
+   - What is the main subject/product/company?
+   - What style/mood does the user want? (professional, playful, minimal, etc.)
+   - Are there specific details mentioned? (colors, style, objects, etc.)
+   
+2. CREATE EXACTLY ${numImages} SPECIFIC image prompts that:
+   - MATCH the user's intent and context perfectly
+   - Are DETAILED and SPECIFIC (not generic)
+   - Include all relevant details from the user request
+   - Use appropriate style for the document type
+
+3. EXTRACT all relevant information:
+   - Company/brand name (if mentioned)
+   - Product name and details
+   - Industry/niche
+   - Main theme/subject
+
+🎨 IMAGE PROMPT GUIDELINES:
+
+For LOGOS:
+- Include company name, industry, style (minimal/playful/professional)
+- Specify colors if mentioned
+- Reflect brand personality
+
+For PRODUCTS:
+- Describe the product accurately
+- Include context (lifestyle, studio, detail shots)
+- Match the product's actual features
+
+For ILLUSTRATIONS:
+- Match the content's theme and mood
+- Be specific about the scene/objects
+- Include relevant context from user request
+
+⚠️ CRITICAL RULES:
+- Generate EXACTLY ${numImages} prompts (no more, no less)
+- Be SPECIFIC, not generic (use actual names, details from content)
+- Prompts MUST be in English
+- Understand context: if user says "одно изображение" → create 1 prompt
+- Extract intent: if user says "сделай логотип для кафе" → understand it's a cafe logo
 
 Return ONLY valid JSON:
 {
-  "mainTheme": "specific theme in English (e.g., 'Bodrое Utro coffee shop', 'iPhone 15 Pro')",
-  "companyName": "extracted company name or null",
+  "mainTheme": "specific theme extracted from user request",
+  "companyName": "extracted company/brand name or null",
   "productName": "extracted product name or null",
-  "industry": "industry type or null",
+  "industry": "industry/niche or null",
   "imagePrompts": [
     {
-      "type": "logo",
-      "prompt": "detailed specific prompt in English",
-      "reasoning": "why this prompt matches the content",
+      "type": "logo|hero|illustration|product|background",
+      "prompt": "extremely detailed and specific prompt in English that captures user's intent",
+      "reasoning": "why this matches the user's request and context",
       "slot": 0
     }
   ]
@@ -85,14 +117,17 @@ Return ONLY valid JSON:
 
   try {
     if (usePRO) {
-      const response = await fetch('/api/openai-gpt4o', {
+      // PRO режим: используем OpenRouter GPT-4o вместо прямого OpenAI API (чтобы избежать квоты)
+      const response = await fetch('/api/openrouter-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: analysisPrompt,
-          docType: docType,
-          images: [],
-          mode: 'content'
+          messages: [
+            { role: 'system', content: 'You are an expert content analyzer. Always return valid JSON.' },
+            { role: 'user', content: analysisPrompt }
+          ],
+          model: 'openai/gpt-4o',
+          temperature: 0.3
         }),
       })
 
@@ -190,10 +225,34 @@ function getImageCountForDocType(docType: DocType): number {
 }
 
 function extractImageCountFromPrompt(userPrompt: string, defaultCount: number): number {
-  // Ищем явное указание количества изображений в промпте пользователя
+  // Текстовые числительные (русские)
+  const textNumbers: Record<string, number> = {
+    'одно': 1, 'один': 1, 'одна': 1, 'одну': 1, 'одного': 1, 'одной': 1,
+    'два': 2, 'две': 2, 'двух': 2, 'двое': 2,
+    'три': 3, 'трёх': 3, 'трех': 3, 'трое': 3,
+    'четыре': 4, 'четырёх': 4, 'четырех': 4, 'четверо': 4,
+    'пять': 5, 'пяти': 5, 'пятеро': 5,
+    'шесть': 6, 'шести': 6, 'шестеро': 6,
+    'семь': 7, 'семи': 7, 'семеро': 7,
+    'восемь': 8, 'восьми': 8, 'восьмеро': 8,
+    'девять': 9, 'девяти': 9, 'девятеро': 9,
+    'десять': 10, 'десяти': 10, 'десятеро': 10,
+  }
+  
+  // Проверяем текстовые числительные
+  const lowerPrompt = userPrompt.toLowerCase()
+  for (const [word, num] of Object.entries(textNumbers)) {
+    const regex = new RegExp(`\\b${word}\\b\\s*(изображени|картинк|фото|варианта?|вариант|лого|фотк)`, 'i')
+    if (regex.test(lowerPrompt)) {
+      console.log(`📊 User requested ${num} images (extracted from text: "${word}")`)
+      return num
+    }
+  }
+  
+  // Ищем явное указание количества изображений (цифры)
   const patterns = [
-    /(\d+)\s*(изображени|картинк|фото|варианта?|лого)/i,
-    /(вставь|сделай|создай|добавь|генери)\s*(\d+)/i,
+    /(\d+)\s*(изображени|картинк|фото|варианта?|лого|фотк)/i,
+    /(вставь|сделай|создай|добавь|генери|нарисуй)\s*(\d+)/i,
   ]
   
   for (const pattern of patterns) {

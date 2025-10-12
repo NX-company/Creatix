@@ -55,7 +55,7 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Админ-панель NX Studio</h1>
+            <h1 className="text-3xl font-bold">Админ-панель Creatix</h1>
             <p className="text-muted-foreground">Управление системой и пользователями</p>
           </div>
           <button

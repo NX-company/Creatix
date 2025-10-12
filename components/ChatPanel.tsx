@@ -11,9 +11,11 @@ import { applyAIEdit, isEditCommand } from '@/lib/aiEditor'
 import { generateDocumentWithMode } from '@/lib/agents/orchestrator'
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { processPlanningMode, formatPlanForGeneration } from '@/lib/agents/planningAgent'
+import { saveHTMLPreview } from '@/lib/storage/indexedDB'
 import ProjectSelector from './ProjectSelector'
 import FileUploader from './FileUploader'
 import WebsiteModal from './WebsiteModal'
+import WebsiteActionModal from './WebsiteActionModal'
 import ModeSwitcher from './ModeSwitcher'
 import InlinePlanningCard from './InlinePlanningCard'
 
@@ -44,12 +46,16 @@ export default function ChatPanel() {
     setWorkMode,
     planningData,
     setPlanningData,
-    resetPlanningData
+    resetPlanningData,
+    getCurrentProject
   } = useStore()
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [isWebModalOpen, setIsWebModalOpen] = useState(false)
   const [isParsingWebsite, setIsParsingWebsite] = useState(false)
+  const [websiteActionModalOpen, setWebsiteActionModalOpen] = useState(false)
+  const [pendingWebsiteUrl, setPendingWebsiteUrl] = useState('')
+  const [pendingWebsiteData, setPendingWebsiteData] = useState<any>(null)
   const isGeneratingRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -116,50 +122,10 @@ export default function ChatPanel() {
 
       const data = await response.json()
       
-      // Формируем содержимое для AI
-      const content = [
-        ...data.headings.h1,
-        ...data.headings.h2.slice(0, 5),
-        ...data.paragraphs.slice(0, 10)
-      ].filter(Boolean).join('\n\n')
-      
-      // Сохраняем данные в store
-      const websiteData = {
-        url: data.url,
-        title: data.title,
-        description: data.description || '',
-        headings: data.headings,
-        paragraphs: data.paragraphs,
-        images: data.images,
-        content: content
-      }
-      
-      setParsedWebsiteData(websiteData)
-      
-      const summary = `✅ Сайт успешно проанализирован!
-
-📄 **Заголовок:** ${data.title}
-📝 **Описание:** ${data.description || 'Не найдено'}
-
-**Найдено:**
-• ${data.headings.h1.length} заголовков H1
-• ${data.headings.h2.length} заголовков H2
-• ${data.paragraphs.length} абзацев текста
-• ${data.images.length} изображений
-• ${data.links.length} ссылок
-
-**Основные заголовки:**
-${data.headings.h1.slice(0, 3).map((h: string) => `• ${h}`).join('\n')}
-
-💡 **Теперь напишите:** "Создай КП" или "Сделай презентацию"
-
-Данные сайта сохранены и будут использованы для генерации документа!`
-
-      addMessage({
-        role: 'assistant',
-        content: summary
-      })
-      
+      setPendingWebsiteUrl(url)
+      setPendingWebsiteData(data)
+      setWebsiteActionModalOpen(true)
+      setIsParsingWebsite(false)
       setIsWebModalOpen(false)
     } catch (error) {
       console.error('Website parsing error:', error)
@@ -170,6 +136,50 @@ ${data.headings.h1.slice(0, 3).map((h: string) => `• ${h}`).join('\n')}
     } finally {
       setIsParsingWebsite(false)
     }
+  }
+
+  const handleWebsiteAction = (action: 'copy-design' | 'content-only' | 'style-only') => {
+    if (!pendingWebsiteData) return
+    
+    const content = [
+      ...pendingWebsiteData.headings.h1,
+      ...pendingWebsiteData.headings.h2.slice(0, 5),
+      ...pendingWebsiteData.paragraphs.slice(0, 10)
+    ].filter(Boolean).join('\n\n')
+    
+    const websiteData = {
+      url: pendingWebsiteData.url,
+      title: pendingWebsiteData.title,
+      description: pendingWebsiteData.description || '',
+      headings: pendingWebsiteData.headings,
+      paragraphs: pendingWebsiteData.paragraphs,
+      images: pendingWebsiteData.images,
+      content: content,
+      actionType: action
+    }
+    
+    setParsedWebsiteData(websiteData)
+    
+    if (action === 'copy-design') {
+      addMessage({
+        role: 'assistant',
+        content: `✅ Сайт проанализирован для точного копирования!\n\n📋 Найдено:\n- ${pendingWebsiteData.headings.h1.length} главных заголовков\n- ${pendingWebsiteData.paragraphs.length} абзацев текста\n- ${pendingWebsiteData.images.length} изображений\n\n💡 Скажите какой тип документа создать (карточка товара, презентация и т.д.) - я повторю дизайн максимально точно!`
+      })
+    } else if (action === 'content-only') {
+      addMessage({
+        role: 'assistant',
+        content: `✅ Контент извлечён! Применю современный дизайн.\n\n📝 Что извлечено:\n- Заголовки и текст\n- Изображения\n\n🎨 Скажите какой документ создать - применю свой стильный дизайн к этому контенту!`
+      })
+    } else {
+      addMessage({
+        role: 'assistant',
+        content: `✅ Стиль сайта проанализирован!\n\n🎨 AI извлёк цветовую схему и визуальный стиль.\n\n💡 Теперь опишите контент для нового документа - применю стиль с сайта!`
+      })
+    }
+    
+    setWebsiteActionModalOpen(false)
+    setPendingWebsiteUrl('')
+    setPendingWebsiteData(null)
   }
 
   const handleRun = async () => {
@@ -219,8 +229,18 @@ ${data.headings.h1.slice(0, 3).map((h: string) => `• ${h}`).join('\n')}
       )
       
       // Проверяем, является ли это командой редактирования (только если нет данных сайта)
-      if (htmlPreview && !isDocumentCreationFromWebsite && isEditCommand(userMsg)) {
-        console.log('🔧 Detected edit command:', userMsg)
+      // Если документ уже создан и это не запрос на создание нового - считаем редактированием
+      const isCreationRequest = userMsg.toLowerCase().includes('создай') || 
+                                userMsg.toLowerCase().includes('сделай новый') ||
+                                userMsg.toLowerCase().includes('сгенерируй')
+      
+      const isEdit = htmlPreview && !isDocumentCreationFromWebsite && !isCreationRequest
+      console.log(`🔍 Is edit mode: ${isEdit} (has preview: ${!!htmlPreview}, creation request: ${isCreationRequest})`)
+      console.log(`📝 User message: "${userMsg}"`)
+      
+      if (isEdit) {
+        console.log('🔧 Edit mode activated!')
+        console.log('🎯 Selected element:', selectedElement)
         
         let editMessage = '✏️ Вношу изменения'
         if (selectedElement) {
@@ -229,12 +249,208 @@ ${data.headings.h1.slice(0, 3).map((h: string) => `• ${h}`).join('\n')}
         addMessage({ role: 'assistant', content: editMessage + '...' })
         
         try {
-          const editedHtml = await applyAIEdit(htmlPreview, userMsg, selectedElement)
-          console.log('✅ AI edit successful, HTML length:', editedHtml.length)
-          if (selectedElement) {
-            console.log('🎯 Edited selected element:', selectedElement.selector)
+          const editResult = await applyAIEdit(htmlPreview, userMsg, selectedElement, appMode)
+          console.log('✅ AI edit successful, HTML length:', editResult.html.length)
+          console.log(`🔧 Contextual edit: ${editResult.isContextual}, selector: ${editResult.selector || 'N/A'}`)
+          
+          let finalHtml = editResult.html
+          
+          // 🔧 Если контекстное редактирование - заменяем элемент в полном HTML
+          if (editResult.isContextual && editResult.selector) {
+            console.log(`🔧 Replacing element ${editResult.selector} in full HTML...`)
+            
+            try {
+              // Используем DOMParser для безопасной замены элемента
+              const parser = new DOMParser()
+              const doc = parser.parseFromString(htmlPreview, 'text/html')
+              const element = doc.querySelector(editResult.selector)
+              
+              if (element) {
+                element.outerHTML = editResult.html
+                finalHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML
+                console.log(`✅ Element ${editResult.selector} replaced successfully`)
+              } else {
+                console.warn(`⚠️ Element ${editResult.selector} not found, using edited HTML as-is`)
+                finalHtml = editResult.html
+              }
+            } catch (domError) {
+              console.error('❌ DOM replacement failed:', domError)
+              finalHtml = editResult.html
+            }
           }
-          setHtmlPreview(editedHtml)
+          
+          // Проверяем, нужно ли сгенерировать изображение
+          if (finalHtml.includes('IMAGE_PLACEHOLDER')) {
+            console.log('🖼️ Detected IMAGE_PLACEHOLDER, checking for uploaded images...')
+            
+            // 🔍 НОВОЕ: Проверяем, есть ли загруженные изображения с actionType='use-as-is'
+            const imageToInsert = uploadedImages.find(img => img.actionType === 'use-as-is')
+            
+            if (imageToInsert) {
+              // Вставляем загруженное фото как есть
+              addMessage({ 
+                role: 'assistant', 
+                content: `✅ Вставляю загруженное фото "${imageToInsert.name}"` 
+              })
+              
+              // Заменяем IMAGE_PLACEHOLDER на загруженное изображение
+              finalHtml = finalHtml.replace(/IMAGE_PLACEHOLDER/g, imageToInsert.base64)
+              
+              setHtmlPreview(finalHtml)
+              const project = getCurrentProject()
+              if (project) {
+                const storageKey = `${project.id}-${docType}`
+                await saveHTMLPreview(storageKey, finalHtml)
+              }
+              
+              addMessage({
+                role: 'assistant',
+                content: `✅ Изображение "${imageToInsert.name}" вставлено!`
+              })
+            } else {
+              // Нет загруженных изображений - генерируем через AI
+              console.log('🖼️ No uploaded images, generating with AI...')
+              
+              // Проверяем, доступна ли генерация изображений в текущем режиме
+              const { MODE_CONFIG } = await import('@/lib/config/modes')
+              const modeConfig = MODE_CONFIG[appMode]
+              
+              if (!modeConfig.features.aiImageGeneration) {
+                // В бесплатном режиме генерация недоступна
+                addMessage({ 
+                  role: 'assistant', 
+                  content: '⚠️ Изменения применены, но генерация изображений доступна только в Продвинутом и PRO режимах. Переключитесь на другой режим для генерации изображений.' 
+                })
+                // Оставляем placeholder для пользователя
+              } else {
+                addMessage({ 
+                  role: 'assistant', 
+                  content: '🎨 Генерирую изображение для вставки...' 
+                })
+              
+              try {
+                // Генерируем изображение на основе контекста (Flux 1.1 Pro для PRO, Flux Schnell для остальных)
+                const { generateImagesFromPlan } = await import('@/lib/agents/imageAgent')
+                
+                // Определяем тип изображения из контекста
+                const lowerMsg = userMsg.toLowerCase()
+                let imageType: 'product' | 'logo' | 'illustration' | 'hero' | 'background' = 'product'
+                if (lowerMsg.includes('логотип') || lowerMsg.includes('logo')) {
+                  imageType = 'logo'
+                } else if (lowerMsg.includes('фон') || lowerMsg.includes('background')) {
+                  imageType = 'background'
+                } else if (lowerMsg.includes('иллюстрац')) {
+                  imageType = 'illustration'
+                }
+                
+                // Улучшаем промпт для генерации, извлекая ключевые слова
+                let enhancedPrompt = userMsg
+                // Убираем лишние слова
+                enhancedPrompt = enhancedPrompt.replace(/вставь|добавь|сюда|туда|здесь|замени|это|фото|на/gi, '').trim()
+                if (!enhancedPrompt) {
+                  enhancedPrompt = 'professional high quality image'
+                }
+                
+                // 🌍 Если промпт на русском - переводим через GPT-4o для лучшего понимания Flux
+                if (/[а-яё]/i.test(enhancedPrompt)) {
+                  console.log(`🌍 Translating Russian prompt to English: "${enhancedPrompt}"`)
+                  
+                  try {
+                    const translateResponse = await fetchWithTimeout('/api/openrouter-chat', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        messages: [{
+                          role: 'user',
+                          content: `Convert this to a detailed English image generation prompt for Flux Schnell AI model:
+
+"${enhancedPrompt}"
+
+Requirements:
+- Focus on the main subject/object described
+- Add details for professional/product photography style
+- Keep it concise (max 80 words)
+- Optimize for realistic image generation
+- Include relevant photography terms (e.g., "close-up", "studio lighting", "clean background")
+
+Output ONLY the English prompt, nothing else. No quotes, no explanations.`
+                        }],
+                        model: 'openai/gpt-4o',
+                        temperature: 0.3
+                      }),
+                    }, 30000) // 30 sec timeout for translation
+                    
+                    if (translateResponse.ok) {
+                      const data = await translateResponse.json()
+                      const translatedPrompt = data.content.trim().replace(/^["']|["']$/g, '')
+                      console.log(`✅ Translated to: "${translatedPrompt}"`)
+                      enhancedPrompt = translatedPrompt
+                    } else {
+                      console.warn('⚠️ Translation failed, using original prompt')
+                    }
+                  } catch (translateError) {
+                    console.warn('⚠️ Translation error:', translateError)
+                    // Fallback: используем оригинальный промпт
+                  }
+                }
+                
+                enhancedPrompt += '. Professional, high quality, modern style, clean background'
+                
+                console.log(`🎨 Generating image with prompt: "${enhancedPrompt}"`)
+                
+                const imagePlan = [{
+                  type: imageType,
+                  prompt: enhancedPrompt,
+                  reasoning: `User requested to add image: ${userMsg}`,
+                  slot: 0
+                }]
+                
+                let generatedImages
+                
+                // Выбираем модель в зависимости от режима
+                const imageModel = appMode === 'pro'
+                  ? 'black-forest-labs/flux-1.1-pro'  // PRO: Flux 1.1 Pro (лучшее качество)
+                  : 'black-forest-labs/flux-schnell'   // Free/Advanced: Flux Schnell (быстро и бесплатно)
+                
+                // Таймаут для генерации изображения (60 секунд)
+                const imagePromise = generateImagesFromPlan(imagePlan, undefined, imageModel)
+                
+                const timeoutPromise = new Promise<never>((_, reject) => 
+                  setTimeout(() => reject(new Error('Image generation timeout')), 60000)
+                )
+                
+                generatedImages = await Promise.race([imagePromise, timeoutPromise])
+                
+                if (generatedImages && generatedImages.length > 0) {
+                  // Заменяем IMAGE_PLACEHOLDER на сгенерированное изображение
+                  finalHtml = finalHtml.replace(/IMAGE_PLACEHOLDER/g, generatedImages[0].dataUrl)
+                  console.log('✅ Image generated and inserted')
+                  addMessage({ 
+                    role: 'assistant', 
+                    content: '✅ Изображение сгенерировано и вставлено!' 
+                  })
+                } else {
+                  console.warn('⚠️ No images generated')
+                  addMessage({ 
+                    role: 'assistant', 
+                    content: '⚠️ Изменения применены, но изображение не было создано.' 
+                  })
+                }
+              } catch (imgError) {
+                console.error('❌ Image generation failed:', imgError)
+                const errorMsg = imgError instanceof Error && imgError.message.includes('timeout')
+                  ? '⚠️ Превышено время ожидания генерации изображения (60 сек). Попробуйте еще раз.'
+                  : '⚠️ Изменения применены, но не удалось сгенерировать изображение. Попробуйте еще раз.'
+                addMessage({ 
+                  role: 'assistant', 
+                  content: errorMsg
+                })
+              }
+            }
+          }
+          }
+          
+          setHtmlPreview(finalHtml)
           
           addMessage({ 
             role: 'assistant', 
@@ -445,9 +661,9 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gradient-to-b from-background to-muted/10">
-      <div className="border-b border-border p-3 flex items-center justify-between flex-shrink-0 bg-background/80 backdrop-blur-sm shadow-sm">
+      <div className="border-b border-border p-2 sm:p-3 flex items-center justify-between flex-shrink-0 bg-background/80 backdrop-blur-sm shadow-sm">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-sm">Чат</h2>
+          <h2 className="font-semibold text-xs sm:text-sm">Чат</h2>
           
           {/* ИНДИКАТОР РЕЖИМА */}
           <div className={`
@@ -464,10 +680,10 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         <ProjectSelector />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 space-y-2 sm:space-y-3">
         {messages.length === 0 && (
           <div className="text-center text-muted-foreground mt-10">
-            <p>Начните с ввода команды или сообщения</p>
+            <p className="text-sm sm:text-base">Начните с ввода команды или сообщения</p>
             <p className="text-xs mt-2">Попробуйте: /import, /propose, /choose, /export</p>
           </div>
         )}
@@ -479,7 +695,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             {msg.type === 'interactive-planning' ? (
-              <div className="max-w-[85%] w-full">
+              <div className="max-w-[95%] sm:max-w-[90%] md:max-w-[85%] w-full">
                 <InlinePlanningCard
                   docType={docType}
                   onSubmit={handlePlanningCardSubmit}
@@ -488,22 +704,22 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
               </div>
             ) : (
               <div
-                className={`max-w-[70%] px-4 py-2 rounded-lg shadow-md ${
+                className={`max-w-[90%] sm:max-w-[85%] md:max-w-[75%] lg:max-w-[70%] px-3 py-2 sm:px-4 rounded-lg shadow-md ${
                   msg.role === 'user'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-foreground'
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{msg.content}</p>
               </div>
             )}
           </motion.div>
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-muted px-4 py-2 rounded-lg flex items-center gap-2 shadow-md">
+            <div className="bg-muted px-3 py-2 sm:px-4 rounded-lg flex items-center gap-2 shadow-md">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Обработка...</span>
+              <span className="text-xs sm:text-sm">Обработка...</span>
             </div>
           </div>
         )}
@@ -512,13 +728,13 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
 
       <div className="border-t border-border flex-shrink-0 bg-background/80 backdrop-blur-sm shadow-sm">
         {/* Переключатель режимов */}
-        <div className="p-3 border-b border-border flex items-center justify-center" data-tour="mode-switcher">
+        <div className="p-2 sm:p-3 border-b border-border flex items-center justify-center" data-tour="mode-switcher">
           <ModeSwitcher />
         </div>
         
         {/* Статус режима */}
         <div className={`
-          px-3 py-2 text-xs font-medium text-center border-b border-border
+          px-2 sm:px-3 py-2 text-[10px] sm:text-xs font-medium text-center border-b border-border
           ${workMode === 'plan' 
             ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400' 
             : 'bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400'
@@ -533,7 +749,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         </div>
         
         {/* Поле ввода */}
-        <div className="p-3 flex gap-2">
+        <div className="p-2 sm:p-3 flex gap-1.5 sm:gap-2">
           <div data-tour="file-upload">
             <FileUploader />
           </div>
@@ -547,7 +763,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
                 }
               }}
               disabled={loading || isParsingWebsite || !useStore.getState().isFeatureAvailable('parseWebsite')}
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all shadow-md hover:shadow-lg ${
+              className={`min-w-[44px] min-h-[44px] w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full transition-all shadow-md hover:shadow-lg ${
                 useStore.getState().isFeatureAvailable('parseWebsite')
                   ? 'bg-blue-500 text-white hover:bg-blue-600'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -575,18 +791,18 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
             data-tour="chat-input"
             placeholder={
               workMode === 'plan'
-                ? '💬 Опишите что хотите создать, цели, аудиторию...'
-                : '🚀 Опишите задачу или напишите "делай"...'
+                ? '💬 Опишите что хотите...'
+                : '🚀 Опишите задачу...'
             }
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            className="flex-1 min-h-[44px] px-2 sm:px-3 py-2 text-sm sm:text-base bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
             disabled={loading}
           />
           <button
             onClick={handleRun}
             disabled={loading || !input.trim()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg"
+            className="min-w-[44px] min-h-[44px] px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {loading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
         </div>
       </div>
@@ -597,6 +813,18 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         onClose={() => setIsWebModalOpen(false)}
         onSubmit={handleWebsiteParse}
         isLoading={isParsingWebsite}
+      />
+      
+      {/* Модальное окно выбора действия с сайтом */}
+      <WebsiteActionModal
+        isOpen={websiteActionModalOpen}
+        websiteUrl={pendingWebsiteUrl}
+        onClose={() => {
+          setWebsiteActionModalOpen(false)
+          setPendingWebsiteUrl('')
+          setPendingWebsiteData(null)
+        }}
+        onAction={handleWebsiteAction}
       />
     </div>
   )

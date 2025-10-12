@@ -1,4 +1,4 @@
-﻿# NX Studio - AI Document Generator
+﻿# Creatix - AI Document Generator
 
 Professional AI-powered document generator with automatic image generation.
 

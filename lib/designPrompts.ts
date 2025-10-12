@@ -1,6 +1,6 @@
 import type { DocType } from './store'
 
-export function getModernDesignPrompt(docType: DocType): string {
+export function getModernDesignPrompt(docType: DocType, styleConfig: any): string {
   const commonStyles = `
 🎨 СОВРЕМЕННЫЙ ДИЗАЙН - ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ:
 
@@ -42,7 +42,7 @@ body { font-family: 'Inter', sans-serif; color: #333; line-height: 1.6; }
   cursor: pointer;
 }
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, ${styleConfig.primaryColor} 0%, ${styleConfig.secondaryColor} 100%);
   color: white;
 }
 .btn-primary:hover {
@@ -79,7 +79,7 @@ body { font-family: 'Inter', sans-serif; color: #333; line-height: 1.6; }
 </table>
 
 CTA КНОПКА:
-<a href="#" style="display: inline-block; padding: 16px 32px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+<a href="#" style="display: inline-block; padding: 16px 32px; background: ${styleConfig.primaryColor}; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
   Действие
 </a>
 `,
@@ -88,13 +88,13 @@ CTA КНОПКА:
 📊 КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ:
 
 HERO СЕКЦИЯ (первый экран):
-<section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 40px; text-align: center;">
+<section style="background: linear-gradient(135deg, ${styleConfig.primaryColor} 0%, ${styleConfig.secondaryColor} 100%); color: white; padding: 100px 40px; text-align: center;">
   <div style="max-width: 1200px; margin: 0 auto;">
     <h1 style="font-family: 'Montserrat', sans-serif; font-size: 56px; font-weight: 900; margin-bottom: 24px; line-height: 1.2;">
       Заголовок с выгодой
     </h1>
     <p style="font-size: 20px; opacity: 0.95; margin-bottom: 32px;">Подзаголовок</p>
-    <a href="#" class="btn btn-primary" style="background: white; color: #667eea; padding: 18px 40px; font-size: 18px;">
+    <a href="#" class="btn btn-primary" style="background: white; color: ${styleConfig.primaryColor}; padding: 18px 40px; font-size: 18px;">
       Получить предложение →
     </a>
   </div>
@@ -106,7 +106,7 @@ HERO СЕКЦИЯ (первый экран):
     <h2 style="text-align: center; margin-bottom: 60px;">Почему мы?</h2>
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
       <div class="card">
-        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 32px;">
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, ${styleConfig.primaryColor}, ${styleConfig.secondaryColor}); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 32px;">
           ✓
         </div>
         <h3 style="margin-bottom: 12px;">Преимущество</h3>
@@ -119,7 +119,7 @@ HERO СЕКЦИЯ (первый экран):
 ТАБЛИЦА ЦЕН:
 <table style="width: 100%; border-collapse: collapse; margin: 40px 0;">
   <thead>
-    <tr style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+    <tr style="background: linear-gradient(135deg, ${styleConfig.primaryColor}, ${styleConfig.secondaryColor}); color: white;">
       <th style="padding: 16px; text-align: left;">Услуга</th>
       <th style="padding: 16px; text-align: center;">Кол-во</th>
       <th style="padding: 16px; text-align: right;">Цена</th>
@@ -135,7 +135,7 @@ HERO СЕКЦИЯ (первый экран):
   <tfoot>
     <tr style="background: #f8f9fa; font-weight: 700; font-size: 18px;">
       <td colspan="2" style="padding: 20px;">Итого:</td>
-      <td style="padding: 20px; text-align: right; color: #667eea;">...</td>
+      <td style="padding: 20px; text-align: right; color: ${styleConfig.primaryColor};">...</td>
     </tr>
   </tfoot>
 </table>
@@ -150,8 +150,8 @@ HERO СЕКЦИЯ (первый экран):
 <div style="max-width: 900px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 60px;">
 
 ШАПКА:
-<header style="border-bottom: 3px solid #667eea; padding-bottom: 30px; margin-bottom: 40px;">
-  <h1 style="font-family: 'Montserrat', sans-serif; font-size: 32px; color: #667eea; margin-bottom: 8px;">
+<header style="border-bottom: 3px solid ${styleConfig.primaryColor}; padding-bottom: 30px; margin-bottom: 40px;">
+  <h1 style="font-family: 'Montserrat', sans-serif; font-size: 32px; color: ${styleConfig.primaryColor}; margin-bottom: 8px;">
     Счёт № ___ от __.__.____
   </h1>
   <div style="color: #666; font-size: 14px;">ООО "Компания" | ИНН: ___</div>
@@ -188,9 +188,9 @@ HERO СЕКЦИЯ (первый экран):
     </tr>
   </tbody>
   <tfoot>
-    <tr style="border-top: 2px solid #667eea;">
+    <tr style="border-top: 2px solid ${styleConfig.primaryColor};">
       <td colspan="3" style="padding: 20px; font-weight: 700;">Итого к оплате:</td>
-      <td style="padding: 20px; text-align: right; font-weight: 700; font-size: 20px; color: #667eea;">...</td>
+      <td style="padding: 20px; text-align: right; font-weight: 700; font-size: 20px; color: ${styleConfig.primaryColor};">...</td>
     </tr>
   </tfoot>
 </table>
@@ -202,7 +202,7 @@ HERO СЕКЦИЯ (первый экран):
 FULL-SCREEN СЛАЙДЫ (каждая секция = отдельная страница):
 
 ТИТУЛЬНЫЙ СЛАЙД:
-<div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
+<div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, ${styleConfig.primaryColor} 0%, ${styleConfig.secondaryColor} 100%); color: white; text-align: center;">
   <div>
     <h1 style="font-family: 'Montserrat', sans-serif; font-size: 72px; font-weight: 900; margin-bottom: 24px;">
       Название компании
@@ -214,7 +214,7 @@ FULL-SCREEN СЛАЙДЫ (каждая секция = отдельная стр�
 КОНТЕНТНЫЙ СЛАЙД:
 <div style="height: 100vh; display: flex; align-items: center; padding: 80px; background: white;">
   <div style="max-width: 1200px; margin: 0 auto;">
-    <h2 style="font-size: 56px; margin-bottom: 40px; color: #667eea;">О нас</h2>
+    <h2 style="font-size: 56px; margin-bottom: 40px; color: ${styleConfig.primaryColor};">О нас</h2>
     <p style="font-size: 24px; line-height: 1.8; color: #666;">
       Текст с крупным шрифтом для читаемости с расстояния
     </p>
@@ -236,7 +236,7 @@ FULL-SCREEN СЛАЙДЫ (каждая секция = отдельная стр�
 </div>
 
 ЦИФРЫ/ДОСТИЖЕНИЯ:
-<div style="height: 100vh; display: flex; align-items: center; background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+<div style="height: 100vh; display: flex; align-items: center; background: linear-gradient(135deg, ${styleConfig.primaryColor}, ${styleConfig.secondaryColor}); color: white;">
   <div style="max-width: 1400px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 60px; padding: 80px;">
     <div style="text-align: center;">
       <div style="font-size: 96px; font-weight: 900; margin-bottom: 16px;">500+</div>
@@ -270,7 +270,7 @@ FULL-SCREEN СЛАЙДЫ (каждая секция = отдельная стр�
       <p style="margin-bottom: 20px; font-size: 14px; color: #999;">На черном</p>
       <svg viewBox="0 0 200 80" style="max-width: 250px;">[SVG инверсный]</svg>
     </div>
-    <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 60px; border-radius: 16px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+    <div style="background: linear-gradient(135deg, ${styleConfig.primaryColor}, ${styleConfig.secondaryColor}); padding: 60px; border-radius: 16px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
       <p style="margin-bottom: 20px; font-size: 14px; color: white;">На цветном</p>
       <svg viewBox="0 0 200 80" style="max-width: 250px;">[SVG]</svg>
     </div>
@@ -279,47 +279,64 @@ FULL-SCREEN СЛАЙДЫ (каждая секция = отдельная стр�
 `,
 
     'product-card': `
-🛍️ КАРТОЧКА ТОВАРА:
+🛍️ КАРТОЧКА ТОВАРА ДЛЯ МАРКЕТПЛЕЙСОВ:
 
-ФОРМАТ: 2000x2000px (квадрат) или 2000x2667px (3:4 для WB)
+⚠️ ТРЕБОВАНИЯ МАРКЕТПЛЕЙСОВ:
+- Wildberries: 900x1200px (3:4), БЕЛЫЙ фон обязателен!
+- Ozon: 1200x1200px (1:1), белый фон
+- Яндекс.Маркет: 1200x1200px (1:1), белый/светлый фон
+- Avito: 1280x960px (4:3), рекомендован белый фон
 
-СТРУКТУРА:
-<div style="width: 2000px; height: 2000px; background: white; padding: 80px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
+🎨 ИСПОЛЬЗОВАТЬ АКЦЕНТНЫЙ ЦВЕТ: ${styleConfig.primaryColor}
+
+СТРУКТУРА (адаптивная):
+<div style="width: 100%; max-width: 1200px; aspect-ratio: 3/4; background: #FFFFFF; padding: 60px 40px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; box-sizing: border-box; position: relative;">
   
-  <!-- Название -->
-  <h1 style="font-family: 'Montserrat', sans-serif; font-size: 80px; font-weight: 900; text-align: center; margin-bottom: 40px; line-height: 1.2;">
+  <!-- Бейдж скидки (если есть) -->
+  <div style="position: absolute; top: 20px; right: 20px; background: ${styleConfig.primaryColor}; color: white; padding: 16px 24px; border-radius: 12px; font-size: 48px; font-weight: 900; box-shadow: 0 4px 16px rgba(0,0,0,0.15);">
+    -40%
+  </div>
+  
+  <!-- Название товара (крупный шрифт для миниатюр) -->
+  <h1 style="font-family: 'Montserrat', sans-serif; font-size: 64px; font-weight: 900; text-align: center; margin: 0 0 30px 0; line-height: 1.2; color: #1a1a1a;">
     Название товара
   </h1>
   
-  <!-- Изображение товара (placeholder) -->
-  <div style="width: 1200px; height: 1200px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 60px rgba(0,0,0,0.1);">
-    <span style="font-size: 120px;">📦</span>
+  <!-- Основное изображение товара -->
+  <div style="flex: 1; width: 100%; max-width: 800px; display: flex; align-items: center; justify-content: center; margin: 20px 0;">
+    [ИЗОБРАЖЕНИЕ ТОВАРА - займет это пространство]
   </div>
   
-  <!-- Цена и скидка -->
-  <div style="display: flex; align-items: baseline; gap: 40px; margin: 40px 0;">
-    <span style="font-size: 140px; font-weight: 900; color: #e31e24;">2 990 ₽</span>
-    <span style="font-size: 80px; color: #999; text-decoration: line-through;">4 990 ₽</span>
-    <span style="background: linear-gradient(135deg, #e31e24, #c41a1f); color: white; padding: 24px 48px; border-radius: 16px; font-size: 72px; font-weight: 900; box-shadow: 0 8px 20px rgba(227, 30, 36, 0.3);">
-      -40%
-    </span>
+  <!-- Блок цены (яркий акцент) -->
+  <div style="width: 100%; background: linear-gradient(135deg, ${styleConfig.primaryColor}, ${styleConfig.secondaryColor}); border-radius: 20px; padding: 32px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.12); margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; justify-content: center; gap: 24px;">
+      <span style="font-size: 96px; font-weight: 900; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.2);">2 990 ₽</span>
+      <span style="font-size: 56px; color: rgba(255,255,255,0.7); text-decoration: line-through;">4 990 ₽</span>
+    </div>
   </div>
   
-  <!-- Преимущества -->
-  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; width: 100%;">
-    <div style="background: #f8f9fa; padding: 40px; border-radius: 20px; display: flex; align-items: center; gap: 30px;">
-      <span style="font-size: 64px;">✓</span>
-      <span style="font-size: 40px; font-weight: 600;">Преимущество 1</span>
+  <!-- Преимущества (2-4 пункта) -->
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; margin-top: 24px;">
+    <div style="background: #f8f9fa; padding: 24px; border-radius: 16px; display: flex; align-items: center; gap: 16px; border: 2px solid ${styleConfig.primaryColor};">
+      <span style="font-size: 48px;">✓</span>
+      <span style="font-size: 32px; font-weight: 600; color: #333;">Преимущество 1</span>
+    </div>
+    <div style="background: #f8f9fa; padding: 24px; border-radius: 16px; display: flex; align-items: center; gap: 16px; border: 2px solid ${styleConfig.primaryColor};">
+      <span style="font-size: 48px;">⚡</span>
+      <span style="font-size: 32px; font-weight: 600; color: #333;">Преимущество 2</span>
     </div>
   </div>
   
 </div>
 
-⚠️ ОБЯЗАТЕЛЬНО:
-- Белый фон (требование маркетплейсов)
-- Крупные шрифты (читаются в миниатюре)
-- Яркая цена и скидка
-- Box-shadow для объема
+🎯 КЛЮЧЕВЫЕ ПРАВИЛА:
+1. ФОН ВСЕГДА #FFFFFF (белый) - требование всех маркетплейсов
+2. Крупные шрифты (64px+ для заголовка) - читаются в миниатюре
+3. Акцентный цвет ${styleConfig.primaryColor} для цен, бейджей, рамок
+4. Минимум текста, максимум визуала
+5. Box-shadow для объема и глубины
+6. Изображение товара занимает 50-60% пространства
+7. Цена - самый крупный и яркий элемент после изображения
 `
   }
 

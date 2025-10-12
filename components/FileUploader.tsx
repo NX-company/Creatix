@@ -4,12 +4,52 @@ import { Upload } from 'lucide-react'
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { FILE_SIZE_LIMITS } from '@/lib/constants'
+import ImageActionModal from './ImageActionModal'
 
 const { IMAGE: MAX_IMAGE_SIZE, VIDEO: MAX_VIDEO_SIZE, FILE: MAX_FILE_SIZE } = FILE_SIZE_LIMITS
 
 export default function FileUploader() {
   const [uploading, setUploading] = useState(false)
+  const [imageActionModalOpen, setImageActionModalOpen] = useState(false)
+  const [pendingImageData, setPendingImageData] = useState<{
+    id: string
+    name: string
+    base64: string
+    type: string
+    fileSize: string
+  } | null>(null)
+  
   const { addMessage, addUploadedImage, appMode, isFeatureAvailable } = useStore()
+
+  const handleImageAction = (action: 'use-as-is' | 'generate-similar' | 'use-as-reference') => {
+    if (!pendingImageData) return
+    
+    addUploadedImage({
+      ...pendingImageData,
+      actionType: action
+    })
+    
+    if (action === 'use-as-is') {
+      addMessage({
+        role: 'assistant',
+        content: `✅ Изображение "${pendingImageData.name}" сохранено.\n\n💡 **Как использовать:**\n- Скажите "создай карточку товара" - вставлю изображение в документ\n- Выберите элемент в превью и скажите "вставь сюда фото" - заменю выбранный элемент\n- Укажите место: "добавь фото в заголовок" / "вставь в центр"`
+      })
+    } else if (action === 'generate-similar') {
+      addMessage({
+        role: 'assistant',
+        content: `🎨 Изображение "${pendingImageData.name}" принято как референс для AI генерации.\n\n💡 AI создаст похожее изображение через Flux при создании документа. Скажите что создать!`
+      })
+    } else {
+      addMessage({
+        role: 'assistant',
+        content: `👁️ Изображение "${pendingImageData.name}" будет использовано как референс стиля.\n\n💡 AI проанализирует цвета и композицию для вдохновения. Что создать?`
+      })
+    }
+    
+    setImageActionModalOpen(false)
+    setPendingImageData(null)
+    setUploading(false)
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -55,22 +95,22 @@ export default function FileUploader() {
           fileData = await fileToBase64(file)
           
           const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-          addUploadedImage({
+          
+          addMessage({
+            role: 'user',
+            content: `📸 Загружено изображение: ${fileName} (${fileSize} KB)`
+          })
+          
+          setPendingImageData({
             id: imageId,
             name: fileName,
             base64: fileData,
             type: fileType,
+            fileSize: fileSize
           })
+          setImageActionModalOpen(true)
           
-          addMessage({
-            role: 'user',
-            content: `📸 Загружено изображение: ${fileName} (${fileSize} KB)\n\nИспользуй это изображение для создания документа.`
-          })
-          
-          addMessage({
-            role: 'assistant',
-            content: `✅ Изображение "${fileName}" сохранено и готово к использованию. Скажи что создать и я вставлю эту картинку в документ.`
-          })
+          continue
           
         } else if (fileType.includes('pdf')) {
           addMessage({
@@ -182,18 +222,31 @@ export default function FileUploader() {
   }
 
   return (
-    <label className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:opacity-90 cursor-pointer transition-opacity">
-      <Upload className="w-4 h-4" />
-      {uploading ? 'Загрузка...' : 'Импорт'}
-      <input
-        type="file"
-        multiple
-        accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,text/*"
-        onChange={handleFileUpload}
-        className="hidden"
-        disabled={uploading}
+    <>
+      <label className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-[44px] min-h-[44px] px-2 sm:px-3 md:px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:opacity-90 cursor-pointer transition-opacity text-xs sm:text-sm">
+        <Upload className="w-4 h-4" />
+        <span className="hidden sm:inline">{uploading ? 'Загрузка...' : 'Импорт'}</span>
+        <input
+          type="file"
+          multiple
+          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,text/*"
+          onChange={handleFileUpload}
+          className="hidden"
+          disabled={uploading}
+        />
+      </label>
+      
+      <ImageActionModal
+        isOpen={imageActionModalOpen}
+        fileName={pendingImageData?.name || ''}
+        onClose={() => {
+          setImageActionModalOpen(false)
+          setPendingImageData(null)
+          setUploading(false)
+        }}
+        onAction={handleImageAction}
       />
-    </label>
+    </>
   )
 }
 

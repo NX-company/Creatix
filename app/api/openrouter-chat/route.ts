@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       apiKey: apiKey,
       defaultHeaders: {
         "HTTP-Referer": "https://nx-studio.vercel.app",
-        "X-Title": "NX Studio Agent",
+        "X-Title": "Creatix Agent",
       }
     })
 

@@ -29,7 +29,7 @@ export default function OnboardingTour() {
       steps: [
         {
           popover: {
-            title: '👋 Добро пожаловать в NX Studio!',
+            title: '👋 Добро пожаловать в Creatix!',
             description: `
               <div class="space-y-2">
                 <p class="text-sm mb-2">Мы создали AI-ассистента для генерации документов:</p>

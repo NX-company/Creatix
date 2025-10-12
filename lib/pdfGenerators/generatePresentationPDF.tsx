@@ -126,7 +126,7 @@ export const generatePresentationPDFFile = async (
   ` : ''}
   
   <div class="footer">
-    <p>${inputData.author || 'NX Studio'} | Презентация | ${timestamp}</p>
+    <p>${inputData.author || 'Creatix'} | Презентация | ${timestamp}</p>
   </div>
 </body>
 </html>

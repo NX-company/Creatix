@@ -38,6 +38,18 @@ export default function PreviewFrame() {
       const iframeDoc = iframe.contentDocument
       if (!iframeDoc) return
 
+      // Заменяем битые IMAGE_ плейсхолдеры на placeholder изображение
+      const brokenImages = iframeDoc.querySelectorAll('img')
+      brokenImages.forEach(img => {
+        const src = img.getAttribute('src')
+        if (src && /^[./]*IMAGE_\d+$/.test(src)) {
+          console.warn(`⚠️ Found broken image placeholder: ${src}, replacing with placeholder`)
+          img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200"%3E%3Crect fill="%23ddd" width="300" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EИзображение не загружено%3C/text%3E%3C/svg%3E'
+          img.style.maxWidth = '300px'
+          img.style.height = 'auto'
+        }
+      })
+
       const links = iframeDoc.querySelectorAll('a')
       links.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -555,7 +567,7 @@ export default function PreviewFrame() {
             srcDoc={htmlPreview}
             className="w-full h-full border-0 shadow-inner"
             title="Preview"
-            sandbox="allow-scripts allow-popups"
+            sandbox="allow-scripts allow-popups allow-same-origin"
           />
           
           {/* Floating button */}

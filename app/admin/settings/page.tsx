@@ -73,40 +73,40 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-background p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin" className="p-2 hover:bg-muted rounded-lg transition">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+          <Link href="/admin" className="p-2 hover:bg-muted rounded-lg transition min-w-[44px] min-h-[44px] flex items-center justify-center">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Управление режимами</h1>
-            <p className="text-muted-foreground">Включение/выключение режимов работы</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Управление режимами</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Включение/выключение режимов работы</p>
           </div>
         </div>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${
+          <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg text-sm ${
             message.includes('✅') ? 'bg-green-500/10 text-green-600 border border-green-500' : 'bg-red-500/10 text-red-600 border border-red-500'
           }`}>
             {message}
           </div>
         )}
 
-        <div className="bg-card border border-border rounded-xl shadow-sm p-8 space-y-6">
-          <div className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-500/10 to-transparent rounded-lg border border-gray-500/20">
-            <div>
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <span className="text-2xl">💡</span> Бесплатный режим (FREE)
+        <div className="bg-card border border-border rounded-xl shadow-sm p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-500/10 to-transparent rounded-lg border border-gray-500/20">
+            <div className="flex-1">
+              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">💡</span> Бесплатный режим (FREE)
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Базовая генерация документов без дополнительных функций
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
                 • Без парсинга сайтов • Без загрузки файлов • Без AI изображений
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 self-start sm:self-center">
               <input
                 type="checkbox"
                 checked={settings?.freeEnabled}
@@ -117,19 +117,19 @@ export default function AdminSettingsPage() {
             </label>
           </div>
 
-          <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-500/10 to-transparent rounded-lg border border-blue-500/20">
-            <div>
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <span className="text-2xl">⚡</span> Продвинутый режим (ADVANCED)
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-3 sm:p-4 md:p-6 bg-gradient-to-r from-blue-500/10 to-transparent rounded-lg border border-blue-500/20">
+            <div className="flex-1">
+              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">⚡</span> Продвинутый режим (ADVANCED)
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Парсинг сайтов, загрузка файлов, больше изображений
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
                 • Парсинг сайтов • Загрузка файлов • AI изображения (базовые)
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 self-start sm:self-center">
               <input
                 type="checkbox"
                 checked={settings?.advancedEnabled}
@@ -140,19 +140,19 @@ export default function AdminSettingsPage() {
             </label>
           </div>
 
-          <div className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-500/10 to-transparent rounded-lg border border-purple-500/20">
-            <div>
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <span className="text-2xl">💎</span> PRO режим
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-3 sm:p-4 md:p-6 bg-gradient-to-r from-purple-500/10 to-transparent rounded-lg border border-purple-500/20">
+            <div className="flex-1">
+              <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <span className="text-xl sm:text-2xl">💎</span> PRO режим
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Максимальное качество, DALL-E 3 HD, GPT-4o, анализ видео
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                Максимальное качество, Flux 1.1 Pro, GPT-4o, анализ видео
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                • DALL-E 3 HD • GPT-4o • Анализ видео • Все функции
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
+                • Flux 1.1 Pro • GPT-4o • Анализ видео • Все функции
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 self-start sm:self-center">
               <input
                 type="checkbox"
                 checked={settings?.proEnabled}
@@ -163,9 +163,9 @@ export default function AdminSettingsPage() {
             </label>
           </div>
 
-          <div className="pt-6 border-t border-border">
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
-              <p className="text-sm text-yellow-600 dark:text-yellow-500">
+          <div className="pt-4 sm:pt-6 border-t border-border">
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-500">
                 ⚠️ <strong>Внимание:</strong> При выключении режима пользователи не смогут его выбрать. 
                 Используйте для ограничения нагрузки во время бета-тестирования.
               </p>
@@ -174,16 +174,16 @@ export default function AdminSettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full min-h-[48px] flex items-center justify-center gap-2 px-4 sm:px-6 py-3 text-sm sm:text-base bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   Сохранение...
                 </>
               ) : (
                 <>
-                  <Save className="w-5 h-5" />
+                  <Save className="w-4 h-4 sm:w-5 sm:h-5" />
                   Сохранить настройки
                 </>
               )}

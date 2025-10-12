@@ -74,7 +74,7 @@ export const fakeRender = async (docType: DocType = 'proposal', styleConfig: any
       </div>
       <div class="section">
         <h2>Введение</h2>
-        <p>Это образец коммерческого предложения, созданный агентом NX Studio. Замените этот текст своим контентом.</p>
+        <p>Это образец коммерческого предложения, созданный агентом Creatix. Замените этот текст своим контентом.</p>
       </div>
       <div class="section">
         <h2>Таблица цен</h2>
@@ -94,7 +94,7 @@ export const fakeRender = async (docType: DocType = 'proposal', styleConfig: any
         <p>Условия оплаты: 30 дней. Все цены в USD.</p>
       </div>
       <div class="footer">
-        <p>NX Studio | contact@nxstudio.com | +1 234 567 890</p>
+        <p>Creatix | contact@creatix.com | +1 234 567 890</p>
       </div>
     </body>
     </html>
