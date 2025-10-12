@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Messages array required' }, { status: 400 })
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
+    const apiKey = process.env.OPENROUTER_API_KEY
     if (!apiKey) {
-      console.error('NEXT_PUBLIC_OPENROUTER_API_KEY is not configured')
+      console.error('OPENROUTER_API_KEY is not configured')
       return NextResponse.json({ error: 'OpenRouter API key not configured' }, { status: 500 })
     }
 
@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
     const client = new OpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
       apiKey: apiKey,
+      defaultHeaders: {
+        "HTTP-Referer": "https://nx-studio.vercel.app",
+        "X-Title": "NX Studio Agent",
+      }
     })
 
     const completion = await client.chat.completions.create({
@@ -30,11 +34,6 @@ export async function POST(request: NextRequest) {
       messages: messages as any,
       temperature: temperature,
       ...(max_tokens ? { max_tokens } : {})
-    }, {
-      headers: {
-        "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "NX Studio Agent",
-      }
     })
 
     const content = completion.choices[0]?.message?.content || ''
