@@ -1,6 +1,11 @@
 {
-  "name": "nx-studio",
-  "buildCommand": "npm run vercel-build",
-  "framework": "nextjs"
+  "buildCommand": "npx prisma generate && npx prisma db push && npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
+  ]
 }
-
