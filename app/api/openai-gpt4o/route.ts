@@ -13,16 +13,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt required' }, { status: 400 })
     }
 
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY?.trim()
     if (!apiKey) {
       console.error('❌ OpenAI API key not configured')
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
     }
 
-    const proxyHost = process.env.PROXY_HOST
-    const proxyPort = process.env.PROXY_PORT
-    const proxyLogin = process.env.PROXY_LOGIN
-    const proxyPassword = process.env.PROXY_PASSWORD
+    const proxyHost = process.env.PROXY_HOST?.trim()
+    const proxyPort = process.env.PROXY_PORT?.trim()
+    const proxyLogin = process.env.PROXY_LOGIN?.trim()
+    const proxyPassword = process.env.PROXY_PASSWORD?.trim()
 
     if (!proxyHost || !proxyPort || !proxyLogin || !proxyPassword) {
       console.error('❌ Proxy not configured')

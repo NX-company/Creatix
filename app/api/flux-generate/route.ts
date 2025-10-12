@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prompt required' }, { status: 400 })
     }
 
-    const apiToken = process.env.REPLICATE_API_TOKEN
+    const apiToken = process.env.REPLICATE_API_TOKEN?.trim()
     if (!apiToken) {
       console.error('❌ Replicate API token not configured in environment')
       return NextResponse.json({ error: 'Replicate API token not configured' }, { status: 500 })

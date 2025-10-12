@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Messages array required' }, { status: 400 })
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY
+    const apiKey = process.env.OPENROUTER_API_KEY?.trim()
     if (!apiKey) {
       console.error('OPENROUTER_API_KEY is not configured')
       return NextResponse.json({ error: 'OpenRouter API key not configured' }, { status: 500 })
