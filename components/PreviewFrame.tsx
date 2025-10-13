@@ -1,10 +1,11 @@
 'use client'
 
 import { useStore } from '@/lib/store'
-import { Download, Loader2, Edit3, RotateCcw, Check, Target, X, Maximize2 } from 'lucide-react'
+import { Download, Loader2, Edit3, RotateCcw, Check, Target, X, Maximize2, Move } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { generateDocumentFiles } from '@/lib/documentGenerator'
 import { DOC_TYPE_LABELS, DOC_TYPE_FILE_TYPES } from '@/lib/constants'
+// import NanoBananaEditor from './NanoBananaEditor' // Disabled
 
 const docTypeLabels = DOC_TYPE_LABELS
 const docTypeFileTypes = DOC_TYPE_FILE_TYPES
@@ -25,9 +26,59 @@ export default function PreviewFrame() {
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isSelectMode, setIsSelectMode] = useState(false)
+  const [isDragMode, setIsDragMode] = useState(false)
   const [originalHtml, setOriginalHtml] = useState('')
   const [selectedFormats, setSelectedFormats] = useState<string[]>([])
+  // const [editingImage, setEditingImage] = useState<{ url: string; placeholder: string } | null>(null) // Disabled
+  const [zoomLevel, setZoomLevel] = useState(100)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Восстановление обводки выбранного элемента после обновления HTML
+  useEffect(() => {
+    if (!selectedElement) return
+    
+    const iframe = iframeRef.current
+    if (!iframe?.contentDocument) return
+    
+    const iframeDoc = iframe.contentDocument
+    
+    // Небольшая задержка для корректной загрузки
+    const timer = setTimeout(() => {
+      try {
+        const element = iframeDoc.querySelector(selectedElement.selector)
+        if (element) {
+          const htmlEl = element as HTMLElement
+          // Очень яркая и заметная обводка
+          htmlEl.style.outline = '6px solid #10b981'
+          htmlEl.style.outlineOffset = '2px'
+          htmlEl.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'
+          htmlEl.style.cursor = 'pointer'
+          htmlEl.style.position = 'relative'
+          htmlEl.style.boxShadow = '0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5)'
+          htmlEl.style.animation = 'pulse-border 2s ease-in-out infinite'
+          
+          // Добавляем стили для пульсации если их еще нет
+          if (!iframeDoc.getElementById('pulse-animation-style')) {
+            const style = iframeDoc.createElement('style')
+            style.id = 'pulse-animation-style'
+            style.textContent = `
+              @keyframes pulse-border {
+                0%, 100% { box-shadow: 0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5); }
+                50% { box-shadow: 0 0 0 2px #10b981, 0 0 30px rgba(16, 185, 129, 0.8); }
+              }
+            `
+            iframeDoc.head.appendChild(style)
+          }
+          
+          console.log('✅ Restored VISIBLE outline for:', selectedElement.selector)
+        }
+      } catch (e) {
+        console.warn('Failed to restore outline:', e)
+      }
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, [htmlPreview, selectedElement])
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -48,6 +99,10 @@ export default function PreviewFrame() {
           img.style.height = 'auto'
         }
       })
+
+      // Nano Banana editing disabled
+      // const allImages = iframeDoc.querySelectorAll('img')
+      // ...
 
       const links = iframeDoc.querySelectorAll('a')
       links.forEach(link => {
@@ -155,40 +210,73 @@ export default function PreviewFrame() {
         })
       }
       
-      target.style.outline = '3px solid #10b981'
-      target.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'
-      target.style.cursor = 'default'
+      // Очень яркая и заметная обводка
+      target.style.outline = '6px solid #10b981'
+      target.style.outlineOffset = '2px'
+      target.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'
+      target.style.cursor = 'pointer'
+      target.style.position = 'relative'
+      target.style.boxShadow = '0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5)'
+      target.style.animation = 'pulse-border 2s ease-in-out infinite'
       
-      if (iframe && iframe.contentDocument) {
-        iframe.contentDocument.body.removeEventListener('mouseover', handleMouseOver)
-        iframe.contentDocument.body.removeEventListener('mouseout', handleMouseOut)
-        iframe.contentDocument.body.removeEventListener('click', handleElementClick)
+      // Добавляем стили для пульсации (iframe уже объявлен выше)
+      if (iframe?.contentDocument && !iframe.contentDocument.getElementById('pulse-animation-style')) {
+        const style = iframe.contentDocument.createElement('style')
+        style.id = 'pulse-animation-style'
+        style.textContent = `
+          @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5); }
+            50% { box-shadow: 0 0 0 2px #10b981, 0 0 30px rgba(16, 185, 129, 0.8); }
+          }
+        `
+        iframe.contentDocument.head.appendChild(style)
       }
       
-      setIsSelectMode(false)
+      // НЕ убираем event listeners - режим остается активным!
       
       // Отправляем красивое сообщение в чат
       addMessage({
         role: 'assistant',
-        content: `✅ Выбрана область для редактирования
+        content: `✅ Область зафиксирована для редактирования
 
 📍 Элемент: \`${selector}\`
 
 📝 Содержимое:
 "${truncatedText}"
 
-Теперь AI будет редактировать только этот элемент. Напишите команду, например:
+🎯 AI будет редактировать ТОЛЬКО эту область! Примеры команд:
+• "Вставь сюда изображение кота и текст про него"
+• "Добавь фото продукта"
+• "Вставь описание товара"
 • "Сделай красным"
 • "Увеличь размер шрифта"
 • "Замени текст на..."
-• "Сделай жирным"`
+
+💡 Обводка останется после редактирования - можете менять много раз!`
       })
     }
   }
 
-  // Включить режим выделения элементов
+  // Переключить режим выделения элементов
   const enableSelectMode = () => {
-    setIsSelectMode(true)
+    const newMode = !isSelectMode
+    setIsSelectMode(newMode)
+    
+    if (!newMode) {
+      // Выключаем режим
+      const iframe = iframeRef.current
+      if (iframe && iframe.contentDocument) {
+        iframe.contentDocument.body.removeEventListener('mouseover', handleMouseOver)
+        iframe.contentDocument.body.removeEventListener('mouseout', handleMouseOut)
+        iframe.contentDocument.body.removeEventListener('click', handleElementClick)
+      }
+      
+      addMessage({
+        role: 'assistant',
+        content: '🔴 Режим выбора области выключен'
+      })
+      return
+    }
     
     setTimeout(() => {
       const iframe = iframeRef.current
@@ -202,7 +290,12 @@ export default function PreviewFrame() {
         
         addMessage({
           role: 'assistant',
-          content: '🎯 Режим выделения активирован! Наведите курсор на элемент и кликните для выбора.'
+          content: `🎯 Режим выбора области включен!
+
+👆 Кликните на любой элемент в предпросмотре
+🔒 Область зафиксируется с зеленой обводкой
+✏️ Пишите команды - AI будет править только эту область
+♾️ Обводка не пропадет - можете редактировать много раз!`
         })
       }
     }, 100)
@@ -226,6 +319,289 @@ export default function PreviewFrame() {
       role: 'assistant',
       content: '↩️ Выделение снято. Теперь AI будет редактировать весь документ.'
     })
+  }
+
+  // Профессиональный Drag and Drop с auto-scroll
+  const toggleDragMode = () => {
+    const newDragMode = !isDragMode
+    setIsDragMode(newDragMode)
+    
+    const iframe = iframeRef.current
+    if (!iframe) return
+    
+    const iframeDoc = iframe.contentDocument
+    if (!iframeDoc) return
+
+    if (newDragMode) {
+      // Добавляем стили
+      let styleElement = iframeDoc.getElementById('drag-drop-styles')
+      if (!styleElement) {
+        styleElement = iframeDoc.createElement('style')
+        styleElement.id = 'drag-drop-styles'
+        styleElement.textContent = `
+          [draggable="true"] {
+            cursor: grab !important;
+            position: relative !important;
+          }
+          [draggable="true"]:active {
+            cursor: grabbing !important;
+          }
+          [draggable="true"].dragging {
+            opacity: 0.4 !important;
+            cursor: grabbing !important;
+          }
+          .drag-placeholder {
+            height: 60px;
+            margin: 8px 0;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: 3px dashed #ffffff;
+            border-radius: 12px;
+            opacity: 0.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            animation: pulse 1s infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+          }
+          .drop-zone-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #10b981;
+            box-shadow: 0 0 12px #10b981;
+            z-index: 9999;
+            animation: glow 0.5s infinite;
+          }
+          @keyframes glow {
+            0%, 100% { box-shadow: 0 0 12px #10b981; }
+            50% { box-shadow: 0 0 24px #10b981; }
+          }
+        `
+        iframeDoc.head.appendChild(styleElement)
+      }
+
+      // Инжектируем полноценный drag & drop скрипт в iframe
+      let dragScript = iframeDoc.getElementById('drag-drop-script')
+      if (!dragScript) {
+        dragScript = iframeDoc.createElement('script')
+        dragScript.id = 'drag-drop-script'
+        dragScript.textContent = `
+          (function() {
+            let draggedElement = null;
+            let placeholder = null;
+            let dropIndicator = null;
+            let autoScrollInterval = null;
+            
+            // Auto-scroll функция
+            function autoScroll(e) {
+              const scrollZone = 100; // 100px зона у края
+              const scrollSpeed = 15;
+              const rect = document.body.getBoundingClientRect();
+              
+              // Вертикальный скролл
+              if (e.clientY < scrollZone) {
+                window.scrollBy(0, -scrollSpeed);
+              } else if (e.clientY > window.innerHeight - scrollZone) {
+                window.scrollBy(0, scrollSpeed);
+              }
+              
+              // Горизонтальный скролл
+              if (e.clientX < scrollZone) {
+                window.scrollBy(-scrollSpeed, 0);
+              } else if (e.clientX > window.innerWidth - scrollZone) {
+                window.scrollBy(scrollSpeed, 0);
+              }
+            }
+            
+            window.initDragMode = function() {
+              const elements = document.querySelectorAll('img, section, article, div[style*="padding"]');
+              const draggableElements = [];
+              
+              elements.forEach((el) => {
+                if (el.tagName === 'BODY' || el.tagName === 'HTML') return;
+                if (el.classList.contains('drag-placeholder') || el.classList.contains('drop-zone-indicator')) return;
+                
+                const rect = el.getBoundingClientRect();
+                if (rect.height < 30 || rect.width < 30) return;
+                if (!el.textContent?.trim() && !el.querySelector('img')) return;
+                
+                draggableElements.push(el);
+              });
+              
+              draggableElements.forEach((element) => {
+                element.setAttribute('draggable', 'true');
+                element.style.outline = '2px dashed #3b82f6';
+                element.style.transition = 'all 0.3s ease';
+                
+                element.addEventListener('dragstart', (e) => {
+                  draggedElement = element;
+                  element.classList.add('dragging');
+                  
+                  placeholder = document.createElement('div');
+                  placeholder.className = 'drag-placeholder';
+                  placeholder.textContent = '↓ Переместить сюда ↓';
+                  placeholder.style.height = element.offsetHeight + 'px';
+                  
+                  e.dataTransfer.effectAllowed = 'move';
+                  
+                  setTimeout(() => {
+                    if (element.parentNode) {
+                      element.parentNode.insertBefore(placeholder, element);
+                    }
+                  }, 0);
+                  
+                  // Запускаем auto-scroll
+                  autoScrollInterval = setInterval(() => {
+                    const lastEvent = window._lastDragEvent;
+                    if (lastEvent) autoScroll(lastEvent);
+                  }, 50);
+                });
+                
+                element.addEventListener('drag', (e) => {
+                  window._lastDragEvent = e; // Сохраняем для auto-scroll
+                });
+                
+                element.addEventListener('dragover', (e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  window._lastDragEvent = e;
+                  
+                  if (element === draggedElement || element === placeholder) return;
+                  
+                  const rect = element.getBoundingClientRect();
+                  const midpoint = rect.top + rect.height / 2;
+                  const isTopHalf = e.clientY < midpoint;
+                  
+                  if (!dropIndicator) {
+                    dropIndicator = document.createElement('div');
+                    dropIndicator.className = 'drop-zone-indicator';
+                  }
+                  
+                  dropIndicator.style.top = isTopHalf ? '-2px' : 'auto';
+                  dropIndicator.style.bottom = isTopHalf ? 'auto' : '-2px';
+                  
+                  if (!element.contains(dropIndicator)) {
+                    element.style.position = 'relative';
+                    element.appendChild(dropIndicator);
+                  }
+                  
+                  if (placeholder && draggedElement) {
+                    const parent = element.parentElement;
+                    if (parent && parent === draggedElement.parentElement) {
+                      if (isTopHalf) {
+                        parent.insertBefore(placeholder, element);
+                      } else {
+                        parent.insertBefore(placeholder, element.nextSibling);
+                      }
+                    }
+                  }
+                });
+                
+                element.addEventListener('dragleave', () => {
+                  if (dropIndicator && element.contains(dropIndicator)) {
+                    dropIndicator.remove();
+                  }
+                });
+                
+                element.addEventListener('drop', (e) => {
+                  e.preventDefault();
+                  
+                  if (draggedElement && placeholder && draggedElement !== element) {
+                    if (placeholder.parentNode) {
+                      placeholder.parentNode.replaceChild(draggedElement, placeholder);
+                    }
+                    
+                    // Отправляем событие для обновления HTML
+                    window.parent.postMessage({ type: 'drag-drop-update' }, '*');
+                  }
+                  
+                  if (dropIndicator) dropIndicator.remove();
+                });
+                
+                element.addEventListener('dragend', () => {
+                  if (draggedElement) draggedElement.classList.remove('dragging');
+                  if (placeholder && placeholder.parentNode) placeholder.remove();
+                  if (dropIndicator && dropIndicator.parentNode) dropIndicator.remove();
+                  if (autoScrollInterval) clearInterval(autoScrollInterval);
+                  
+                  draggedElement = null;
+                  placeholder = null;
+                  dropIndicator = null;
+                  autoScrollInterval = null;
+                  delete window._lastDragEvent;
+                });
+              });
+            };
+            
+            window.cleanupDragMode = function() {
+              const elements = document.querySelectorAll('[draggable="true"]');
+              elements.forEach((el) => {
+                el.removeAttribute('draggable');
+                el.style.outline = '';
+                el.style.cursor = '';
+                el.classList.remove('dragging');
+              });
+              
+              document.querySelectorAll('.drag-placeholder, .drop-zone-indicator').forEach(el => el.remove());
+            };
+          })();
+        `;
+        iframeDoc.head.appendChild(dragScript)
+      }
+      
+      // Вызываем функцию инициализации
+      ;(iframeDoc.defaultView as any).initDragMode()
+      
+      // Слушаем сообщения от iframe
+      const handleMessage = (e: MessageEvent) => {
+        if (e.data.type === 'drag-drop-update') {
+          const newHtml = iframeDoc.documentElement.outerHTML
+          setHtmlPreview(newHtml)
+          addMessage({
+            role: 'assistant',
+            content: '✅ Элемент перемещен! Разметка сохранена.'
+          })
+        }
+      }
+      window.addEventListener('message', handleMessage)
+      
+      addMessage({
+        role: 'assistant',
+        content: '🖐️ Режим перемещения включен! Курсор изменится на "руку". Перетаскивайте элементы мышкой.'
+      })
+    } else {
+      // Disable drag mode
+      const styleElement = iframeDoc.getElementById('drag-drop-styles')
+      if (styleElement) {
+        styleElement.remove()
+      }
+      
+      // Вызываем cleanup функцию из iframe
+      const iframeWindow = iframeDoc.defaultView as any
+      if (iframeWindow?.cleanupDragMode) {
+        iframeWindow.cleanupDragMode()
+      }
+      
+      // Удаляем event listener
+      window.removeEventListener('message', (e: MessageEvent) => {
+        if (e.data.type === 'drag-drop-update') {
+          const newHtml = iframeDoc.documentElement.outerHTML
+          setHtmlPreview(newHtml)
+        }
+      })
+      
+      addMessage({
+        role: 'assistant',
+        content: '✅ Режим перемещения выключен'
+      })
+    }
   }
 
   // Включить режим редактирования
@@ -422,35 +798,68 @@ export default function PreviewFrame() {
             )}
           </div>
           
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {!isEditing && !isSelectMode && (
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+              {[50, 75, 100].map(zoom => (
+                <button
+                  key={zoom}
+                  onClick={() => setZoomLevel(zoom)}
+                  className={`px-1.5 py-1 rounded text-[10px] font-medium transition-all ${
+                    zoomLevel === zoom 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-accent'
+                  }`}
+                  title={`${zoom}%`}
+                >
+                  {zoom}%
+                </button>
+              ))}
+            </div>
+            
+            {!isEditing && (
               <>
                 <button
                   onClick={enableSelectMode}
-                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold transition-all text-xs shadow-md relative ${
+                    isSelectMode 
+                      ? 'bg-orange-600 text-white hover:bg-orange-700 ring-2 ring-orange-300 animate-pulse' 
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
+                  title={isSelectMode ? '✓ Режим активен - кликните для выключения' : 'Включить режим выбора области'}
                 >
-                  <Target className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Выбрать область</span>
-                  <span className="sm:hidden">Область</span>
+                  <Target className={`w-4 h-4 ${isSelectMode ? 'animate-ping absolute' : ''}`} />
+                  <Target className="w-4 h-4 relative" />
+                  <span>{isSelectMode ? 'Режим ВКЛ' : 'Область'}</span>
+                  {selectedElement && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-green-500 text-white rounded text-[9px] font-bold">
+                      ✓
+                    </span>
+                  )}
                 </button>
                 
-                {selectedElement && (
-                  <button
-                    onClick={clearSelection}
-                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
-                  >
-                    <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Снять</span>
-                  </button>
-                )}
+                {/* Кнопка перемещения временно отключена
+                <button
+                  onClick={toggleDragMode}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all text-[11px] ${
+                    isDragMode 
+                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                      : 'bg-muted text-foreground hover:bg-accent'
+                  }`}
+                  title={isDragMode ? 'Выключить перемещение' : 'Переместить элементы'}
+                >
+                  <Move className="w-3 h-3" />
+                  <span className="hidden sm:inline">{isDragMode ? 'Выкл' : 'Переместить'}</span>
+                </button>
+                */}
                 
                 <button
                   onClick={enableEditMode}
-                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-muted text-foreground rounded-md hover:bg-accent transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
+                  className="flex items-center gap-1 px-2 py-1.5 bg-muted text-foreground rounded-md hover:bg-accent transition-all text-[11px]"
+                  title="Редактировать текст"
                 >
-                  <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Редактировать</span>
-                  <span className="sm:hidden">Ред.</span>
+                  <Edit3 className="w-3 h-3" />
+                  <span className="hidden sm:inline">Редакт.</span>
                 </button>
                 
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
@@ -482,19 +891,18 @@ export default function PreviewFrame() {
                   <button
                     onClick={() => handleSaveToFiles(selectedFormats)}
                     disabled={saving}
-                    className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
+                    className="flex items-center justify-center gap-1 px-2 py-1.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all text-[11px]"
+                    title={selectedFormats.length === 0 ? 'Сохранить всё' : `Сохранить ${selectedFormats.length} формат(а)`}
                   >
                     {saving ? (
                       <>
-                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                        <span className="hidden sm:inline">Сохранение...</span>
-                        <span className="sm:hidden">...</span>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>...</span>
                       </>
                     ) : (
                       <>
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">{selectedFormats.length === 0 ? 'Сохранить всё' : `Сохранить (${selectedFormats.length})`}</span>
-                        <span className="sm:hidden">💾</span>
+                        <Download className="w-3 h-3" />
+                        <span>{selectedFormats.length === 0 ? 'Всё' : `(${selectedFormats.length})`}</span>
                       </>
                     )}
                   </button>
@@ -512,16 +920,18 @@ export default function PreviewFrame() {
               <>
                 <button
                   onClick={cancelChanges}
-                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-muted text-foreground rounded-md hover:bg-accent transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
+                  className="flex items-center gap-1 px-2 py-1.5 bg-muted text-foreground rounded-md hover:bg-accent transition-all text-[11px]"
+                  title="Отменить изменения"
                 >
-                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <RotateCcw className="w-3 h-3" />
                   <span className="hidden sm:inline">Отменить</span>
                 </button>
                 <button
                   onClick={applyChanges}
-                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
+                  className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all text-[11px]"
+                  title="Применить изменения"
                 >
-                  <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Check className="w-3 h-3" />
                   <span className="hidden sm:inline">Применить</span>
                   <span className="sm:hidden">✓</span>
                 </button>
@@ -530,50 +940,107 @@ export default function PreviewFrame() {
           </div>
         </div>
 
-        {/* Индикатор выбранной области */}
-        {selectedElement && !isEditing && (
-          <div className="p-3 bg-green-50 border-b border-green-200 text-sm">
+        {/* Индикатор режима выбора области */}
+        {isSelectMode && !selectedElement && !isEditing && (
+          <div className="p-2.5 bg-orange-50 border-b border-orange-200 text-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-green-600 font-medium">🎯 Активное выделение:</span>
-                <code className="bg-green-100 px-2 py-1 rounded text-xs">
-                  {selectedElement.selector}
-                </code>
+                <span className="text-orange-600 font-medium">🎯 Режим выбора активен</span>
+                <span className="text-orange-500 text-xs">Кликните на элемент в превью →</span>
+              </div>
+              <button
+                onClick={enableSelectMode}
+                className="text-orange-600 hover:text-orange-700 text-xs px-2 py-1 rounded hover:bg-orange-100 transition-colors"
+              >
+                ✕ Выключить
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Индикатор выбранной области - ЯРКИЙ И ЗАМЕТНЫЙ */}
+        {selectedElement && !isEditing && (
+          <div className="p-4 bg-gradient-to-r from-green-100 to-emerald-100 border-b-4 border-green-500 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 bg-green-500 rounded-full animate-pulse">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <span className="text-green-800 font-bold text-base block">🎯 ОБЛАСТЬ ВЫБРАНА</span>
+                  <code className="bg-green-200 px-2 py-1 rounded text-xs font-mono text-green-900 inline-block mt-1">
+                    {selectedElement.selector}
+                  </code>
+                </div>
               </div>
               <button
                 onClick={clearSelection}
-                className="text-green-600 hover:text-green-800 font-bold"
+                className="flex items-center gap-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-xs transition-all shadow-md"
+                title="Снять выделение"
               >
-                ✕
+                <X className="w-4 h-4" />
+                Снять
               </button>
             </div>
-            <p className="mt-1 text-green-700 text-xs truncate">
-              &ldquo;{selectedElement.textContent}&rdquo;
+            <p className="mt-3 text-sm text-green-800 bg-white/50 p-2 rounded italic">
+              &ldquo;{selectedElement.textContent.substring(0, 100)}{selectedElement.textContent.length > 100 ? '...' : ''}&rdquo;
             </p>
           </div>
         )}
 
-        <div className="flex-1 relative overflow-hidden">
-          <iframe
-            ref={iframeRef}
-            srcDoc={htmlPreview}
-            className="w-full h-full border-0 shadow-inner"
-            title="Preview"
-            sandbox="allow-scripts allow-popups allow-same-origin"
-          />
+        <div className="flex-1 relative overflow-auto bg-gray-100">
+          <div 
+            className="min-h-full flex items-start justify-center p-4"
+            style={{
+              transform: `scale(${zoomLevel / 100})`,
+              transformOrigin: 'top center',
+              transition: 'transform 0.2s ease'
+            }}
+          >
+            <iframe
+              ref={iframeRef}
+              srcDoc={htmlPreview}
+              className="border-0 shadow-lg bg-white"
+              style={{
+                width: '100%',
+                minHeight: '100vh',
+                height: 'auto'
+              }}
+              title="Preview"
+              sandbox="allow-scripts allow-popups allow-same-origin"
+            />
+          </div>
           
-          {/* Floating button - adaptive */}
+          {/* Floating button - compact */}
           <button
             onClick={openInNewWindow}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[99999] flex items-center gap-1 sm:gap-2 px-2 py-2 sm:px-4 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-2xl hover:shadow-[0_20px_50px_rgba(59,130,246,0.6)] transition-all duration-200 hover:scale-110 border-2 border-blue-400/30"
+            className="fixed bottom-4 right-4 z-[99999] flex items-center gap-1 px-2 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-lg transition-all text-[11px]"
             title="Открыть превью в отдельном окне"
-            style={{ backdropFilter: 'blur(8px)' }}
           >
-            <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline font-medium">Открыть в окне</span>
-            <span className="sm:hidden text-xs">⛶</span>
+            <Maximize2 className="w-3 h-3" />
+            <span className="hidden sm:inline">Открыть</span>
           </button>
         </div>
+
+        {/* Nano Banana Editor Modal */}
+        {/* Nano Banana Editor disabled
+        {editingImage && (
+          <NanoBananaEditor
+            imageUrl={editingImage.url}
+            imageName="image.png"
+            onSave={(editedImageUrl) => {
+              // Replace image in HTML
+              const newHtml = htmlPreview.replace(
+                new RegExp(editingImage.placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+                editedImageUrl
+              )
+              setHtmlPreview(newHtml)
+              setEditingImage(null)
+            }}
+            onClose={() => setEditingImage(null)}
+          />
+        )}
+        */}
     </div>
   )
 }

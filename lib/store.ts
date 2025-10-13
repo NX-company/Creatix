@@ -4,6 +4,7 @@ import { debounce } from './debounce'
 import { STORAGE_KEYS, STORAGE_VERSION, DEBOUNCE_DELAYS } from './constants'
 import { saveHTMLPreview, getHTMLPreview, deleteHTMLPreview } from './storage/indexedDB'
 import { getWelcomeMessage } from './welcomeMessages'
+import type { GeneratedImage } from './agents/imageAgent'
 
 export type DocType = 'proposal' | 'invoice' | 'email' | 'presentation' | 'logo' | 'product-card'
 
@@ -101,6 +102,7 @@ export type Project = {
   generatedFiles: GeneratedFile[]
   workMode: WorkMode
   planningData: PlanningData
+  generatedImagesForExport: GeneratedImage[]
 }
 
 type Store = {
@@ -166,6 +168,10 @@ type Store = {
   removeUploadedImage: (id: string) => void
   clearUploadedImages: () => void
   
+  generatedImagesForExport: GeneratedImage[]
+  setGeneratedImagesForExport: (images: GeneratedImage[]) => void
+  clearGeneratedImagesForExport: () => void
+  
   selectedElement: {
     selector: string
     innerHTML: string
@@ -178,6 +184,9 @@ type Store = {
   
   lastGeneratedImages: Array<{ slot: number; prompt: string }> 
   setLastGeneratedImages: (images: Array<{ slot: number; prompt: string }>) => void
+  
+  isGuestMode: boolean
+  setIsGuestMode: (isGuest: boolean) => void
   
   parsedWebsiteData: {
     url: string
@@ -266,6 +275,7 @@ const createDefaultProject = (name: string, docType: DocType): Project => {
       answerMode: null,
       collectedAnswers: {},
     },
+    generatedImagesForExport: [],
   }
   return project
 }
@@ -662,6 +672,16 @@ export const useStore = create<Store>()(
         debouncedSaveProject(() => get().saveCurrentProject())
       },
       
+      generatedImagesForExport: [],
+      setGeneratedImagesForExport: (images) => {
+        set({ generatedImagesForExport: images })
+        debouncedSaveProject(() => get().saveCurrentProject())
+      },
+      clearGeneratedImagesForExport: () => {
+        set({ generatedImagesForExport: [] })
+        debouncedSaveProject(() => get().saveCurrentProject())
+      },
+      
       selectedElement: null,
       setSelectedElement: (element) => set({ selectedElement: element }),
       
@@ -670,6 +690,9 @@ export const useStore = create<Store>()(
       
       lastGeneratedImages: [],
       setLastGeneratedImages: (images) => set({ lastGeneratedImages: images }),
+      
+      isGuestMode: false,
+      setIsGuestMode: (isGuest) => set({ isGuestMode: isGuest }),
       
       parsedWebsiteData: null,
       setParsedWebsiteData: (data) => set({ parsedWebsiteData: data }),

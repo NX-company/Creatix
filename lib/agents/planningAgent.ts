@@ -261,6 +261,10 @@ ${planningData.keyMessages.length > 0 ? planningData.keyMessages.map((m, i) => `
     plan += `\n📄 КОЛИЧЕСТВО СТРАНИЦ: ${planningData.pageCount}\n`
   }
 
+  if (planningData.imageCount) {
+    plan += `\n📄 КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: ${planningData.imageCount}\n`
+  }
+
   if (planningData.selectedQuestions && planningData.selectedQuestions.length > 0) {
     plan += `\n📋 ОТВЕТЫ НА КОНКРЕТНЫЕ ВОПРОСЫ:\n`
     Object.entries(planningData.collectedAnswers).forEach(([question, answer], i) => {

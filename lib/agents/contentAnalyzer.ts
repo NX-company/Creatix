@@ -2,6 +2,7 @@ import type { DocType } from '../store'
 import { AGENT_MODELS } from '../config/agents'
 import { fetchWithTimeout } from '../fetchWithTimeout'
 import { API_TIMEOUTS } from '../constants'
+import { extractQuantity } from '../intentRecognition'
 
 export type ImagePromptPlan = {
   type: 'logo' | 'hero' | 'illustration' | 'product' | 'background'
@@ -24,7 +25,8 @@ export async function analyzeContentForImages(
   docType: DocType,
   previousFeedback?: string,
   usePRO: boolean = false,
-  uploadedImagesCount: number = 0
+  uploadedImagesCount: number = 0,
+  userRequestedCount?: number
 ): Promise<ContentAnalysisResult> {
   
   console.log(`🔍 Content Analyzer: Analyzing content for image generation...`)
@@ -41,8 +43,18 @@ export async function analyzeContentForImages(
   }
 
   const defaultCount = getImageCountForDocType(docType)
-  const totalImagesNeeded = extractImageCountFromPrompt(userPrompt, defaultCount)
-  const numImages = Math.max(0, totalImagesNeeded - uploadedImagesCount)
+  
+  let totalImagesNeeded: number
+  let numImages: number
+  
+  if (userRequestedCount && userRequestedCount > 0) {
+    totalImagesNeeded = userRequestedCount
+    numImages = Math.max(0, userRequestedCount - uploadedImagesCount)
+    console.log(`🎨 Using imageCount from planning: ${userRequestedCount}`)
+  } else {
+    totalImagesNeeded = extractQuantity(userPrompt, defaultCount)
+    numImages = Math.max(0, totalImagesNeeded - uploadedImagesCount)
+  }
   
   console.log(`🎨 Images to generate: ${numImages} (total needed: ${totalImagesNeeded}, uploaded: ${uploadedImagesCount}, default for ${docType}: ${defaultCount})`)
   
@@ -224,51 +236,6 @@ function getImageCountForDocType(docType: DocType): number {
     'product-card': 3,
   }
   return counts[docType] || 3
-}
-
-function extractImageCountFromPrompt(userPrompt: string, defaultCount: number): number {
-  // Текстовые числительные (русские)
-  const textNumbers: Record<string, number> = {
-    'одно': 1, 'один': 1, 'одна': 1, 'одну': 1, 'одного': 1, 'одной': 1,
-    'два': 2, 'две': 2, 'двух': 2, 'двое': 2,
-    'три': 3, 'трёх': 3, 'трех': 3, 'трое': 3,
-    'четыре': 4, 'четырёх': 4, 'четырех': 4, 'четверо': 4,
-    'пять': 5, 'пяти': 5, 'пятеро': 5,
-    'шесть': 6, 'шести': 6, 'шестеро': 6,
-    'семь': 7, 'семи': 7, 'семеро': 7,
-    'восемь': 8, 'восьми': 8, 'восьмеро': 8,
-    'девять': 9, 'девяти': 9, 'девятеро': 9,
-    'десять': 10, 'десяти': 10, 'десятеро': 10,
-  }
-  
-  // Проверяем текстовые числительные
-  const lowerPrompt = userPrompt.toLowerCase()
-  for (const [word, num] of Object.entries(textNumbers)) {
-    const regex = new RegExp(`\\b${word}\\b\\s*(изображени|картинк|фото|варианта?|вариант|лого|фотк)`, 'i')
-    if (regex.test(lowerPrompt)) {
-      console.log(`📊 User requested ${num} images (extracted from text: "${word}")`)
-      return num
-    }
-  }
-  
-  // Ищем явное указание количества изображений (цифры)
-  const patterns = [
-    /(\d+)\s*(изображени|картинк|фото|варианта?|лого|фотк)/i,
-    /(вставь|сделай|создай|добавь|генери|нарисуй)\s*(\d+)/i,
-  ]
-  
-  for (const pattern of patterns) {
-    const match = userPrompt.match(pattern)
-    if (match) {
-      const num = parseInt(match[1] || match[2])
-      if (num > 0 && num <= 10) {
-        console.log(`📊 User requested ${num} images (extracted from prompt)`)
-        return num
-      }
-    }
-  }
-  
-  return defaultCount
 }
 
 function getDefaultImagePrompts(docType: DocType): ImagePromptPlan[] {

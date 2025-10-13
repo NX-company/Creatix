@@ -118,7 +118,11 @@ export async function generateDocumentWithMode(params: {
 
       if (mode === 'advanced') {
         notify(`🎨 Планирую AI изображения для документа...`)
-        contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, false, uploadedImages.length)
+        
+        const planImageCountMatch = prompt.match(/📄 КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: (\d+)/)
+        const userRequestedCount = planImageCountMatch ? parseInt(planImageCountMatch[1]) : undefined
+        
+        contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, false, uploadedImages.length, userRequestedCount)
 
         const imageCount = contentAnalysis.imagePrompts.length
         if (imageCount > 0) {
@@ -231,7 +235,11 @@ export async function generateDocumentWithMode(params: {
         } else {
           // Нет загруженных "use-as-is" изображений - генерируем через AI
           notify(`🎨 Планирую PRO изображения (Flux 1.1 Pro)...`)
-          contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, true, uploadedImages.length)
+          
+          const planImageCountMatch = prompt.match(/📄 КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: (\d+)/)
+          const userRequestedCount = planImageCountMatch ? parseInt(planImageCountMatch[1]) : undefined
+          
+          contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, true, uploadedImages.length, userRequestedCount)
           
           const imageCount = contentAnalysis.imagePrompts.length
           if (imageCount > 0) {

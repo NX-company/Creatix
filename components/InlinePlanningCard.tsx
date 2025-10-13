@@ -50,7 +50,8 @@ const QUESTIONS_BY_DOCTYPE: Record<DocType, string[]> = {
     'Контактное лицо (ФИО, должность)',
     'Телефон и email для связи',
     'Печать и подпись',
-    'Дополнительные условия или примечания'
+    'Дополнительные условия или примечания',
+    'Количество AI изображений для документа (1-6)'
   ],
   email: [
     'Название компании/бренда',
@@ -108,7 +109,7 @@ const QUESTIONS_BY_DOCTYPE: Record<DocType, string[]> = {
     'Конкуренты или референсы для вдохновения',
     'Что НЕ должно быть в логотипе',
     'Дополнительные пожелания',
-    'Количество вариантов логотипа (1-5)'
+    'Количество вариантов логотипа (1-10)'
   ],
   'product-card': [
     'Название продукта или услуги',
@@ -145,10 +146,10 @@ const PAGE_LIMITS: Record<DocType, { min: number; max: number } | null> = {
 
 const IMAGE_LIMITS: Record<DocType, { min: number; max: number; label: string } | null> = {
   proposal: { min: 1, max: 6, label: 'Количество AI изображений' },
-  invoice: null,
+  invoice: { min: 1, max: 6, label: 'Количество AI изображений' },
   email: { min: 1, max: 4, label: 'Количество AI изображений' },
   presentation: { min: 1, max: 6, label: 'Количество AI изображений' },
-  logo: { min: 1, max: 5, label: 'Количество вариантов логотипа' },
+  logo: { min: 1, max: 10, label: 'Количество вариантов логотипа' },
   'product-card': { min: 1, max: 4, label: 'Количество AI изображений товара' }
 }
 

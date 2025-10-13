@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyTokenForMiddleware } from './lib/auth'
 
-const publicPaths = ['/login', '/register']
+const publicPaths = ['/login', '/register', '/welcome']
 const adminPaths = ['/admin']
 
 export async function middleware(request: NextRequest) {
@@ -24,6 +24,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!token && !isApiRoute && !pathname.startsWith('/_next')) {
+    // Redirect to welcome page for first-time visitors
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/welcome', request.url))
+    }
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

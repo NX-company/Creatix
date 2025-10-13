@@ -77,6 +77,26 @@ export default function Home() {
     if (!mounted) return
     if (projects.length === 0) return
     
+    // Check for welcome prompt from welcome page
+    const welcomePrompt = sessionStorage.getItem('welcome_prompt')
+    const isFirstTime = sessionStorage.getItem('welcome_first_time')
+    
+    if (welcomePrompt && isFirstTime) {
+      // Clear session storage
+      sessionStorage.removeItem('welcome_prompt')
+      sessionStorage.removeItem('welcome_first_time')
+      
+      // Add user message
+      addMessage({
+        role: 'user',
+        content: welcomePrompt
+      })
+      
+      // Note: ChatPanel will handle the generation automatically
+      // OnboardingTour will start after generation completes
+      return
+    }
+    
     if (messages.length === 0) {
       addMessage({
         role: 'assistant',

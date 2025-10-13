@@ -2,15 +2,17 @@
 
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
-import { Palette, Eye, FolderDown } from 'lucide-react'
+import { Palette, Eye, FolderDown, Image } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import PreviewFrame from './PreviewFrame'
 import FilesList from './FilesList'
 import StyleEditor from './StyleEditor'
+import ImagesList from './ImagesList'
 
 const tabs = [
   { id: 'preview', label: 'Предпросмотр', icon: Eye },
   { id: 'style', label: 'Выбрать Стиль', icon: Palette },
+  { id: 'images', label: 'Изображения', icon: Image },
   { id: 'files', label: 'Файлы', icon: FolderDown },
 ]
 
@@ -19,14 +21,15 @@ export default function RightPanel() {
     activeTab,
     setActiveTab,
     generatedFiles,
+    generatedImagesForExport,
   } = useStore()
 
   return (
-    <div className="flex-1 border-l border-border bg-gradient-to-br from-muted/30 via-background to-muted/20 flex flex-col shadow-2xl">
+    <div className="h-full flex-1 border-l border-border bg-gradient-to-br from-muted/30 via-background to-muted/20 flex flex-col shadow-2xl">
       <div className="border-b border-border flex overflow-x-auto bg-gradient-to-r from-background via-muted/10 to-background backdrop-blur-sm shadow-sm">
         {tabs.map((t) => {
           const Icon = t.icon
-          const fileCount = t.id === 'files' ? generatedFiles.length : 0
+          const fileCount = t.id === 'files' ? generatedFiles.length : t.id === 'images' ? generatedImagesForExport.length : 0
           
           return (
             <button
@@ -64,6 +67,12 @@ export default function RightPanel() {
         {activeTab === 'style' && (
           <div className="p-6 overflow-y-auto h-full">
             <StyleEditor />
+          </div>
+        )}
+
+        {activeTab === 'images' && (
+          <div className="overflow-y-auto h-full">
+            <ImagesList />
           </div>
         )}
 

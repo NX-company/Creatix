@@ -10,6 +10,13 @@ export default function OnboardingTour() {
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
   
   useEffect(() => {
+    // Check if this is first time from welcome page
+    const forceShowTour = sessionStorage.getItem('show_onboarding_tour')
+    if (forceShowTour) {
+      sessionStorage.removeItem('show_onboarding_tour')
+      localStorage.removeItem(TOUR_KEY) // Force show tour
+    }
+    
     const completed = localStorage.getItem(TOUR_KEY)
     if (completed) return
 

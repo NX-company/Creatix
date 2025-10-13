@@ -12,6 +12,7 @@ import { generateDocumentWithMode } from '@/lib/agents/orchestrator'
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { processPlanningMode, formatPlanForGeneration } from '@/lib/agents/planningAgent'
 import { saveHTMLPreview } from '@/lib/storage/indexedDB'
+import { recognizeIntent, extractQuantity } from '@/lib/intentRecognition'
 import ProjectSelector from './ProjectSelector'
 import FileUploader from './FileUploader'
 import WebsiteModal from './WebsiteModal'
@@ -42,6 +43,7 @@ export default function ChatPanel() {
     setLastGeneratedContent,
     lastGeneratedImages,
     setLastGeneratedImages,
+    setGeneratedImagesForExport,
     workMode,
     setWorkMode,
     planningData,
@@ -228,13 +230,12 @@ export default function ChatPanel() {
         userMsg.toLowerCase().includes('документ')
       )
       
-      // Проверяем, является ли это командой редактирования (только если нет данных сайта)
-      // Если документ уже создан и это не запрос на создание нового - считаем редактированием
-      const isCreationRequest = userMsg.toLowerCase().includes('создай') || 
-                                userMsg.toLowerCase().includes('сделай новый') ||
-                                userMsg.toLowerCase().includes('сгенерируй')
+      // Используем интеллектуальное распознавание намерений
+      const intent = recognizeIntent(userMsg, docType)
+      const isCreationRequest = intent.action === 'create'
       
       const isEdit = htmlPreview && !isDocumentCreationFromWebsite && !isCreationRequest
+      console.log(`🔍 Intent: ${intent.action}, quantity: ${intent.quantity || 'N/A'}, subject: ${intent.subject || 'N/A'}`)
       console.log(`🔍 Is edit mode: ${isEdit} (has preview: ${!!htmlPreview}, creation request: ${isCreationRequest})`)
       console.log(`📝 User message: "${userMsg}"`)
       
@@ -613,9 +614,12 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         }))
         setLastGeneratedImages(imageInfo)
         
+        // Сохраняем полные изображения для экспорта
+        setGeneratedImagesForExport(result.generatedImages)
+        
         addMessage({
           role: 'assistant',
-          content: `🎨 Сгенерировано ${result.generatedImages.length} AI-изображений`
+          content: `🎨 Сгенерировано ${result.generatedImages.length} AI-изображений. Перейдите во вкладку "Изображения" для скачивания.`
         })
       }
       
@@ -629,10 +633,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
       
       setHtmlPreview(result.html)
       
-      // Снимаем выделение после успешной правки (если было выделено)
-      if (selectedElement) {
-        setSelectedElement(null)
-      }
+      // Сохраняем выделение для возможности дальнейшего редактирования
       
       addMessage({ 
         role: 'assistant', 
