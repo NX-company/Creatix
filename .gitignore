@@ -16,4 +16,12 @@ prisma/migrations
 
 /lib/generated/prisma
 
+# Testing
+test-videos
+*.webm
+
+# Environment variable files with secrets
+upload-env-to-vercel.ps1
+vercel-env.txt
+
 .vercel

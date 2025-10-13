@@ -229,6 +229,16 @@ export async function processPlanningMode(
 }
 
 export function formatPlanForGeneration(planningData: PlanningData, docType: DocType): string {
+  // Проверяем есть ли вообще данные планирования
+  const hasData = planningData.theme || planningData.targetAudience || planningData.goals.length > 0 || 
+                  planningData.keyMessages.length > 0 || planningData.visualPreferences || 
+                  (planningData.selectedQuestions && planningData.selectedQuestions.length > 0)
+  
+  if (!hasData) {
+    console.log('📋 Plan Context: NO planning data available')
+    return ''
+  }
+  
   let plan = `
 📋 УТВЕРЖДЕННЫЙ ПЛАН ДОКУМЕНТА (${docType.toUpperCase()}):
 
@@ -256,9 +266,12 @@ ${planningData.keyMessages.length > 0 ? planningData.keyMessages.map((m, i) => `
     Object.entries(planningData.collectedAnswers).forEach(([question, answer], i) => {
       plan += `\n${i + 1}. ${question}\n   ➜ ${answer}\n`
     })
+    console.log(`📋 Plan Context: ${Object.keys(planningData.collectedAnswers).length} questions answered`)
   }
 
   plan += `\n⚠️ ВАЖНО: Следуй ЭТОМУ плану при генерации документа!`
+  
+  console.log(`📋 Plan Context generated (${plan.length} chars):`, plan.substring(0, 200) + '...')
   
   return plan
 }

@@ -116,11 +116,11 @@ export default function Home() {
         {/* Desktop Layout */}
         <div className="hidden md:flex flex-1">
           <PanelGroup direction="horizontal">
-            <Panel defaultSize={25} minSize={15} maxSize={40}>
+            <Panel defaultSize={30} minSize={20} maxSize={50}>
               <ChatPanel />
             </Panel>
-            <PanelResizeHandle className="w-1.5 bg-gradient-to-b from-border via-primary/30 to-border hover:from-primary hover:via-primary hover:to-primary transition-all cursor-col-resize shadow-sm" />
-            <Panel defaultSize={75} minSize={40}>
+            <PanelResizeHandle className="w-2 bg-gradient-to-b from-border via-primary/40 to-border hover:from-primary hover:via-primary hover:to-primary transition-all cursor-col-resize shadow-lg hover:w-3" />
+            <Panel defaultSize={70} minSize={50}>
               <RightPanel />
             </Panel>
           </PanelGroup>

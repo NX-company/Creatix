@@ -23,7 +23,8 @@ export async function analyzeContentForImages(
   generatedContent: string,
   docType: DocType,
   previousFeedback?: string,
-  usePRO: boolean = false
+  usePRO: boolean = false,
+  uploadedImagesCount: number = 0
 ): Promise<ContentAnalysisResult> {
   
   console.log(`🔍 Content Analyzer: Analyzing content for image generation...`)
@@ -40,9 +41,10 @@ export async function analyzeContentForImages(
   }
 
   const defaultCount = getImageCountForDocType(docType)
-  const numImages = extractImageCountFromPrompt(userPrompt, defaultCount)
+  const totalImagesNeeded = extractImageCountFromPrompt(userPrompt, defaultCount)
+  const numImages = Math.max(0, totalImagesNeeded - uploadedImagesCount)
   
-  console.log(`🎨 Images to generate: ${numImages} (default for ${docType}: ${defaultCount})`)
+  console.log(`🎨 Images to generate: ${numImages} (total needed: ${totalImagesNeeded}, uploaded: ${uploadedImagesCount}, default for ${docType}: ${defaultCount})`)
   
   const analysisPrompt = `You are an intelligent Content Analyzer AI that deeply understands user intent and creates precise image generation plans.
 

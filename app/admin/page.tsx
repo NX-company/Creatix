@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Users, DollarSign, Settings, BarChart3, LogOut, Loader2 } from 'lucide-react'
+import { Users, DollarSign, Settings, BarChart3, LogOut, Loader2, Bot } from 'lucide-react'
 
 type Stats = {
   totalUsers: number
@@ -125,7 +125,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link
             href="/admin/users"
             className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-8 shadow-lg hover:shadow-xl transition transform hover:scale-105"
@@ -151,6 +151,15 @@ export default function AdminPage() {
             <Settings className="w-12 h-12 mb-4" />
             <h3 className="text-xl font-bold mb-2">Настройки</h3>
             <p className="text-green-100 text-sm">Управление режимами Free/Advanced/PRO</p>
+          </Link>
+
+          <Link
+            href="/admin/test-agent"
+            className="bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-xl p-8 shadow-lg hover:shadow-xl transition transform hover:scale-105"
+          >
+            <Bot className="w-12 h-12 mb-4" />
+            <h3 className="text-xl font-bold mb-2">AI Testing Agent</h3>
+            <p className="text-orange-100 text-sm">Автотесты с GPT-4o Vision анализом</p>
           </Link>
         </div>
       </div>

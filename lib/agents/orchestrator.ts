@@ -35,6 +35,17 @@ export async function generateDocumentWithMode(params: {
     console.log(message)
     onProgress?.(message)
   }
+  
+  // Логируем что получили в prompt
+  if (prompt.includes('УТВЕРЖДЕННЫЙ ПЛАН')) {
+    console.log('✅ Orchestrator received PLAN CONTEXT in prompt')
+    const planMatch = prompt.match(/📋 УТВЕРЖДЕННЫЙ ПЛАН ДОКУМЕНТА[\s\S]*?⚠️ ВАЖНО: Следуй ЭТОМУ плану при генерации документа!/)
+    if (planMatch) {
+      console.log('📋 Plan section length:', planMatch[0].length, 'chars')
+    }
+  } else {
+    console.log('ℹ️ No plan context in prompt (direct build mode)')
+  }
 
   const modeNames = {
     free: 'бесплатном',
@@ -107,7 +118,7 @@ export async function generateDocumentWithMode(params: {
 
       if (mode === 'advanced') {
         notify(`🎨 Планирую AI изображения для документа...`)
-        contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback)
+        contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, false, uploadedImages.length)
 
         const imageCount = contentAnalysis.imagePrompts.length
         if (imageCount > 0) {
@@ -134,14 +145,30 @@ export async function generateDocumentWithMode(params: {
           notify(`ℹ️ Изображения не требуются для этого документа`)
         }
 
+        // ВАЖНО: Загруженные изображения идут ПЕРВЫМИ (IMAGE_0, IMAGE_1, ...), затем AI изображения
+        const uploadedImagesCount = uploadedImages.length
+        
+        // Преобразуем загруженные изображения в формат GeneratedImage для замены плейсхолдеров
+        const uploadedAsGenerated: GeneratedImage[] = uploadedImages.map((img, index) => ({
+          prompt: `Uploaded: ${img.name}`,
+          dataUrl: img.base64,
+          slot: index
+        }))
+        
+        // Обновляем slot у AI изображений, чтобы они шли ПОСЛЕ загруженных
+        const adjustedGeneratedImages = generatedImages.map((img, index) => ({
+          ...img,
+          slot: uploadedImagesCount + index
+        }))
+        
         const allImages = [
-          ...generatedImages.map((img) => ({
+          ...uploadedImages,
+          ...adjustedGeneratedImages.map((img) => ({
             id: `ai-${img.slot}`,
-            name: `AI Generated ${img.slot + 1}`,
+            name: `AI Generated ${img.slot - uploadedImagesCount + 1}`,
             base64: img.dataUrl,
             type: 'image/png',
           })),
-          ...uploadedImages,
         ]
 
         notify(`🏗️ Собираю документ с дизайном...`)
@@ -149,7 +176,9 @@ export async function generateDocumentWithMode(params: {
         notify(`✅ Дизайн применён`)
 
         notify(`🔧 Вставляю изображения в нужные места...`)
-        html = replaceImagePlaceholders(html, generatedImages)
+        // Передаем сначала загруженные, потом AI изображения
+        const allImagesForReplacement = [...uploadedAsGenerated, ...adjustedGeneratedImages]
+        html = replaceImagePlaceholders(html, allImagesForReplacement)
         
         notify(`🔍 Проверяю качество документа...`)
         qaReport = await reviewDocument(prompt, content, generatedImages, html, docType, iteration)
@@ -202,7 +231,7 @@ export async function generateDocumentWithMode(params: {
         } else {
           // Нет загруженных "use-as-is" изображений - генерируем через AI
           notify(`🎨 Планирую PRO изображения (Flux 1.1 Pro)...`)
-          contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, true)
+          contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, true, uploadedImages.length)
           
           const imageCount = contentAnalysis.imagePrompts.length
           if (imageCount > 0) {
@@ -228,23 +257,41 @@ export async function generateDocumentWithMode(params: {
           }
         }
 
+        // ВАЖНО: Загруженные изображения идут ПЕРВЫМИ (IMAGE_0, IMAGE_1, ...), затем AI изображения
+        const uploadedImagesCount = uploadedImages.length
+        
+        // Преобразуем загруженные изображения в формат GeneratedImage для замены плейсхолдеров
+        const uploadedAsGenerated: GeneratedImage[] = uploadedImages.map((img, index) => ({
+          prompt: `Uploaded: ${img.name}`,
+          dataUrl: img.base64,
+          slot: index
+        }))
+        
+        // Обновляем slot у AI изображений, чтобы они шли ПОСЛЕ загруженных
+        const adjustedGeneratedImages = generatedImages.map((img, index) => ({
+          ...img,
+          slot: uploadedImagesCount + index
+        }))
+        
         const allImages = [
-          ...generatedImages.map((img) => ({
+          ...uploadedImages,
+          ...adjustedGeneratedImages.map((img) => ({
             id: `ai-dalle-${img.slot}`,
-            name: `DALL-E 3 Generated ${img.slot + 1}`,
+            name: `PRO Generated ${img.slot - uploadedImagesCount + 1}`,
             base64: img.dataUrl,
             type: 'image/png',
           })),
-          ...uploadedImages,
         ]
 
         notify(`🏗️ Собираю PRO документ с дизайном...`)
         // PRO режим: используем OpenRouter GPT-4o вместо прямого OpenAI API (чтобы избежать квоты)
-        html = await generateHTML(content, docType, styleConfig, uploadedImages, 'openai/gpt-4o')
+        html = await generateHTML(content, docType, styleConfig, allImages, 'openai/gpt-4o')
         notify(`✅ PRO дизайн применён`)
 
         notify(`🔧 Вставляю изображения в нужные места...`)
-        html = replaceImagePlaceholders(html, generatedImages)
+        // Передаем сначала загруженные, потом AI изображения
+        const allImagesForReplacement = [...uploadedAsGenerated, ...adjustedGeneratedImages]
+        html = replaceImagePlaceholders(html, allImagesForReplacement)
         
         notify(`✅ PRO документ готов!`)
         qaApproved = true

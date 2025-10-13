@@ -5,7 +5,6 @@ import { Download, Loader2, Edit3, RotateCcw, Check, Target, X, Maximize2 } from
 import { useState, useRef, useEffect } from 'react'
 import { generateDocumentFiles } from '@/lib/documentGenerator'
 import { DOC_TYPE_LABELS, DOC_TYPE_FILE_TYPES } from '@/lib/constants'
-import StyleEditor from './StyleEditor'
 
 const docTypeLabels = DOC_TYPE_LABELS
 const docTypeFileTypes = DOC_TYPE_FILE_TYPES
@@ -412,20 +411,8 @@ export default function PreviewFrame() {
   const docLabel = docTypeLabels[docType]
 
   return (
-    <div className="flex h-full gap-3">
-      {/* Левая панель: StyleEditor */}
-      <div className="w-80 border-r border-border bg-gradient-to-b from-muted/30 to-background flex flex-col overflow-y-auto shadow-lg">
-        <div className="p-3 border-b border-border bg-background/80 backdrop-blur-sm">
-          <h3 className="font-semibold text-sm">Выбрать Стиль</h3>
-        </div>
-        <div className="p-3">
-          <StyleEditor />
-        </div>
-      </div>
-
-      {/* Правая панель: Превью */}
-      <div className="flex-1 flex flex-col">
-        <div className="p-3 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between shadow-sm">
+    <div className="flex h-full flex-col">
+        <div className="p-2 sm:p-3 border-b border-border bg-background/80 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 justify-between shadow-sm">
           <div className="flex flex-col">
             <span className="text-sm font-medium">Превью: {docLabel}</span>
             {fileTypes.length > 0 && (
@@ -435,36 +422,38 @@ export default function PreviewFrame() {
             )}
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {!isEditing && !isSelectMode && (
               <>
                 <button
                   onClick={enableSelectMode}
-                  className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-all shadow-md hover:shadow-lg text-sm"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
                 >
-                  <Target className="w-4 h-4" />
-                  Выбрать область
+                  <Target className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Выбрать область</span>
+                  <span className="sm:hidden">Область</span>
                 </button>
                 
                 {selectedElement && (
                   <button
                     onClick={clearSelection}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all shadow-md hover:shadow-lg text-sm"
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
                   >
-                    <X className="w-4 h-4" />
-                    Снять выделение
+                    <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Снять</span>
                   </button>
                 )}
                 
                 <button
                   onClick={enableEditMode}
-                  className="flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-md hover:bg-accent transition-all shadow-md hover:shadow-lg text-sm"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-muted text-foreground rounded-md hover:bg-accent transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
                 >
-                  <Edit3 className="w-4 h-4" />
-                  Редактировать
+                  <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Редактировать</span>
+                  <span className="sm:hidden">Ред.</span>
                 </button>
                 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 w-full sm:w-auto">
                   <div className="flex flex-wrap gap-1">
                     {fileTypes.map((format) => {
                       const isSelected = selectedFormats.length === 0 || selectedFormats.includes(format)
@@ -478,7 +467,7 @@ export default function PreviewFrame() {
                               setSelectedFormats([...selectedFormats, format])
                             }
                           }}
-                          className={`px-2 py-1 text-xs rounded-md transition-all ${
+                          className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-md transition-all ${
                             isSelected 
                               ? 'bg-primary text-primary-foreground' 
                               : 'bg-muted text-muted-foreground'
@@ -493,17 +482,19 @@ export default function PreviewFrame() {
                   <button
                     onClick={() => handleSaveToFiles(selectedFormats)}
                     disabled={saving}
-                    className="flex items-center justify-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg text-sm"
+                    className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
                   >
                     {saving ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Сохранение...
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                        <span className="hidden sm:inline">Сохранение...</span>
+                        <span className="sm:hidden">...</span>
                       </>
                     ) : (
                       <>
-                        <Download className="w-4 h-4" />
-                        {selectedFormats.length === 0 ? 'Сохранить всё' : `Сохранить (${selectedFormats.length})`}
+                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">{selectedFormats.length === 0 ? 'Сохранить всё' : `Сохранить (${selectedFormats.length})`}</span>
+                        <span className="sm:hidden">💾</span>
                       </>
                     )}
                   </button>
@@ -521,17 +512,18 @@ export default function PreviewFrame() {
               <>
                 <button
                   onClick={cancelChanges}
-                  className="flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-md hover:bg-accent transition-all shadow-md hover:shadow-lg text-sm"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-muted text-foreground rounded-md hover:bg-accent transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  Отменить
+                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Отменить</span>
                 </button>
                 <button
                   onClick={applyChanges}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all shadow-md hover:shadow-lg text-sm"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all shadow-md hover:shadow-lg text-xs sm:text-sm"
                 >
-                  <Check className="w-4 h-4" />
-                  Применить
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Применить</span>
+                  <span className="sm:hidden">✓</span>
                 </button>
               </>
             )}
@@ -570,18 +562,18 @@ export default function PreviewFrame() {
             sandbox="allow-scripts allow-popups allow-same-origin"
           />
           
-          {/* Floating button */}
+          {/* Floating button - adaptive */}
           <button
             onClick={openInNewWindow}
-            className="fixed bottom-6 right-6 z-[99999] flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-2xl hover:shadow-[0_20px_50px_rgba(59,130,246,0.6)] transition-all duration-200 hover:scale-110 border-2 border-blue-400/30"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[99999] flex items-center gap-1 sm:gap-2 px-2 py-2 sm:px-4 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-2xl hover:shadow-[0_20px_50px_rgba(59,130,246,0.6)] transition-all duration-200 hover:scale-110 border-2 border-blue-400/30"
             title="Открыть превью в отдельном окне"
             style={{ backdropFilter: 'blur(8px)' }}
           >
-            <Maximize2 className="w-5 h-5" />
-            <span className="font-medium">Открыть в окне</span>
+            <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline font-medium">Открыть в окне</span>
+            <span className="sm:hidden text-xs">⛶</span>
           </button>
         </div>
-      </div>
     </div>
   )
 }
