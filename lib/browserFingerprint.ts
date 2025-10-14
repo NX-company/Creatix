@@ -5,7 +5,7 @@ export function generateBrowserFingerprint(): string {
     navigator.userAgent,
     navigator.language,
     navigator.hardwareConcurrency || 0,
-    navigator.deviceMemory || 0,
+    (navigator as any).deviceMemory || 0,
     screen.width,
     screen.height,
     screen.colorDepth,
