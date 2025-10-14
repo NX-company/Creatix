@@ -44,7 +44,7 @@ export default function NanoBananaEditor({ imageUrl, imageName, onSave, onClose 
           ctx.clearRect(0, 0, canvas.width, canvas.height)
         }
       }
-      if (imageRef.current) {
+      if (imageRef) {
         imageRef.current = img
       }
     }
