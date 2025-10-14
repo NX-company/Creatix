@@ -10,6 +10,13 @@ const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   callbacks: {
@@ -24,11 +31,19 @@ const authOptions: NextAuthOptions = {
       return session
     },
     async signIn({ user, account }) {
+      console.log('🔐 Sign in attempt:', {
+        provider: account?.provider,
+        email: user.email,
+        name: user.name
+      })
+      
       if (account?.provider === "google" && user.email) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email }
           })
+          
+          console.log('👤 Found user in DB:', dbUser ? 'Yes' : 'No')
           
           if (dbUser && !dbUser.trialEndsAt) {
             const trialEndsAt = new Date()
@@ -44,9 +59,12 @@ const authOptions: NextAuthOptions = {
                 username: dbUser.username || user.email.split('@')[0]
               }
             })
+            
+            console.log('✅ Trial set for user:', user.email)
           }
         } catch (error) {
-          console.error('Error setting trial for Google user:', error)
+          console.error('❌ Error setting trial for Google user:', error)
+          // Don't block sign in on error
         }
       }
       return true
@@ -54,10 +72,12 @@ const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
+    error: '/login',
   },
   session: {
     strategy: "database",
   },
+  debug: process.env.NODE_ENV === 'development',
 }
 
 const handler = NextAuth(authOptions)

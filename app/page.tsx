@@ -144,7 +144,17 @@ export default function Home() {
     const isFirstTime = sessionStorage.getItem('welcome_first_time')
     const autoGenerate = sessionStorage.getItem('auto_generate')
     
+    console.log('📋 Checking welcome data:', {
+      welcomePrompt,
+      welcomeDocType,
+      isFirstTime,
+      autoGenerate,
+      messagesLength: messages.length
+    })
+    
     if (welcomePrompt && isFirstTime) {
+      console.log('✅ Welcome prompt found! Processing...')
+      
       // Clear session storage
       sessionStorage.removeItem('welcome_prompt')
       sessionStorage.removeItem('welcome_doc_type')
@@ -153,10 +163,12 @@ export default function Home() {
       
       // Set document type if provided
       if (welcomeDocType) {
+        console.log('📄 Setting doc type:', welcomeDocType)
         setDocType(welcomeDocType as any)
       }
       
       // Add user message
+      console.log('💬 Adding user message:', welcomePrompt)
       addMessage({
         role: 'user',
         content: welcomePrompt
@@ -164,17 +176,20 @@ export default function Home() {
       
       // Trigger auto-generation
       if (autoGenerate === 'true') {
+        console.log('🚀 Triggering auto-generation in 800ms...')
         setTimeout(() => {
+          console.log('📤 Dispatching trigger-auto-generation event')
           window.dispatchEvent(new CustomEvent('trigger-auto-generation', {
             detail: { prompt: welcomePrompt }
           }))
-        }, 500)
+        }, 800)
       }
       
       return
     }
     
     if (messages.length === 0) {
+      console.log('💬 Adding default welcome message')
       addMessage({
         role: 'assistant',
         content: getWelcomeMessage(docType, appMode)

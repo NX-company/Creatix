@@ -114,17 +114,32 @@ export default function ChatPanel() {
       const customEvent = event as CustomEvent
       const prompt = customEvent.detail?.prompt
       
-      if (prompt && !isGeneratingRef.current && !loading) {
+      console.log('🎯 Auto-generation event received!', {
+        prompt,
+        isGenerating: isGeneratingRef.current,
+        loading
+      })
+      
+      if (prompt && !isGeneratingRef.current) {
         console.log('🚀 Auto-generating from welcome page...')
         console.log('📝 Prompt:', prompt)
         
-        triggerGeneration(prompt.trim())
+        // Small delay to ensure everything is loaded
+        setTimeout(() => {
+          triggerGeneration(prompt.trim())
+        }, 100)
+      } else {
+        console.log('⚠️ Cannot auto-generate:', {
+          hasPrompt: !!prompt,
+          isGenerating: isGeneratingRef.current,
+          loading
+        })
       }
     }
     
     window.addEventListener('trigger-auto-generation', handleAutoGeneration)
     return () => window.removeEventListener('trigger-auto-generation', handleAutoGeneration)
-  }, [loading])
+  }, [loading, triggerGeneration])
 
   const handlePlanningCardSubmit = (selectedQuestions: string[], pageCount?: number, imageCount?: number, mode?: 'batch' | 'sequential') => {
     setPlanningData({
