@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
         role: true,
         appMode: true,
         isActive: true,
-        isInTrial: true,
         trialEndsAt: true,
         trialGenerations: true,
         createdAt: true,
@@ -33,7 +32,12 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ users })
+    const usersWithTrialStatus = users.map(user => ({
+      ...user,
+      isInTrial: user.trialEndsAt ? new Date(user.trialEndsAt) > new Date() : false
+    }))
+
+    return NextResponse.json({ users: usersWithTrialStatus })
   } catch (error) {
     console.error('Users fetch error:', error)
     return NextResponse.json(
