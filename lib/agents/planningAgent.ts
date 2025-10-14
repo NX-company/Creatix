@@ -11,6 +11,52 @@ const DOC_TYPE_LABELS: Record<DocType, string> = {
   'product-card': 'карточки товара'
 }
 
+function extractNumberFromText(text: string): number | null {
+  if (!text) return null
+  
+  const textLower = text.toLowerCase().trim()
+  
+  const numberWords: Record<string, number> = {
+    'один': 1, 'одна': 1, 'одно': 1, 'одного': 1,
+    'два': 2, 'две': 2, 'двух': 2,
+    'три': 3, 'трёх': 3, 'трех': 3,
+    'четыре': 4, 'четырёх': 4, 'четырех': 4,
+    'пять': 5, 'пяти': 5,
+    'шесть': 6, 'шести': 6,
+    'семь': 7, 'семи': 7,
+    'восемь': 8, 'восьми': 8,
+    'девять': 9, 'девяти': 9,
+    'десять': 10, 'десяти': 10,
+    'одиннадцать': 11, 'одиннадцати': 11,
+    'двенадцать': 12, 'двенадцати': 12,
+    'тринадцать': 13, 'тринадцати': 13,
+    'четырнадцать': 14, 'четырнадцати': 14,
+    'пятнадцать': 15, 'пятнадцати': 15,
+    'шестнадцать': 16, 'шестнадцати': 16,
+    'семнадцать': 17, 'семнадцати': 17,
+    'восемнадцать': 18, 'восемнадцати': 18,
+    'девятнадцать': 19, 'девятнадцати': 19,
+    'двадцать': 20, 'двадцати': 20
+  }
+  
+  for (const [word, num] of Object.entries(numberWords)) {
+    if (textLower.includes(word)) {
+      return num
+    }
+  }
+  
+  const digitMatch = textLower.match(/(\d+)\s*(вариант|изображ|картин|фото|логотип|страниц|лого|штук|шт)/i) || 
+                     textLower.match(/(\d+)/)
+  if (digitMatch) {
+    const num = parseInt(digitMatch[1], 10)
+    if (!isNaN(num) && num > 0 && num <= 100) {
+      return num
+    }
+  }
+  
+  return null
+}
+
 async function extractPlanningData(
   answers: Record<string, string>,
   docType: DocType,
@@ -34,7 +80,9 @@ ${answersText}
   "goals": ["цель1", "цель2"] или [],
   "keyMessages": ["сообщение1", "сообщение2"] или [],
   "visualPreferences": "визуальные предпочтения" или null,
-  "additionalNotes": "дополнительная информация" или null
+  "additionalNotes": "дополнительная информация" или null,
+  "pageCount": число страниц или null,
+  "imageCount": количество изображений/логотипов или null
 }`
 
   try {
@@ -65,6 +113,31 @@ ${answersText}
       if (result.keyMessages?.length > 0) extracted.keyMessages = result.keyMessages
       if (result.visualPreferences) extracted.visualPreferences = result.visualPreferences
       if (result.additionalNotes) extracted.additionalNotes = result.additionalNotes
+      
+      if (result.pageCount && typeof result.pageCount === 'number') {
+        extracted.pageCount = result.pageCount
+      }
+      if (result.imageCount && typeof result.imageCount === 'number') {
+        extracted.imageCount = result.imageCount
+      }
+      
+      for (const [question, answer] of Object.entries(answers)) {
+        const q = question.toLowerCase()
+        if (q.includes('количество') && (q.includes('изображ') || q.includes('вариант') || q.includes('логотип') || q.includes('фото') || q.includes('картин'))) {
+          const extractedNum = extractNumberFromText(answer)
+          if (extractedNum !== null) {
+            extracted.imageCount = extractedNum
+            console.log(`🔢 Extracted imageCount from answer: "${answer}" -> ${extractedNum}`)
+          }
+        }
+        if (q.includes('количество') && q.includes('страниц')) {
+          const extractedNum = extractNumberFromText(answer)
+          if (extractedNum !== null) {
+            extracted.pageCount = extractedNum
+            console.log(`📄 Extracted pageCount from answer: "${answer}" -> ${extractedNum}`)
+          }
+        }
+      }
       
       return extracted
     } catch (parseError) {

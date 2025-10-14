@@ -3,12 +3,22 @@
 import { useStore } from '@/lib/store'
 import { Download, X } from 'lucide-react'
 import { useState } from 'react'
+import GenerationLimitModal from './GenerationLimitModal'
 
 export default function ImagesList() {
   const generatedImagesForExport = useStore((state) => state.generatedImagesForExport)
+  const isGuestMode = useStore((state) => state.isGuestMode)
+  const getRemainingGenerations = useStore((state) => state.getRemainingGenerations)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [showLimitModal, setShowLimitModal] = useState(false)
 
   const downloadImage = async (image: any, format: 'png' | 'jpg' | 'webp') => {
+    if (isGuestMode) {
+      console.log('🚫 Guest users cannot download images')
+      setShowLimitModal(true)
+      return
+    }
+    
     setDownloadingId(`${image.slot}-${format}`)
     
     try {
@@ -82,6 +92,14 @@ export default function ImagesList() {
         </p>
       </div>
       
+      {/* Guest warning */}
+      {isGuestMode && (
+        <div className="mb-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <p className="text-xs font-semibold text-orange-600 mb-1">⚠️ Гостевой режим</p>
+          <p className="text-xs text-orange-600">Зарегистрируйтесь, чтобы скачивать изображения</p>
+        </div>
+      )}
+      
       <div className="space-y-3">
         {generatedImagesForExport.map((image, index) => (
           <div
@@ -111,9 +129,13 @@ export default function ImagesList() {
             <div className="flex gap-1.5">
               <button
                 onClick={() => downloadImage(image, 'png')}
-                disabled={downloadingId === `${image.slot}-png`}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
-                title="Скачать как PNG"
+                disabled={downloadingId === `${image.slot}-png` || isGuestMode}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded transition-opacity ${
+                  isGuestMode
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50'
+                }`}
+                title={isGuestMode ? 'Зарегистрируйтесь для скачивания' : 'Скачать как PNG'}
               >
                 <Download className="w-3 h-3" />
                 {downloadingId === `${image.slot}-png` ? '...' : 'PNG'}
@@ -121,9 +143,13 @@ export default function ImagesList() {
               
               <button
                 onClick={() => downloadImage(image, 'jpg')}
-                disabled={downloadingId === `${image.slot}-jpg`}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-secondary text-secondary-foreground rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
-                title="Скачать как JPG"
+                disabled={downloadingId === `${image.slot}-jpg` || isGuestMode}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded transition-opacity ${
+                  isGuestMode
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'bg-secondary text-secondary-foreground hover:opacity-90 disabled:opacity-50'
+                }`}
+                title={isGuestMode ? 'Зарегистрируйтесь для скачивания' : 'Скачать как JPG'}
               >
                 <Download className="w-3 h-3" />
                 {downloadingId === `${image.slot}-jpg` ? '...' : 'JPG'}
@@ -131,9 +157,13 @@ export default function ImagesList() {
               
               <button
                 onClick={() => downloadImage(image, 'webp')}
-                disabled={downloadingId === `${image.slot}-webp`}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-secondary text-secondary-foreground rounded hover:opacity-90 disabled:opacity-50 transition-opacity"
-                title="Скачать как WebP"
+                disabled={downloadingId === `${image.slot}-webp` || isGuestMode}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs rounded transition-opacity ${
+                  isGuestMode
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'bg-secondary text-secondary-foreground hover:opacity-90 disabled:opacity-50'
+                }`}
+                title={isGuestMode ? 'Зарегистрируйтесь для скачивания' : 'Скачать как WebP'}
               >
                 <Download className="w-3 h-3" />
                 {downloadingId === `${image.slot}-webp` ? '...' : 'WebP'}
@@ -142,6 +172,13 @@ export default function ImagesList() {
           </div>
         ))}
       </div>
+      
+      {/* Generation Limit Modal */}
+      <GenerationLimitModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        remaining={getRemainingGenerations()}
+      />
     </div>
   )
 }

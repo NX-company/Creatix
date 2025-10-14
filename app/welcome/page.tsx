@@ -2,11 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import TypewriterEffect from '@/components/TypewriterEffect'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import { useStore } from '@/lib/store'
-import { Sparkles, FileText, Presentation, Mail, Image, ShoppingBag, Receipt } from 'lucide-react'
+import { Sparkles, FileText, Presentation, Mail, Image, ShoppingBag, Receipt, Loader2 } from 'lucide-react'
 import type { DocType } from '@/lib/store'
+import Logo from '@/components/Logo'
+import SimpleLogo from '@/components/SimpleLogo'
+
+type Message = {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 const examples = [
   'Создай презентацию компании для инвесторов',
@@ -27,43 +35,111 @@ const tools: Array<{ type: DocType; icon: any; label: string; color: string }> =
 
 export default function WelcomePage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [prompt, setPrompt] = useState('')
+  const [messages, setMessages] = useState<Message[]>([])
   const [selectedTool, setSelectedTool] = useState<DocType | null>(null)
   const [showTools, setShowTools] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
   const setDocType = useStore(state => state.setDocType)
+  const setWorkMode = useStore(state => state.setWorkMode)
   const createProject = useStore(state => state.createProject)
   const setIsGuestMode = useStore(state => state.setIsGuestMode)
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
 
-    const docType = selectedTool || 'proposal'
-    
-    setIsGenerating(true)
-    
-    // Устанавливаем гостевой режим
-    setIsGuestMode(true)
-    
-    // Устанавливаем тип документа
-    setDocType(docType)
-    
-    // Создаем проект
-    const projectId = createProject(docType)
-    
-    // Сохраняем промпт для использования на главной странице
-    sessionStorage.setItem('welcome_prompt', prompt)
-    sessionStorage.setItem('welcome_first_time', 'true')
-    sessionStorage.setItem('show_onboarding_tour', 'true')
-    
-    // Переходим на главную страницу
-    router.push('/')
+    try {
+      setIsGenerating(true)
+      
+      // Добавляем сообщение пользователя
+      const userMessage: Message = { role: 'user', content: prompt }
+      setMessages(prev => [...prev, userMessage])
+      
+      // Анализируем intent через AI
+      const response = await fetch('/api/analyze-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze intent')
+      }
+      
+      const analysis = await response.json()
+      const docType: DocType = selectedTool || analysis.docType || 'proposal'
+      
+      console.log('✅ Analysis complete:', { docType, analysis })
+      
+      // Показываем ответ AI
+      const aiMessage: Message = {
+        role: 'assistant',
+        content: `Отлично! Создаю ${docType === 'proposal' ? 'коммерческое предложение' : 
+          docType === 'invoice' ? 'счет' :
+          docType === 'email' ? 'письмо' :
+          docType === 'presentation' ? 'презентацию' :
+          docType === 'logo' ? 'логотип' :
+          'карточку товара'}... ✨`
+      }
+      setMessages(prev => [...prev, aiMessage])
+      
+      // Небольшая задержка для показа сообщения
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
+      console.log('🚀 Setting up project...')
+      
+      // Устанавливаем гостевой режим
+      setIsGuestMode(true)
+      
+      // Устанавливаем тип документа и режим
+      setDocType(docType)
+      setWorkMode('build')
+      
+      // Создаем проект
+      createProject('Новый проект', docType)
+      
+      // Сохраняем данные для автогенерации
+      sessionStorage.setItem('welcome_prompt', prompt)
+      sessionStorage.setItem('welcome_doc_type', docType)
+      sessionStorage.setItem('welcome_first_time', 'true')
+      sessionStorage.setItem('show_onboarding_tour', 'true')
+      sessionStorage.setItem('auto_generate', 'true')
+      sessionStorage.setItem('isGuestMode', 'true')
+      sessionStorage.setItem('workMode', 'build') // Persist guest mode
+      
+      console.log('🎯 Redirecting to main page...')
+      
+      // Переходим на главную страницу с флагом гостя (hard redirect)
+      window.location.href = '/?guest=true'
+      
+    } catch (error) {
+      console.error('Error generating:', error)
+      setIsGenerating(false)
+      
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Произошла ошибка. Попробуйте еще раз или выберите тип документа вручную.'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    }
   }
 
   const handleToolSelect = (type: DocType) => {
     setSelectedTool(type)
     setShowTools(false)
+  }
+
+  const handleLogout = async () => {
+    try {
+      sessionStorage.clear()
+      localStorage.clear()
+      await signOut({ callbackUrl: '/login' })
+    } catch (error) {
+      console.error('Logout failed:', error)
+      window.location.href = '/login'
+    }
   }
 
   return (
@@ -80,14 +156,28 @@ export default function WelcomePage() {
         {/* Header */}
         <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
           <div className="flex items-center">
-            <img src="/creatix-logo.svg" alt="Creatix" className="h-10 w-auto" />
+            <Logo size="md" />
           </div>
-          <button 
-            onClick={() => router.push('/login')}
-            className="px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white font-medium hover:bg-white/20 transition-all border border-white/20"
-          >
-            Войти →
-          </button>
+          {session ? (
+            <div className="flex items-center gap-3">
+              <span className="text-white/90 font-medium">
+                {session.user?.name || session.user?.email}
+              </span>
+              <button 
+                onClick={handleLogout}
+                className="px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white font-medium hover:bg-white/20 transition-all border border-white/20"
+              >
+                Выйти →
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => router.push('/login')}
+              className="px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white font-medium hover:bg-white/20 transition-all border border-white/20"
+            >
+              Войти →
+            </button>
+          )}
         </div>
         
         {/* Main Card */}
@@ -95,7 +185,7 @@ export default function WelcomePage() {
           {/* Logo + Title */}
           <div className="text-center mb-12 animate-fade-in">
             <div className="inline-flex items-center justify-center mb-6">
-              <img src="/creatix-logo.svg" alt="Creatix" className="h-24 w-auto" />
+              <Logo size="xl" />
             </div>
             <p className="text-2xl text-white/90 font-light">
               Создавайте профессиональные документы за минуты
@@ -103,11 +193,37 @@ export default function WelcomePage() {
           </div>
           
           {/* Typewriter Example */}
-          <div className="mb-8">
-            <div className="mx-auto max-w-xl px-8 py-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 text-white/90 text-lg text-center">
-              <TypewriterEffect texts={examples} speed={60} deleteSpeed={40} pauseTime={2500} />
+          {messages.length === 0 && (
+            <div className="mb-8">
+              <div className="mx-auto max-w-xl px-8 py-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 text-white/90 text-lg text-center">
+                <TypewriterEffect texts={examples} speed={60} deleteSpeed={40} pauseTime={2500} />
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* Mini Chat */}
+          {messages.length > 0 && (
+            <div className="mb-6 mx-auto max-w-xl">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-4 max-h-60 overflow-y-auto space-y-3">
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`px-4 py-2 rounded-xl max-w-[80%] ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                          : 'bg-white/20 text-white'
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Input Container */}
           <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-3 border border-white/20 shadow-2xl mb-6">
@@ -128,8 +244,8 @@ export default function WelcomePage() {
               >
                 {isGenerating ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Создаю...
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    {messages.length > 0 ? 'Анализирую...' : 'Создаю...'}
                   </>
                 ) : (
                   <>

@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import { Download, Trash2, FileText, Archive, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import JSZip from 'jszip'
+import GenerationLimitModal from './GenerationLimitModal'
 
 const fileTypeIcons: Record<string, string> = {
   pdf: '📄',
@@ -13,10 +14,23 @@ const fileTypeIcons: Record<string, string> = {
 }
 
 export default function FilesList() {
-  const { generatedFiles, removeGeneratedFile, addMessage } = useStore()
+  const { 
+    generatedFiles, 
+    removeGeneratedFile, 
+    addMessage,
+    isGuestMode,
+    getRemainingGenerations
+  } = useStore()
   const [downloadingAll, setDownloadingAll] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
 
   const handleDownload = (url: string, name: string) => {
+    if (isGuestMode) {
+      console.log('🚫 Guest users cannot download files')
+      setShowLimitModal(true)
+      return
+    }
+    
     const link = document.createElement('a')
     link.href = url
     link.download = name
@@ -25,6 +39,12 @@ export default function FilesList() {
 
   const handleDownloadAll = async () => {
     if (generatedFiles.length === 0) return
+    
+    if (isGuestMode) {
+      console.log('🚫 Guest users cannot download files')
+      setShowLimitModal(true)
+      return
+    }
 
     setDownloadingAll(true)
     
@@ -81,10 +101,18 @@ export default function FilesList() {
 
   return (
     <div className="space-y-4">
+      {/* Guest warning */}
+      {isGuestMode && generatedFiles.length > 0 && (
+        <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <p className="text-xs font-semibold text-orange-600 mb-1">⚠️ Гостевой режим</p>
+          <p className="text-xs text-orange-600">Зарегистрируйтесь, чтобы скачивать файлы</p>
+        </div>
+      )}
+      
       {/* Кнопка скачать всё */}
       <button
         onClick={handleDownloadAll}
-        disabled={downloadingAll}
+        disabled={downloadingAll || isGuestMode}
         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all shadow-md hover:shadow-lg font-medium disabled:opacity-50"
       >
         {downloadingAll ? (
@@ -126,8 +154,13 @@ export default function FilesList() {
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <button
                 onClick={() => handleDownload(file.url, file.name)}
-                className="p-2 sm:p-2.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity touch-manipulation"
-                title="Скачать"
+                disabled={isGuestMode}
+                className={`p-2 sm:p-2.5 rounded-md transition-opacity touch-manipulation ${
+                  isGuestMode
+                    ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'bg-primary text-primary-foreground hover:opacity-90'
+                }`}
+                title={isGuestMode ? 'Зарегистрируйтесь для скачивания' : 'Скачать'}
               >
                 <Download className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -142,6 +175,13 @@ export default function FilesList() {
           </motion.div>
         ))}
       </div>
+      
+      {/* Generation Limit Modal */}
+      <GenerationLimitModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        remaining={getRemainingGenerations()}
+      />
     </div>
   )
 }

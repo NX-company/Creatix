@@ -1,52 +1,48 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyTokenForMiddleware } from './lib/auth'
+import { getToken } from 'next-auth/jwt'
 
 const publicPaths = ['/login', '/register', '/welcome']
 const adminPaths = ['/admin']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get('auth-token')?.value
 
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
   const isAdminPath = adminPaths.some(path => pathname.startsWith(path))
   const isApiRoute = pathname.startsWith('/api/')
 
-  if (isPublicPath) {
-    if (token) {
-      const user = await verifyTokenForMiddleware(token)
-      if (user) {
-        return NextResponse.redirect(new URL('/', request.url))
-      }
-    }
+  // Allow public paths and API routes
+  if (isPublicPath || isApiRoute || pathname.startsWith('/_next')) {
     return NextResponse.next()
   }
 
-  if (!token && !isApiRoute && !pathname.startsWith('/_next')) {
-    // Redirect to welcome page for first-time visitors
+  // Check NextAuth session
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  
+  // Check if this is a guest user from welcome page
+  const isGuest = request.nextUrl.searchParams.get('guest') === 'true'
+
+  // If no session and not a guest
+  if (!token && !isGuest) {
+    // Redirect to welcome page for first-time visitors on root path
     if (pathname === '/') {
       return NextResponse.redirect(new URL('/welcome', request.url))
     }
+    // Redirect to login for other paths
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Check admin access
+  if (token && isAdminPath && token.role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // Add user info to headers for server components
   if (token) {
-    const user = await verifyTokenForMiddleware(token)
-    
-    if (!user) {
-      const response = NextResponse.redirect(new URL('/login', request.url))
-      response.cookies.delete('auth-token')
-      return response
-    }
-
-    if (isAdminPath && user.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
     const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-user-id', user.id)
-    requestHeaders.set('x-user-role', user.role)
+    requestHeaders.set('x-user-id', token.id as string)
+    requestHeaders.set('x-user-role', token.role as string)
 
     return NextResponse.next({
       request: {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Trash2, UserPlus, Loader2, Ban, Check } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 type User = {
   id: string
@@ -115,9 +116,12 @@ export default function AdminUsersPage() {
             <Link href="/admin" className="p-2 hover:bg-muted rounded-lg transition">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div>
-              <h1 className="text-3xl font-bold">Управление пользователями</h1>
-              <p className="text-muted-foreground">Всего пользователей: {users.length}</p>
+            <div className="flex items-center gap-4">
+              <Logo size="md" />
+              <div>
+                <h1 className="text-3xl font-bold">Управление пользователями</h1>
+                <p className="text-muted-foreground">Всего пользователей: {users.length}</p>
+              </div>
             </div>
           </div>
           <button

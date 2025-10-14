@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { useSession } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import ChatPanel from '@/components/ChatPanel'
 import RightPanel from '@/components/RightPanel'
@@ -13,6 +14,7 @@ import { getWelcomeMessage } from '@/lib/welcomeMessages'
 import { Menu, X } from 'lucide-react'
 
 export default function Home() {
+  const { data: session, status } = useSession()
   const [mounted, setMounted] = useState(false)
   const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -22,11 +24,70 @@ export default function Home() {
   const messages = useStore((state) => state.messages)
   const addMessage = useStore((state) => state.addMessage)
   const docType = useStore((state) => state.docType)
+  const setDocType = useStore((state) => state.setDocType)
   const appMode = useStore((state) => state.appMode)
+  const setIsGuestMode = useStore((state) => state.setIsGuestMode)
+  const setWorkMode = useStore((state) => state.setWorkMode)
+  const guestGenerationsUsed = useStore((state) => state.guestGenerationsUsed)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+  
+  // Restore guest generation counter from localStorage
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return
+    
+    try {
+      const stored = localStorage.getItem('creatix_guest_generations')
+      if (stored) {
+        const used = parseInt(stored, 10)
+        if (!isNaN(used) && used !== guestGenerationsUsed) {
+          useStore.setState({ guestGenerationsUsed: used })
+          console.log(`📊 Restored guest generations: ${used}/3`)
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring guest generations:', error)
+    }
+  }, [mounted])
+
+  // Check authentication and set guest mode
+  useEffect(() => {
+    if (!mounted || status === 'loading') return
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    const guestParam = urlParams.get('guest')
+    
+    // If user is authenticated via NextAuth, disable guest mode
+    if (session) {
+      console.log('👤 User authenticated via NextAuth:', session.user?.email)
+      setIsGuestMode(false)
+      sessionStorage.removeItem('isGuestMode')
+      return
+    }
+    
+    // Otherwise check for guest mode
+    if (guestParam === 'true') {
+      console.log('🎭 Guest mode detected from URL')
+      setIsGuestMode(true)
+      sessionStorage.setItem('isGuestMode', 'true')
+      
+      // Restore workMode
+      const storedWorkMode = sessionStorage.getItem('workMode')
+      if (storedWorkMode === 'build' || storedWorkMode === 'plan') {
+        console.log(`🔧 Restoring workMode: ${storedWorkMode}`)
+        setWorkMode(storedWorkMode as 'plan' | 'build')
+      }
+    } else {
+      // Restore from sessionStorage
+      const storedGuestMode = sessionStorage.getItem('isGuestMode')
+      if (storedGuestMode === 'true') {
+        console.log('🎭 Restoring guest mode from sessionStorage')
+        setIsGuestMode(true)
+      }
+    }
+  }, [mounted, session, status, setIsGuestMode, setWorkMode])
 
   useEffect(() => {
     if (!mounted) return
@@ -79,12 +140,21 @@ export default function Home() {
     
     // Check for welcome prompt from welcome page
     const welcomePrompt = sessionStorage.getItem('welcome_prompt')
+    const welcomeDocType = sessionStorage.getItem('welcome_doc_type')
     const isFirstTime = sessionStorage.getItem('welcome_first_time')
+    const autoGenerate = sessionStorage.getItem('auto_generate')
     
     if (welcomePrompt && isFirstTime) {
       // Clear session storage
       sessionStorage.removeItem('welcome_prompt')
+      sessionStorage.removeItem('welcome_doc_type')
       sessionStorage.removeItem('welcome_first_time')
+      sessionStorage.removeItem('auto_generate')
+      
+      // Set document type if provided
+      if (welcomeDocType) {
+        setDocType(welcomeDocType as any)
+      }
       
       // Add user message
       addMessage({
@@ -92,8 +162,15 @@ export default function Home() {
         content: welcomePrompt
       })
       
-      // Note: ChatPanel will handle the generation automatically
-      // OnboardingTour will start after generation completes
+      // Trigger auto-generation
+      if (autoGenerate === 'true') {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('trigger-auto-generation', {
+            detail: { prompt: welcomePrompt }
+          }))
+        }, 500)
+      }
+      
       return
     }
     
@@ -103,7 +180,7 @@ export default function Home() {
         content: getWelcomeMessage(docType, appMode)
       })
     }
-  }, [mounted, messages.length, addMessage, docType, appMode, projects.length])
+  }, [mounted, messages.length, addMessage, docType, appMode, projects.length, setDocType])
 
   if (!mounted) {
     return null

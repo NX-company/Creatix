@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import SessionProvider from '@/components/SessionProvider'
 
 export const metadata: Metadata = {
   title: 'Creatix',
@@ -20,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>{children}</body>
+      <body className="antialiased" suppressHydrationWarning>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   )
 }

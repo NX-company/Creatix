@@ -188,6 +188,13 @@ type Store = {
   isGuestMode: boolean
   setIsGuestMode: (isGuest: boolean) => void
   
+  guestGenerationsUsed: number
+  guestGenerationsLimit: number
+  incrementGuestGenerations: () => void
+  resetGuestGenerations: () => void
+  getRemainingGenerations: () => number
+  hasRemainingGenerations: () => boolean
+  
   parsedWebsiteData: {
     url: string
     title: string
@@ -693,6 +700,41 @@ export const useStore = create<Store>()(
       
       isGuestMode: false,
       setIsGuestMode: (isGuest) => set({ isGuestMode: isGuest }),
+      
+      guestGenerationsUsed: 0,
+      guestGenerationsLimit: 3,
+      incrementGuestGenerations: () => {
+        const { guestGenerationsUsed, guestGenerationsLimit } = get()
+        const newUsed = Math.min(guestGenerationsUsed + 1, guestGenerationsLimit)
+        set({ guestGenerationsUsed: newUsed })
+        
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('creatix_guest_generations', newUsed.toString())
+          } catch (error) {
+            console.error('Error saving guest generations:', error)
+          }
+        }
+      },
+      resetGuestGenerations: () => {
+        set({ guestGenerationsUsed: 0 })
+        
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('creatix_guest_generations')
+          } catch (error) {
+            console.error('Error resetting guest generations:', error)
+          }
+        }
+      },
+      getRemainingGenerations: () => {
+        const { guestGenerationsUsed, guestGenerationsLimit } = get()
+        return Math.max(0, guestGenerationsLimit - guestGenerationsUsed)
+      },
+      hasRemainingGenerations: () => {
+        const { guestGenerationsUsed, guestGenerationsLimit } = get()
+        return guestGenerationsUsed < guestGenerationsLimit
+      },
       
       parsedWebsiteData: null,
       setParsedWebsiteData: (data) => set({ parsedWebsiteData: data }),

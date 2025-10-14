@@ -13,12 +13,15 @@ import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { processPlanningMode, formatPlanForGeneration } from '@/lib/agents/planningAgent'
 import { saveHTMLPreview } from '@/lib/storage/indexedDB'
 import { recognizeIntent, extractQuantity } from '@/lib/intentRecognition'
+import { getBrowserFingerprint } from '@/lib/browserFingerprint'
 import ProjectSelector from './ProjectSelector'
 import FileUploader from './FileUploader'
 import WebsiteModal from './WebsiteModal'
 import WebsiteActionModal from './WebsiteActionModal'
 import ModeSwitcher from './ModeSwitcher'
 import InlinePlanningCard from './InlinePlanningCard'
+import GenerationLimitModal from './GenerationLimitModal'
+import TrialExpiredModal from './TrialExpiredModal'
 
 export default function ChatPanel() {
   const { 
@@ -49,7 +52,13 @@ export default function ChatPanel() {
     planningData,
     setPlanningData,
     resetPlanningData,
-    getCurrentProject
+    getCurrentProject,
+    isGuestMode,
+    guestGenerationsUsed,
+    guestGenerationsLimit,
+    incrementGuestGenerations,
+    getRemainingGenerations,
+    hasRemainingGenerations
   } = useStore()
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -58,6 +67,14 @@ export default function ChatPanel() {
   const [websiteActionModalOpen, setWebsiteActionModalOpen] = useState(false)
   const [pendingWebsiteUrl, setPendingWebsiteUrl] = useState('')
   const [pendingWebsiteData, setPendingWebsiteData] = useState<any>(null)
+  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{
+    isInTrial?: boolean
+    trialDaysLeft?: number
+    trialGenerationsLeft?: number
+    trialGenerations?: number
+  } | null>(null)
   const isGeneratingRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -66,6 +83,48 @@ export default function ChatPanel() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
+  
+  // Auto-generation function (called from welcome page)
+  const triggerGeneration = async (userMsg: string) => {
+    if (isGeneratingRef.current || loading) {
+      console.warn('⚠️ Generation already in progress')
+      return
+    }
+    
+    console.log('⚡ Triggering generation with:', userMsg)
+    
+    // Set input and trigger Run button click after state update
+    setInput(userMsg)
+    
+    // Small delay to ensure state updates
+    setTimeout(() => {
+      const runButton = document.querySelector('[data-auto-run="true"]') as HTMLButtonElement
+      if (runButton) {
+        console.log('🎯 Programmatically clicking Run button')
+        runButton.click()
+      } else {
+        console.error('❌ Run button not found!')
+      }
+    }, 150)
+  }
+  
+  // Listen for auto-generation trigger from welcome page
+  useEffect(() => {
+    const handleAutoGeneration = (event: Event) => {
+      const customEvent = event as CustomEvent
+      const prompt = customEvent.detail?.prompt
+      
+      if (prompt && !isGeneratingRef.current && !loading) {
+        console.log('🚀 Auto-generating from welcome page...')
+        console.log('📝 Prompt:', prompt)
+        
+        triggerGeneration(prompt.trim())
+      }
+    }
+    
+    window.addEventListener('trigger-auto-generation', handleAutoGeneration)
+    return () => window.removeEventListener('trigger-auto-generation', handleAutoGeneration)
+  }, [loading])
 
   const handlePlanningCardSubmit = (selectedQuestions: string[], pageCount?: number, imageCount?: number, mode?: 'batch' | 'sequential') => {
     setPlanningData({
@@ -185,15 +244,94 @@ export default function ChatPanel() {
   }
 
   const handleRun = async () => {
-    if (!input.trim() || loading || isGeneratingRef.current) return
+    console.log('🔵 handleRun called')
+    console.log('  📝 input:', input)
+    console.log('  ⏳ loading:', loading)
+    console.log('  🔒 isGeneratingRef:', isGeneratingRef.current)
+    console.log('  🛠️ workMode:', workMode)
     
+    if (!input.trim() || loading || isGeneratingRef.current) {
+      console.log('❌ handleRun blocked:', {
+        noInput: !input.trim(),
+        loading,
+        generating: isGeneratingRef.current
+      })
+      return
+    }
+    
+    // Check generation limits
+    const intent = recognizeIntent(input.trim(), docType)
+    const isCreationRequest = intent.action === 'create'
+    
+    // Guest limit check
+    if (isGuestMode && isCreationRequest) {
+      const fingerprint = getBrowserFingerprint()
+      
+      try {
+        const checkResponse = await fetch('/api/check-generation-limit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint })
+        })
+        
+        const checkData = await checkResponse.json()
+        
+        if (!checkData.allowed) {
+          console.log(`🚫 Backend limit reached: ${checkData.reason}`)
+          addMessage({
+            role: 'assistant',
+            content: `⚠️ ${checkData.message}\n\nЗарегистрируйтесь, чтобы получить неограниченный доступ!`
+          })
+          setShowLimitModal(true)
+          return
+        }
+      } catch (error) {
+        console.error('Error checking backend limit:', error)
+      }
+      
+      if (!hasRemainingGenerations()) {
+        console.log('🚫 Local guest limit reached')
+        setShowLimitModal(true)
+        return
+      }
+    }
+    
+    // Trial limit check for registered users
+    if (!isGuestMode && currentUser?.isInTrial && isCreationRequest) {
+      const trialGenerationsLeft = currentUser.trialGenerationsLeft || 0
+      const trialDaysLeft = currentUser.trialDaysLeft || 0
+      
+      if (trialGenerationsLeft <= 0 || trialDaysLeft <= 0) {
+        console.log('🚫 Trial limit reached')
+        addMessage({
+          role: 'assistant',
+          content: `⚠️ Ваш пробный период завершен!\n\n📊 Вы использовали ${currentUser.trialGenerations || 0} генераций за ${3 - trialDaysLeft} дней.\n\nСвяжитесь с нами для продолжения работы!`
+        })
+        setShowTrialExpiredModal(true)
+        return
+      }
+    }
+    
+    console.log('✅ handleRun proceeding with generation')
     isGeneratingRef.current = true
     const userMsg = input.trim()
-    addMessage({ role: 'user', content: userMsg })
+    
+    // Check if this message is already in the chat (auto-generation from welcome)
+    const lastMessage = messages[messages.length - 1]
+    const isDuplicate = lastMessage?.role === 'user' && lastMessage?.content === userMsg
+    
+    if (!isDuplicate) {
+      console.log('➕ Adding user message to chat')
+      addMessage({ role: 'user', content: userMsg })
+    } else {
+      console.log('📋 Message already in chat, skipping duplicate')
+    }
+    
     setInput('')
     setLoading(true)
 
     try {
+      console.log('🔄 Checking workMode:', workMode)
       if (workMode === 'plan') {
         const conversationHistory = messages.slice(-10)
           .map(msg => `${msg.role === 'user' ? '👤' : '🤖'}: ${msg.content}`)
@@ -220,6 +358,8 @@ export default function ChatPanel() {
         isGeneratingRef.current = false
         return
       }
+      
+      console.log('✅ Not in plan mode, proceeding with build mode')
       
       const isDocumentCreationFromWebsite = parsedWebsiteData && (
         userMsg.toLowerCase().includes('создай') ||
@@ -469,6 +609,10 @@ Output ONLY the English prompt, nothing else. No quotes, no explanations.`
         return
       }
       
+      console.log('🎨 Starting document creation...')
+      console.log('  📄 docType:', docType)
+      console.log('  🔧 appMode:', appMode)
+      
       const contentPrompt = getPromptForAction(docType, 'contentGeneration')
       const selectedStyleName = useStore.getState().selectedStyleName
       
@@ -632,6 +776,73 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
       }
       
       setHtmlPreview(result.html)
+      
+      // Increment generation counter
+      if (isGuestMode && isCreationRequest) {
+        incrementGuestGenerations()
+        
+        const fingerprint = getBrowserFingerprint()
+        try {
+          await fetch('/api/check-generation-limit', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint })
+          })
+        } catch (error) {
+          console.error('Error incrementing backend limit:', error)
+        }
+        
+        const remaining = getRemainingGenerations()
+        console.log(`✅ Guest generation counted. Remaining: ${remaining}`)
+        
+        if (remaining === 0) {
+          addMessage({
+            role: 'assistant',
+            content: '⚡ Это была ваша последняя бесплатная генерация! Зарегистрируйтесь, чтобы продолжить.'
+          })
+          setTimeout(() => setShowLimitModal(true), 2000)
+        } else if (remaining <= 1) {
+          addMessage({
+            role: 'assistant',
+            content: `⚡ У вас осталась ${remaining} бесплатная генерация. Зарегистрируйтесь, чтобы получить больше!`
+          })
+        }
+      } else if (!isGuestMode && currentUser?.isInTrial && isCreationRequest) {
+        try {
+          const response = await fetch('/api/user/increment-trial-generation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            const remaining = data.trialGenerationsLeft
+            
+            console.log(`✅ Trial generation counted. Remaining: ${remaining}/3`)
+            
+            setCurrentUser(prev => prev ? {
+              ...prev,
+              trialGenerations: data.trialGenerations,
+              trialGenerationsLeft: remaining
+            } : null)
+            
+            if (remaining === 0) {
+              addMessage({
+                role: 'assistant',
+                content: '⚡ Это была ваша последняя пробная генерация! Свяжитесь с нами для продолжения работы.'
+              })
+              setTimeout(() => setShowTrialExpiredModal(true), 2000)
+            } else if (remaining <= 3) {
+              addMessage({
+                role: 'assistant',
+                content: `⚡ У вас осталось ${remaining} пробных генераций. Используйте их с умом!`
+              })
+            }
+          }
+        } catch (error) {
+          console.error('Error incrementing trial generation:', error)
+        }
+      }
       
       // Сохраняем выделение для возможности дальнейшего редактирования
       
@@ -801,6 +1012,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           <button
             onClick={handleRun}
             disabled={loading || !input.trim()}
+            data-auto-run="true"
             className="min-w-[44px] min-h-[44px] px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center"
           >
             {loading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -826,6 +1038,21 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           setPendingWebsiteData(null)
         }}
         onAction={handleWebsiteAction}
+      />
+      
+      {/* Generation Limit Modal for Guests */}
+      <GenerationLimitModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        remaining={getRemainingGenerations()}
+      />
+      
+      {/* Trial Expired Modal for Registered Users */}
+      <TrialExpiredModal
+        isOpen={showTrialExpiredModal}
+        onClose={() => setShowTrialExpiredModal(false)}
+        trialGenerations={currentUser?.trialGenerations || 0}
+        trialDays={3 - (currentUser?.trialDaysLeft || 0)}
       />
     </div>
   )

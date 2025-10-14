@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Replicate from 'replicate'
+import { getUserFromRequest } from '@/lib/auth'
+import { logApiUsage } from '@/lib/db'
 
 export const maxDuration = 60
+
+const FLUX_MODEL_COSTS: Record<string, number> = {
+  'black-forest-labs/flux-schnell': 0.003,
+  'black-forest-labs/flux-dev': 0.025,
+  'black-forest-labs/flux-pro': 0.05,
+  'black-forest-labs/flux-1.1-pro': 0.04
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -164,6 +173,19 @@ export async function POST(request: NextRequest) {
     const dataUrl = `data:image/png;base64,${base64}`
 
     console.log(`✅ ${modelName} generation complete`)
+
+    const user = await getUserFromRequest(request)
+    if (user) {
+      const cost = FLUX_MODEL_COSTS[model] || 0.003
+      await logApiUsage({
+        userId: user.id,
+        provider: 'Replicate',
+        model: model,
+        endpoint: '/api/flux-generate',
+        tokensUsed: 0,
+        cost: cost
+      })
+    }
 
     return NextResponse.json({
       success: true,

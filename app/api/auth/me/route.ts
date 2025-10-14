@@ -12,6 +12,13 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    const now = new Date()
+    const isInTrial = user.trialEndsAt ? now < user.trialEndsAt : false
+    const trialDaysLeft = user.trialEndsAt 
+      ? Math.max(0, Math.ceil((user.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0
+    const trialGenerationsLeft = Math.max(0, 3 - (user.trialGenerations || 0))
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -19,7 +26,12 @@ export async function GET(req: NextRequest) {
         email: user.email,
         role: user.role,
         appMode: user.appMode,
-        isActive: user.isActive
+        isActive: user.isActive,
+        trialEndsAt: user.trialEndsAt,
+        trialGenerations: user.trialGenerations || 0,
+        isInTrial,
+        trialDaysLeft,
+        trialGenerationsLeft
       }
     })
   } catch (error) {

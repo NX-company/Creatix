@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Mail, Presentation, Receipt, Image, ChevronLeft, ChevronRight, ShoppingBag, LogOut, User } from 'lucide-react'
+import { useSession, signOut } from 'next-auth/react'
+import { FileText, Mail, Presentation, Receipt, Image, ChevronLeft, ChevronRight, ShoppingBag, LogOut, User, LogIn } from 'lucide-react'
 import { useStore, type DocType } from '@/lib/store'
 import { cn } from '@/lib/cn'
 import ModeSelector from './ModeSelector'
+import Logo from './Logo'
 
 const docTypes: { type: DocType; icon: any; label: string }[] = [
   { type: 'proposal', icon: FileText, label: 'Коммерческое предложение' },
@@ -18,25 +20,26 @@ const docTypes: { type: DocType; icon: any; label: string }[] = [
 
 export default function Sidebar() {
   const router = useRouter()
-  const { docType, setDocType } = useStore()
+  const { data: session } = useSession()
+  const { 
+    docType, 
+    setDocType, 
+    isGuestMode,
+    guestGenerationsUsed,
+    guestGenerationsLimit,
+    getRemainingGenerations
+  } = useStore()
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null)
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me')
-        if (response.ok) {
-          const data = await response.json()
-          setCurrentUser(data.user)
-        }
-      } catch (error) {
-        console.error('Failed to fetch user:', error)
-      }
-    }
-    
-    fetchUser()
-  }, [])
+  const currentUser = isGuestMode ? { 
+    username: 'Гость', 
+    role: 'GUEST' 
+  } : session?.user ? {
+    username: session.user.name || session.user.email || 'Пользователь',
+    role: session.user.role || 'USER',
+    isInTrial: session.user.trialEndsAt ? new Date(session.user.trialEndsAt) > new Date() : false,
+    trialGenerations: session.user.trialGenerations,
+  } : null
 
   const handleDocTypeChange = (newType: DocType) => {
     if (docType === newType) return
@@ -45,11 +48,16 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/login')
-      router.refresh()
+      // Clear all storage
+      sessionStorage.clear()
+      localStorage.clear()
+      
+      // Sign out from NextAuth with redirect
+      await signOut({ callbackUrl: '/login' })
     } catch (error) {
       console.error('Logout failed:', error)
+      // Fallback: force redirect even if signOut fails
+      window.location.href = '/login'
     }
   }
 
@@ -62,11 +70,9 @@ export default function Sidebar() {
         "border-b border-border flex items-center bg-background/50 backdrop-blur-sm",
         isCollapsed ? "p-2 justify-center" : "p-3 justify-between"
       )}>
-        {!isCollapsed && (
-          <div className="flex items-center">
-            <img src="/creatix-logo.svg" alt="Creatix" className="h-8 w-auto" />
-          </div>
-        )}
+        <div className="flex items-center flex-1 bg-white/5 rounded px-2 py-1">
+          <Logo size={isCollapsed ? "sm" : "md"} className="brightness-125" style={{ filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.3))' }} />
+        </div>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-1.5 hover:bg-accent rounded transition-colors"
@@ -114,7 +120,7 @@ export default function Sidebar() {
         </div>
       )}
       
-      {/* User info and logout button */}
+      {/* User info and logout/login button */}
       <div className={cn(
         "border-t border-border bg-background/50 backdrop-blur-sm",
         isCollapsed ? "p-2" : "p-3"
@@ -124,7 +130,10 @@ export default function Sidebar() {
             <User className="w-4 h-4 text-muted-foreground" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{currentUser.username}</p>
-              <p className="text-xs text-muted-foreground">{currentUser.role === 'ADMIN' ? 'Администратор' : 'Пользователь'}</p>
+              <p className="text-xs text-muted-foreground">
+                {currentUser.role === 'ADMIN' ? 'Администратор' : 
+                 currentUser.role === 'GUEST' ? 'Тестовый режим' : 'Пользователь'}
+              </p>
             </div>
           </div>
         )}
@@ -142,17 +151,99 @@ export default function Sidebar() {
           </button>
         )}
         
-        <button
-          onClick={handleLogout}
-          title={isCollapsed ? "Выйти" : undefined}
-          className={cn(
-            "w-full flex items-center gap-2 rounded-md text-sm transition-all bg-red-500/10 text-red-600 hover:bg-red-500/20",
-            isCollapsed ? "justify-center p-2" : "px-3 py-2"
-          )}
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!isCollapsed && <span>Выйти</span>}
-        </button>
+        {/* Guest generation counter banner */}
+        {!isCollapsed && isGuestMode && (
+          <div className="mb-3 p-3 bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-orange-500 p-1 rounded">
+                <span className="text-white text-xs">⚡</span>
+              </div>
+              <span className="text-xs font-semibold text-foreground">Бесплатные генерации</span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xl font-bold text-orange-600">{getRemainingGenerations()}/{guestGenerationsLimit}</span>
+              <span className="text-xs text-muted-foreground">осталось</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-orange-500 to-orange-600 h-full transition-all duration-500 rounded-full"
+                style={{ width: `${(getRemainingGenerations() / guestGenerationsLimit) * 100}%` }}
+              />
+            </div>
+            {getRemainingGenerations() === 0 && (
+              <p className="text-xs text-orange-600 mt-2 font-medium">
+                Зарегистрируйтесь, чтобы продолжить!
+              </p>
+            )}
+            {getRemainingGenerations() === 1 && (
+              <p className="text-xs text-orange-600 mt-2">
+                Последняя бесплатная генерация!
+              </p>
+            )}
+          </div>
+        )}
+        
+        {/* Trial banner for registered users */}
+        {!isCollapsed && !isGuestMode && currentUser?.isInTrial && (
+          <div className="mb-3 p-3 bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-green-500 p-1 rounded">
+                <span className="text-white text-xs">🎉</span>
+              </div>
+              <span className="text-xs font-semibold text-foreground">Пробный период</span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xl font-bold text-green-600">
+                {currentUser.trialGenerationsLeft}/3
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {currentUser.trialDaysLeft} {currentUser.trialDaysLeft === 1 ? 'день' : 'дней'}
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all duration-500 rounded-full"
+                style={{ width: `${((currentUser.trialGenerationsLeft || 0) / 3) * 100}%` }}
+              />
+            </div>
+            {(currentUser.trialGenerationsLeft || 0) === 0 && (
+              <p className="text-xs text-green-600 mt-2 font-medium">
+                Свяжитесь с нами для продолжения!
+              </p>
+            )}
+            {(currentUser.trialGenerationsLeft || 0) <= 3 && (currentUser.trialGenerationsLeft || 0) > 0 && (
+              <p className="text-xs text-green-600 mt-2">
+                Осталось {currentUser.trialGenerationsLeft} генераций!
+              </p>
+            )}
+          </div>
+        )}
+        
+        {isGuestMode ? (
+          <button
+            onClick={() => router.push('/login')}
+            title={isCollapsed ? "Войти" : undefined}
+            className={cn(
+              "w-full flex items-center gap-2 rounded-md text-sm transition-all bg-primary/10 text-primary hover:bg-primary/20",
+              isCollapsed ? "justify-center p-2" : "px-3 py-2"
+            )}
+          >
+            <LogIn className="w-4 h-4 flex-shrink-0" />
+            {!isCollapsed && <span>Войти</span>}
+          </button>
+        ) : (
+          <button
+            onClick={handleLogout}
+            title={isCollapsed ? "Выйти" : undefined}
+            className={cn(
+              "w-full flex items-center gap-2 rounded-md text-sm transition-all bg-red-500/10 text-red-600 hover:bg-red-500/20",
+              isCollapsed ? "justify-center p-2" : "px-3 py-2"
+            )}
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            {!isCollapsed && <span>Выйти</span>}
+          </button>
+        )}
       </div>
     </div>
   )

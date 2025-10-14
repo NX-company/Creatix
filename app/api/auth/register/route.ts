@@ -35,13 +35,18 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    const trialEndsAt = new Date()
+    trialEndsAt.setDate(trialEndsAt.getDate() + 3)
+
     const user = await prisma.user.create({
       data: {
         email,
         username,
         password: hashedPassword,
         role: 'USER',
-        appMode: 'FREE'
+        appMode: 'FREE',
+        trialEndsAt,
+        trialGenerations: 0
       },
       select: {
         id: true,
@@ -49,6 +54,8 @@ export async function POST(req: NextRequest) {
         username: true,
         role: true,
         appMode: true,
+        trialEndsAt: true,
+        trialGenerations: true,
         createdAt: true
       }
     })

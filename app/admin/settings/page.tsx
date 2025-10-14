@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 type ModeSettings = {
   id: string
@@ -79,9 +80,12 @@ export default function AdminSettingsPage() {
           <Link href="/admin" className="p-2 hover:bg-muted rounded-lg transition min-w-[44px] min-h-[44px] flex items-center justify-center">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Управление режимами</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Включение/выключение режимов работы</p>
+          <div className="flex items-center gap-4">
+            <Logo size="md" />
+            <div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Управление режимами</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Включение/выключение режимов работы</p>
+            </div>
           </div>
         </div>
 

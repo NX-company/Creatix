@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { testScenarios } from '@/lib/testing/scenarios'
+import Logo from '@/components/Logo'
 
 interface TestResult {
   scenario: {
@@ -92,8 +93,13 @@ export default function TestAgentPage() {
     <div className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">🤖 AI Testing Agent</h1>
-          <p className="text-gray-400">Автоматическое тестирование с AI анализом</p>
+          <div className="flex items-center gap-4 mb-4">
+            <Logo size="lg" />
+            <div>
+              <h1 className="text-4xl font-bold mb-2">🤖 AI Testing Agent</h1>
+              <p className="text-gray-400">Автоматическое тестирование с AI анализом</p>
+            </div>
+          </div>
         </div>
 
         <div className="bg-gray-900 rounded-lg p-6 mb-8 border border-gray-800">

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { HttpsProxyAgent } from 'https-proxy-agent'
+import { getUserFromRequest } from '@/lib/auth'
+import { logApiUsage } from '@/lib/db'
 
 export const maxDuration = 60
+
+const DALLE_3_COST = 0.04
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,6 +92,18 @@ export async function POST(request: NextRequest) {
     const dataUrl = `data:image/png;base64,${base64}`
 
     console.log(`✅ DALL-E 3 generation complete`)
+
+    const user = await getUserFromRequest(request)
+    if (user) {
+      await logApiUsage({
+        userId: user.id,
+        provider: 'OpenAI',
+        model: 'dall-e-3',
+        endpoint: '/api/dalle-generate',
+        tokensUsed: 0,
+        cost: DALLE_3_COST
+      })
+    }
 
     return NextResponse.json({
       success: true,

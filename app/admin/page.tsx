@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Users, DollarSign, Settings, BarChart3, LogOut, Loader2, Bot } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 type Stats = {
   totalUsers: number
@@ -54,9 +55,12 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Админ-панель Creatix</h1>
-            <p className="text-muted-foreground">Управление системой и пользователями</p>
+          <div className="flex items-center gap-4">
+            <Logo size="md" />
+            <div>
+              <h1 className="text-3xl font-bold">Админ-панель</h1>
+              <p className="text-muted-foreground">Управление системой и пользователями</p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
