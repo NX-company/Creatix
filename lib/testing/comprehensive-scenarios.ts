@@ -27,18 +27,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const url = page.url()
         const success = url.includes('/') && !url.includes('/register')
         
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ fullPage: true })
         return {
           passed: success,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: success ? 'Регистрация успешна' : 'Не перенаправило после регистрации'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -66,18 +66,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const url = page.url()
         const loggedIn = !url.includes('/login')
         
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         return {
           passed: loggedIn,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: loggedIn ? 'Вход выполнен успешно' : 'Остались на странице логина'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -104,18 +104,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const response = await page.goto(`${baseUrl}/api/auth/me`)
         const status = response?.status() || 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: status === 200 || status === 401, // 401 если не авторизован - тоже норма
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -147,18 +147,18 @@ export const comprehensiveScenarios: TestScenario[] = [
           await page.waitForTimeout(2000)
         }
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: found,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: found ? 'Кнопка выхода найдена и нажата' : 'Кнопка выхода не найдена'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -205,19 +205,19 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(20000) // Ждём генерации
         
         const hasPreview = await page.locator('iframe, [class*="preview"]').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasPreview,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: hasPreview ? 'Документ создан' : 'Превью не появилось'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -250,18 +250,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(20000)
         
         const hasPreview = await page.locator('iframe, [class*="preview"]').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasPreview,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -294,18 +294,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(15000)
         
         const hasPreview = await page.locator('iframe, [class*="preview"]').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasPreview,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -338,18 +338,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(20000)
         
         const hasPreview = await page.locator('iframe, [class*="preview"]').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasPreview,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -382,18 +382,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(15000)
         
         const hasPreview = await page.locator('iframe, [class*="preview"]').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasPreview,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -426,18 +426,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(15000)
         
         const hasPreview = await page.locator('iframe, [class*="preview"]').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasPreview,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -470,18 +470,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const htmlBtn = page.locator('button:has-text("HTML"), a:has-text("HTML"), [data-format="html"]')
         const found = await htmlBtn.count() > 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         return {
           passed: found,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: found ? 'Кнопка HTML найдена' : 'Кнопка HTML не найдена'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -508,18 +508,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const pdfBtn = page.locator('button:has-text("PDF"), a:has-text("PDF"), [data-format="pdf"]')
         const found = await pdfBtn.count() > 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         return {
           passed: found,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: found ? 'Кнопка PDF найдена' : 'Кнопка PDF не найдена'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -546,18 +546,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const docBtn = page.locator('button:has-text("DOC"), a:has-text("Word"), [data-format="doc"]')
         const found = await docBtn.count() > 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         return {
           passed: found,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: found ? 'Кнопка DOC найдена' : 'Кнопка DOC не найдена'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -582,19 +582,19 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(2000)
         
         const hasContent = await page.locator('h1, h2').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasContent,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: hasContent ? 'Админ-панель загружена' : 'Страница пустая'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -615,18 +615,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(2000)
         
         const hasContent = await page.locator('table, .user, h1:has-text("Пользовател")').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasContent,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -647,18 +647,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(2000)
         
         const hasContent = await page.locator('form, button, input, h1:has-text("Настройк")').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasContent,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -679,18 +679,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForTimeout(2000)
         
         const hasContent = await page.locator('button:has-text("тест"), h1:has-text("Test"), h1:has-text("Agent")').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         return {
           passed: hasContent,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -710,18 +710,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const status = response?.status() || 0
         const isOk = status === 200 || status === 401 // 401 если не авторизован - норма
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: isOk,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -746,18 +746,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         
         const modeButtons = await page.locator('button:has-text("Free"), button:has-text("Advanced"), button:has-text("PRO"), button:has-text("Бесплатный")').count()
         
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         return {
           passed: modeButtons >= 2,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `Найдено ${modeButtons} кнопок режимов`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -778,18 +778,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         
         const uploadBtn = await page.locator('input[type="file"], button:has-text("Загрузить"), button:has-text("Upload")').count()
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: uploadBtn > 0,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: uploadBtn > 0 ? 'Кнопка загрузки найдена' : 'Кнопка загрузки не найдена'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -817,20 +817,20 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForLoadState('networkidle')
         await page.waitForTimeout(3000)
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: consoleErrors.length === 0,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: consoleErrors.length > 0 
             ? `Найдено ошибок: ${consoleErrors.length}\n${consoleErrors.slice(0, 3).join('\n')}`
             : 'Ошибок не обнаружено'
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -851,22 +851,22 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.waitForLoadState('networkidle')
         
         const hasContent = await page.locator('button, h1').count() > 0
-        const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true })
+        const screenshot = await page.screenshot({ , fullPage: true })
         
         await page.setViewportSize({ width: 1920, height: 1080 }) // Вернуть обратно
         
         return {
           passed: hasContent,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: hasContent ? 'Мобильная версия работает' : 'Контент не отображается'
         }
       } catch (error) {
         await page.setViewportSize({ width: 1920, height: 1080 })
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -898,18 +898,18 @@ export const comprehensiveScenarios: TestScenario[] = [
           return { status: res.status, ok: res.ok }
         }, baseUrl)
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: response.status === 200 || response.status === 401,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${response.status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -928,18 +928,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const response = await page.goto(`${baseUrl}/api/flux-generate`)
         const status = response?.status() || 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: status === 400 || status === 405 || status === 200, // 400/405 норма для GET запроса к POST эндпоинту
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -958,18 +958,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const response = await page.goto(`${baseUrl}/api/dalle-generate`)
         const status = response?.status() || 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: status === 400 || status === 405 || status === 200,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -988,18 +988,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const response = await page.goto(`${baseUrl}/api/parse-website`)
         const status = response?.status() || 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: status === 400 || status === 405 || status === 200,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -1018,18 +1018,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const response = await page.goto(`${baseUrl}/api/generate-pdf`)
         const status = response?.status() || 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: status === 400 || status === 405 || status === 200,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
@@ -1048,18 +1048,18 @@ export const comprehensiveScenarios: TestScenario[] = [
         const response = await page.goto(`${baseUrl}/api/generate-image`)
         const status = response?.status() || 0
         
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: status === 400 || status === 405 || status === 200,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           duration: Date.now() - start,
           details: `API вернул статус ${status}`
         }
       } catch (error) {
-        const screenshot = await page.screenshot({ encoding: 'base64' })
+        const screenshot = await page.screenshot({  })
         return {
           passed: false,
-          screenshot: `data:image/png;base64,${screenshot}`,
+          screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
           error: error instanceof Error ? error.message : 'Unknown error',
           duration: Date.now() - start
         }
