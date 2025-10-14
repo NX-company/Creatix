@@ -13,13 +13,13 @@ export async function generateToken(userId: string, role: string): Promise<strin
     .setExpirationTime('7d')
     .sign(JWT_SECRET)
 
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
   await prisma.session.create({
     data: {
       userId,
-      token,
-      expiresAt,
+      sessionToken: token,
+      expires,
     },
   })
 
@@ -44,11 +44,11 @@ export async function verifyToken(token: string) {
     const { payload } = await jwtVerify(token, JWT_SECRET)
     
     const session = await prisma.session.findUnique({
-      where: { token },
+      where: { sessionToken: token },
       include: { user: true },
     })
 
-    if (!session || session.expiresAt < new Date()) {
+    if (!session || session.expires < new Date()) {
       return null
     }
 
@@ -80,7 +80,7 @@ export async function verifyAdmin(req: NextRequest) {
 
 export async function deleteSession(token: string) {
   await prisma.session.deleteMany({
-    where: { token },
+    where: { sessionToken: token },
   })
 }
 
