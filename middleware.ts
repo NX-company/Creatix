@@ -26,6 +26,16 @@ export async function middleware(request: NextRequest) {
   // Check if user has visited before (using cookie)
   const hasVisited = request.cookies.get('has_visited')
 
+  // Check admin access first - require authentication and ADMIN role
+  if (isAdminPath) {
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    if (token.role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
   // If no session and not a guest
   if (!token && !isGuest) {
     // Always redirect to welcome page for first-time visitors on root path
@@ -45,11 +55,6 @@ export async function middleware(request: NextRequest) {
       path: '/',
     })
     return response
-  }
-
-  // Check admin access
-  if (token && isAdminPath && token.role !== 'ADMIN') {
-    return NextResponse.redirect(new URL('/', request.url))
   }
 
   // Add user info to headers for server components

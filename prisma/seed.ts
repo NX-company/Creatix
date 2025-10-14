@@ -6,25 +6,48 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
-  const adminPassword = await bcrypt.hash('admin123', 10)
+  // Delete all old users except the new admin email
+  try {
+    await prisma.user.deleteMany({
+      where: {
+        AND: [
+          { role: 'ADMIN' },
+          { email: { not: 'useneurox@gmail.com' } }
+        ]
+      }
+    })
+    console.log('🗑️  Deleted old admin users')
+  } catch (e) {
+    console.log('No old admin users to delete')
+  }
+
+  const adminPassword = await bcrypt.hash('Lenalove123', 10)
 
   const admin = await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: {},
-    create: {
-      email: 'admin@nxstudio.com',
+    where: { email: 'useneurox@gmail.com' },
+    update: {
       username: 'admin',
       password: adminPassword,
       role: 'ADMIN',
       appMode: 'PRO',
-      isActive: true
+      isActive: true,
+      name: 'Administrator'
+    },
+    create: {
+      email: 'useneurox@gmail.com',
+      username: 'admin',
+      password: adminPassword,
+      role: 'ADMIN',
+      appMode: 'PRO',
+      isActive: true,
+      name: 'Administrator'
     }
   })
 
   console.log('✅ Created admin user:', admin.username)
-  console.log('   Email: admin@nxstudio.com')
-  console.log('   Password: admin123')
-  console.log('   ⚠️  CHANGE PASSWORD AFTER FIRST LOGIN!')
+  console.log('   Email: useneurox@gmail.com')
+  console.log('   Password: Lenalove123')
+  console.log('   ⚠️  Keep this password safe!')
 
   const modeSettings = await prisma.modeSettings.upsert({
     where: { id: 'default' },
