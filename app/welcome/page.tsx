@@ -79,9 +79,8 @@ export default function WelcomePage() {
         
         {/* Header */}
         <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <img src="/creatix-logo.svg" alt="Creatix" className="w-10 h-10" />
-            <span className="text-white font-bold text-2xl">Creatix</span>
+          <div className="flex items-center">
+            <img src="/creatix-logo.svg" alt="Creatix" className="h-10 w-auto" />
           </div>
           <button 
             onClick={() => router.push('/login')}
@@ -95,13 +94,10 @@ export default function WelcomePage() {
         <div className="w-full max-w-3xl">
           {/* Logo + Title */}
           <div className="text-center mb-12 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-3xl mb-6 border border-white/20 p-4">
-              <img src="/creatix-logo.svg" alt="Creatix Logo" className="w-full h-full" />
+            <div className="inline-flex items-center justify-center mb-6">
+              <img src="/creatix-logo.svg" alt="Creatix" className="h-24 w-auto" />
             </div>
-            <h1 className="text-6xl font-bold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-pink-200">
-              Creatix AI
-            </h1>
-            <p className="text-2xl text-white/80 font-light">
+            <p className="text-2xl text-white/90 font-light">
               Создавайте профессиональные документы за минуты
             </p>
           </div>

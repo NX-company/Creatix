@@ -63,12 +63,8 @@ export default function Sidebar() {
         isCollapsed ? "p-2 justify-center" : "p-3 justify-between"
       )}>
         {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <img src="/creatix-logo.svg" alt="Creatix" className="h-7 w-auto" />
-            <div>
-              <h1 className="text-base font-bold">Creatix</h1>
-              <p className="text-xs text-muted-foreground">Документы</p>
-            </div>
+          <div className="flex items-center">
+            <img src="/creatix-logo.svg" alt="Creatix" className="h-8 w-auto" />
           </div>
         )}
         <button

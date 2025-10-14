@@ -45,9 +45,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8">
           <div className="text-center mb-6 sm:mb-8">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <img src="/creatix-logo.svg" alt="Creatix" className="h-10 w-auto" />
-              <h1 className="text-2xl sm:text-3xl font-bold">Creatix</h1>
+            <div className="flex items-center justify-center mb-3">
+              <img src="/creatix-logo.svg" alt="Creatix" className="h-12 w-auto" />
             </div>
             <p className="text-sm sm:text-base text-muted-foreground">Войдите в систему</p>
           </div>
