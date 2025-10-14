@@ -38,7 +38,9 @@ export default function Sidebar() {
     username: session.user.name || session.user.email || 'Пользователь',
     role: session.user.role || 'USER',
     isInTrial: session.user.trialEndsAt ? new Date(session.user.trialEndsAt) > new Date() : false,
-    trialGenerations: session.user.trialGenerations,
+    trialGenerations: session.user.trialGenerations || 0,
+    trialGenerationsLeft: Math.max(0, 30 - (session.user.trialGenerations || 0)),
+    trialDaysLeft: session.user.trialEndsAt ? Math.max(0, Math.ceil((new Date(session.user.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0,
   } : null
 
   const handleDocTypeChange = (newType: DocType) => {
@@ -194,7 +196,7 @@ export default function Sidebar() {
             </div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xl font-bold text-green-600">
-                {currentUser.trialGenerationsLeft}/3
+                {currentUser.trialGenerationsLeft}/30
               </span>
               <span className="text-xs text-muted-foreground">
                 {currentUser.trialDaysLeft} {currentUser.trialDaysLeft === 1 ? 'день' : 'дней'}
@@ -203,7 +205,7 @@ export default function Sidebar() {
             <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
               <div 
                 className="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all duration-500 rounded-full"
-                style={{ width: `${((currentUser.trialGenerationsLeft || 0) / 3) * 100}%` }}
+                style={{ width: `${((currentUser.trialGenerationsLeft || 0) / 30) * 100}%` }}
               />
             </div>
             {(currentUser.trialGenerationsLeft || 0) === 0 && (
@@ -211,7 +213,7 @@ export default function Sidebar() {
                 Свяжитесь с нами для продолжения!
               </p>
             )}
-            {(currentUser.trialGenerationsLeft || 0) <= 3 && (currentUser.trialGenerationsLeft || 0) > 0 && (
+            {(currentUser.trialGenerationsLeft || 0) <= 30 && (currentUser.trialGenerationsLeft || 0) > 0 && (
               <p className="text-xs text-green-600 mt-2">
                 Осталось {currentUser.trialGenerationsLeft} генераций!
               </p>
