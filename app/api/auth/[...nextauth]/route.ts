@@ -23,7 +23,7 @@ const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async signIn({ user, account, isNewUser }) {
+    async signIn({ user, account }) {
       if (account?.provider === "google" && user.email) {
         try {
           const dbUser = await prisma.user.findUnique({
