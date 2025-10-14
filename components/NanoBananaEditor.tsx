@@ -356,7 +356,7 @@ export default function NanoBananaEditor({ imageUrl, imageName, onSave, onClose 
               <ol className="text-blue-800 space-y-1 text-xs">
                 <li>1. Выделите область (опционально)</li>
                 <li>2. Введите команду на русском</li>
-                <li>3. Нажмите "Применить" или Ctrl+Enter</li>
+                <li>3. Нажмите &quot;Применить&quot; или Ctrl+Enter</li>
                 <li>4. Дождитесь результата (~5-10 сек)</li>
               </ol>
             </div>
