@@ -31,9 +31,31 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
-  body {
+  
+  html, body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    height: 100%;
+    width: 100%;
+    position: relative;
+  }
+  
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: pan-y;
+  }
+  
+  /* Better scrolling on mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure all buttons are touch-friendly */
+  button {
+    touch-action: manipulation;
   }
 }
 

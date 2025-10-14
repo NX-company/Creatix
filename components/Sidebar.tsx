@@ -65,19 +65,19 @@ export default function Sidebar() {
 
   return (
     <div className={cn(
-      "border-r border-border bg-gradient-to-b from-muted/40 to-muted/20 flex flex-col transition-all duration-300 shadow-lg",
-      isCollapsed ? "w-16" : "w-64"
+      "h-full w-full border-r border-border bg-background flex flex-col transition-all duration-300",
+      isCollapsed && "w-16"
     )}>
       <div className={cn(
-        "border-b border-border flex items-center bg-background/50 backdrop-blur-sm",
-        isCollapsed ? "p-2 justify-center" : "p-3 justify-between"
+        "border-b border-border flex items-center bg-background",
+        isCollapsed ? "p-1.5 justify-center" : "p-2 justify-between"
       )}>
-        <div className="flex items-center flex-1 bg-white/5 rounded px-2 py-1">
-          <Logo size={isCollapsed ? "sm" : "md"} className="brightness-125" style={{ filter: 'drop-shadow(0 0 12px rgba(255,255,255,0.3))' }} />
+        <div className="flex items-center flex-1 rounded px-1.5 py-0.5">
+          <Logo size={isCollapsed ? "sm" : "md"} />
         </div>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 hover:bg-accent rounded transition-colors"
+          className="p-1 hover:bg-accent rounded transition-colors touch-manipulation min-h-[32px] min-w-[32px]"
           title={isCollapsed ? "Развернуть" : "Свернуть"}
         >
           {isCollapsed ? (
@@ -88,11 +88,11 @@ export default function Sidebar() {
         </button>
       </div>
       
-      <div className={cn("p-2 flex-1", isCollapsed && "px-1")}>
+      <div className={cn("p-1.5 flex-1 overflow-y-auto", isCollapsed && "px-1")}>
         {!isCollapsed && (
-          <p className="text-xs text-muted-foreground mb-2 px-2">Тип документа</p>
+          <p className="text-xs text-muted-foreground mb-1.5 px-2">Тип документа</p>
         )}
-        <div className="space-y-1" data-tour="doc-types">
+        <div className="space-y-0.5" data-tour="doc-types">
           {docTypes.map((dt) => {
             const Icon = dt.icon
             return (
@@ -101,15 +101,15 @@ export default function Sidebar() {
                 onClick={() => handleDocTypeChange(dt.type)}
                 title={isCollapsed ? dt.label : undefined}
                 className={cn(
-                  'w-full flex items-center gap-2 rounded-md text-sm transition-all',
-                  isCollapsed ? 'justify-center p-2' : 'text-left px-3 py-2',
+                  'w-full flex items-center gap-2 rounded text-sm transition-all touch-manipulation min-h-[36px]',
+                  isCollapsed ? 'justify-center p-1.5' : 'text-left px-2 py-1.5',
                   docType === dt.type
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-accent hover:text-accent-foreground'
                 )}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
-                {!isCollapsed && <span className="truncate">{dt.label}</span>}
+                {!isCollapsed && <span className="truncate text-xs">{dt.label}</span>}
               </button>
             )
           })}
@@ -124,8 +124,8 @@ export default function Sidebar() {
       
       {/* User info and logout/login button */}
       <div className={cn(
-        "border-t border-border bg-background/50 backdrop-blur-sm",
-        isCollapsed ? "p-2" : "p-3"
+        "border-t border-border bg-background",
+        isCollapsed ? "p-1.5" : "p-2"
       )}>
         {!isCollapsed && currentUser && (
           <div className="flex items-center gap-2 mb-2 px-2 py-1">

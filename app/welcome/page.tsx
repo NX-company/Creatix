@@ -111,6 +111,9 @@ export default function WelcomePage() {
       
       console.log('🎯 Redirecting to main page...')
       
+      // Set cookie to mark user as visited
+      document.cookie = 'has_visited=true; path=/; max-age=31536000'
+      
       // Переходим на главную страницу с флагом гостя (hard redirect)
       window.location.href = '/?guest=true'
       
@@ -143,7 +146,7 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+    <div className="min-h-screen relative overflow-x-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
       {/* Animated Background */}
       <AnimatedBackground />
       
@@ -151,43 +154,50 @@ export default function WelcomePage() {
       <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-pink-500/20 to-orange-400/20 backdrop-blur-3xl" />
       
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-8">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header */}
-        <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
-          <div className="flex items-center">
-            <Logo size="md" />
-          </div>
-          {session ? (
-            <div className="flex items-center gap-3">
-              <span className="text-white/90 font-medium">
-                {session.user?.name || session.user?.email}
-              </span>
-              <button 
-                onClick={handleLogout}
-                className="px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white font-medium hover:bg-white/20 transition-all border border-white/20"
-              >
-                Выйти →
-              </button>
+        <div className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8 py-4 bg-black/20 backdrop-blur-lg border-b border-white/10">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center">
+              <Logo size="md" />
             </div>
-          ) : (
-            <button 
-              onClick={() => router.push('/login')}
-              className="px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white font-medium hover:bg-white/20 transition-all border border-white/20"
-            >
-              Войти →
-            </button>
-          )}
+            {session ? (
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-sm">
+                    {(session.user?.name || session.user?.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-white font-medium text-sm">
+                    {session.user?.name || session.user?.email}
+                  </span>
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="px-4 sm:px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white text-sm font-medium hover:bg-white/20 transition-all border border-white/20"
+                >
+                  Выйти
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => router.push('/login')}
+                className="px-4 sm:px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white text-sm font-medium hover:bg-white/20 transition-all border border-white/20"
+              >
+                Войти
+              </button>
+            )}
+          </div>
         </div>
         
         {/* Main Card */}
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-3xl mt-20 sm:mt-24">
           {/* Logo + Title */}
-          <div className="text-center mb-12 animate-fade-in">
-            <div className="inline-flex items-center justify-center mb-6">
+          <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+            <div className="inline-flex items-center justify-center mb-4 sm:mb-6">
               <Logo size="xl" />
             </div>
-            <p className="text-2xl text-white/90 font-light">
+            <p className="text-xl sm:text-2xl text-white/90 font-light px-4">
               Создавайте профессиональные документы за минуты
             </p>
           </div>
@@ -226,31 +236,31 @@ export default function WelcomePage() {
           )}
           
           {/* Input Container */}
-          <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-3 border border-white/20 shadow-2xl mb-6">
-            <div className="flex gap-3">
+          <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-2 sm:p-3 border border-white/20 shadow-2xl mb-6">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input 
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleGenerate()}
-                className="flex-1 px-6 py-5 bg-white text-gray-900 rounded-2xl text-lg focus:ring-4 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-400"
+                className="flex-1 px-4 sm:px-6 py-4 sm:py-5 bg-white text-gray-900 rounded-2xl text-base sm:text-lg focus:ring-4 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-400"
                 placeholder="Опишите что хотите создать..."
                 disabled={isGenerating}
               />
               <button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || isGenerating}
-                className="px-8 py-5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-semibold hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-purple-500/50 flex items-center gap-2"
+                className="px-6 sm:px-8 py-4 sm:py-5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl font-semibold hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-purple-500/50 flex items-center justify-center gap-2 min-h-[44px] touch-manipulation"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    {messages.length > 0 ? 'Анализирую...' : 'Создаю...'}
+                    <span className="hidden sm:inline">{messages.length > 0 ? 'Анализирую...' : 'Создаю...'}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    Создать
+                    <span>Создать</span>
                   </>
                 )}
               </button>
@@ -258,33 +268,33 @@ export default function WelcomePage() {
           </div>
           
           {/* Tools Selection */}
-          <div className="text-center">
+          <div className="text-center px-4">
             <button 
               onClick={() => setShowTools(!showTools)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-lg rounded-full text-white border border-white/20 hover:bg-white/20 transition-all"
+              className="inline-flex items-center gap-2 px-4 sm:px-6 py-3 bg-white/10 backdrop-blur-lg rounded-full text-white border border-white/20 hover:bg-white/20 transition-all min-h-[44px] touch-manipulation"
             >
-              <span className="text-lg">
+              <span className="text-sm sm:text-base">
                 {selectedTool ? tools.find(t => t.type === selectedTool)?.label : '🛠️ Выбрать инструмент'}
               </span>
               <span className="text-xs">▼</span>
             </button>
             
             {showTools && (
-              <div className="mt-4 grid grid-cols-3 gap-3 max-w-xl mx-auto">
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-xl mx-auto">
                 {tools.map((tool) => {
                   const Icon = tool.icon
                   return (
                     <button
                       key={tool.type}
                       onClick={() => handleToolSelect(tool.type)}
-                      className={`p-4 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 hover:bg-white/20 transition-all group ${
+                      className={`p-3 sm:p-4 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 hover:bg-white/20 transition-all group min-h-[100px] touch-manipulation ${
                         selectedTool === tool.type ? 'ring-2 ring-white' : ''
                       }`}
                     >
-                      <div className={`w-12 h-12 mx-auto mb-2 bg-gradient-to-br ${tool.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-6 h-6 text-white" />
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 bg-gradient-to-br ${tool.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <div className="text-white text-sm font-medium">{tool.label}</div>
+                      <div className="text-white text-xs sm:text-sm font-medium">{tool.label}</div>
                     </button>
                   )
                 })}

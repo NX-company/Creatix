@@ -188,17 +188,17 @@ export default function Home() {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+      <div className="flex h-screen w-screen max-w-[2560px] mx-auto overflow-hidden bg-background text-foreground">
         {/* Mobile Menu Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-primary text-primary-foreground rounded-lg shadow-lg"
+          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-primary text-primary-foreground rounded-lg shadow-lg touch-manipulation min-h-[44px] min-w-[44px]"
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Sidebar - Hidden on mobile, overlay on tablet */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 transition-transform duration-300 h-full`}>
+        {/* Sidebar - Hidden on mobile, fixed width on desktop */}
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 transition-transform duration-300 h-full w-72 flex-shrink-0`}>
           <Sidebar />
         </div>
 
@@ -211,13 +211,13 @@ export default function Home() {
         )}
 
         {/* Desktop Layout */}
-        <div className="hidden md:flex flex-1">
+        <div className="hidden md:flex flex-1 overflow-hidden">
           <PanelGroup direction="horizontal">
-            <Panel defaultSize={30} minSize={20} maxSize={50}>
+            <Panel defaultSize={40} minSize={25} maxSize={55}>
               <ChatPanel />
             </Panel>
-            <PanelResizeHandle className="w-2 bg-gradient-to-b from-border via-primary/40 to-border hover:from-primary hover:via-primary hover:to-primary transition-all cursor-col-resize shadow-lg hover:w-3" />
-            <Panel defaultSize={70} minSize={50}>
+            <PanelResizeHandle className="w-1.5 bg-border hover:bg-primary transition-colors cursor-col-resize" />
+            <Panel defaultSize={60} minSize={45}>
               <RightPanel />
             </Panel>
           </PanelGroup>
