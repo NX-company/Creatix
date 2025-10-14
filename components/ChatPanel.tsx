@@ -795,7 +795,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
                 ? '💬 Опишите что хотите...'
                 : '🚀 Опишите задачу...'
             }
-            className="flex-1 min-h-[44px] px-2 sm:px-3 py-2 text-sm sm:text-base bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            className="flex-1 min-h-[44px] px-2 sm:px-3 py-2 text-sm sm:text-base bg-background text-foreground border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
             disabled={loading}
           />
           <button

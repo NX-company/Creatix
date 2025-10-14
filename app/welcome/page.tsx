@@ -80,7 +80,7 @@ export default function WelcomePage() {
         {/* Header */}
         <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-white" />
+            <img src="/creatix-logo.svg" alt="Creatix" className="w-10 h-10" />
             <span className="text-white font-bold text-2xl">Creatix</span>
           </div>
           <button 
@@ -95,8 +95,8 @@ export default function WelcomePage() {
         <div className="w-full max-w-3xl">
           {/* Logo + Title */}
           <div className="text-center mb-12 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-3xl mb-6 border border-white/20">
-              <Sparkles className="w-12 h-12 text-white" />
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-3xl mb-6 border border-white/20 p-4">
+              <img src="/creatix-logo.svg" alt="Creatix Logo" className="w-full h-full" />
             </div>
             <h1 className="text-6xl font-bold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-pink-200">
               Creatix AI
@@ -121,7 +121,7 @@ export default function WelcomePage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleGenerate()}
-                className="flex-1 px-6 py-5 bg-white rounded-2xl text-lg focus:ring-4 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-400"
+                className="flex-1 px-6 py-5 bg-white text-gray-900 rounded-2xl text-lg focus:ring-4 focus:ring-purple-500/50 focus:outline-none transition-all placeholder-gray-400"
                 placeholder="Опишите что хотите создать..."
                 disabled={isGenerating}
               />

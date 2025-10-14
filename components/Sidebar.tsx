@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Mail, Presentation, Receipt, Sparkles, ChevronLeft, ChevronRight, ShoppingBag, LogOut, User } from 'lucide-react'
+import { FileText, Mail, Presentation, Receipt, Image, ChevronLeft, ChevronRight, ShoppingBag, LogOut, User } from 'lucide-react'
 import { useStore, type DocType } from '@/lib/store'
 import { cn } from '@/lib/cn'
 import ModeSelector from './ModeSelector'
@@ -12,7 +12,7 @@ const docTypes: { type: DocType; icon: any; label: string }[] = [
   { type: 'invoice', icon: Receipt, label: 'Счёт' },
   { type: 'email', icon: Mail, label: 'Письмо' },
   { type: 'presentation', icon: Presentation, label: 'Презентация компании' },
-  { type: 'logo', icon: Sparkles, label: 'Логотип' },
+  { type: 'logo', icon: Image, label: 'Логотип' },
   { type: 'product-card', icon: ShoppingBag, label: 'Карточка товара' },
 ]
 
