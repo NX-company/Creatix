@@ -25,6 +25,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (!user.password) {
+      return NextResponse.json(
+        { error: 'Неверный логин или пароль' },
+        { status: 401 }
+      )
+    }
+
     const isValidPassword = await bcrypt.compare(password, user.password)
 
     if (!isValidPassword) {
