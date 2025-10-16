@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Регистрация успешна! Войдите в систему.',
+        message: 'Регистрация успешна!',
         user
       },
       { status: 201 }

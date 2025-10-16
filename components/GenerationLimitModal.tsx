@@ -55,17 +55,17 @@ export default function GenerationLimitModal({
       />
       
       {/* Modal */}
-      <div className="relative bg-gradient-to-br from-background via-background to-muted border border-border rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      <div className="relative bg-gradient-to-br from-background via-background to-muted border border-border rounded-xl sm:rounded-2xl shadow-2xl max-w-[95vw] sm:max-w-md w-full mx-2 sm:mx-4 overflow-hidden">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors z-10"
+          className="absolute top-2 right-2 sm:top-4 sm:right-4 text-muted-foreground hover:text-foreground transition-colors z-10 min-h-[40px] min-w-[40px] flex items-center justify-center"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Content */}
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <Logo size="lg" />
@@ -86,12 +86,12 @@ export default function GenerationLimitModal({
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-center mb-3">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-center mb-2 sm:mb-3">
             {remaining === 0 ? 'Генерации закончились' : 'Почти закончились!'}
           </h2>
 
           {/* Description */}
-          <p className="text-center text-muted-foreground mb-6">
+          <p className="text-xs sm:text-sm lg:text-base text-center text-muted-foreground mb-4 sm:mb-6">
             {isAuthenticated ? (
               remaining === 0 ? (
                 <>
@@ -121,7 +121,7 @@ export default function GenerationLimitModal({
                   </div>
                   <button
                     onClick={onBuyPack}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-2.5 lg:py-3 px-3 sm:px-4 lg:px-5 rounded-lg transition-all text-sm sm:text-base min-h-[40px] sm:min-h-[44px]"
                   >
                     Купить +30 за 300₽
                   </button>
@@ -147,18 +147,18 @@ export default function GenerationLimitModal({
               )}
 
               {/* Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {!isAdvancedUser ? (
                   <button
                     onClick={handleUpgrade}
-                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 sm:py-3 lg:py-3.5 px-4 sm:px-5 lg:px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] text-sm sm:text-base min-h-[44px] sm:min-h-[48px]"
                   >
                     Перейти на ADVANCED за 1000₽/мес
                   </button>
                 ) : (
                   <button
                     onClick={onClose}
-                    className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3 px-6 rounded-lg transition-all duration-200"
+                    className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2.5 sm:py-3 lg:py-3.5 px-4 sm:px-5 lg:px-6 rounded-lg transition-all duration-200 text-sm sm:text-base min-h-[44px] sm:min-h-[48px]"
                   >
                     Посмотреть мои документы
                   </button>
@@ -188,17 +188,17 @@ export default function GenerationLimitModal({
               </div>
 
               {/* Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 <button
                   onClick={handleRegister}
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 sm:py-3 lg:py-3.5 px-4 sm:px-5 lg:px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] text-sm sm:text-base min-h-[44px] sm:min-h-[48px]"
                 >
                   Зарегистрироваться бесплатно
                 </button>
                 
                 <button
                   onClick={handleLogin}
-                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3 px-6 rounded-lg transition-all duration-200"
+                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2.5 sm:py-3 lg:py-3.5 px-4 sm:px-5 lg:px-6 rounded-lg transition-all duration-200 text-sm sm:text-base min-h-[44px] sm:min-h-[48px]"
                 >
                   Уже есть аккаунт? Войти
                 </button>

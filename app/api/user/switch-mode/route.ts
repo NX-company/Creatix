@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
         id: true,
         appMode: true,
         subscriptionEndsAt: true,
+        trialEndsAt: true,
       },
     })
 
@@ -30,13 +31,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Проверяем, имеет ли пользователь право переключаться на выбранный режим
     const targetMode = mode.toUpperCase()
     const hasPaidSubscription = user.subscriptionEndsAt && new Date(user.subscriptionEndsAt) > new Date()
+    const isInTrial = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
 
-    // Платные пользователи могут свободно переключаться между FREE и ADVANCED
-    // Бесплатные пользователи могут быть только в FREE
-    if (!hasPaidSubscription && targetMode !== 'FREE') {
+    // PRO режим пока недоступен
+    if (targetMode === 'PRO') {
+      return NextResponse.json({ 
+        error: 'PRO mode not available',
+        message: 'PRO режим пока недоступен' 
+      }, { status: 403 })
+    }
+
+    // Платные пользователи и trial пользователи могут переключаться между FREE и ADVANCED
+    // Обычные бесплатные пользователи (без trial) могут быть только в FREE
+    if (!hasPaidSubscription && !isInTrial && targetMode !== 'FREE') {
       return NextResponse.json({ 
         error: 'Subscription required',
         message: 'Требуется активная подписка для переключения на этот режим' 
@@ -51,7 +60,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log(`✅ Mode switched: ${user.appMode} → ${targetMode} for user ${session.user.email}`)
+    const userStatus = hasPaidSubscription ? 'PAID' : (isInTrial ? 'TRIAL' : 'FREE')
+    console.log(`✅ Mode switched: ${user.appMode} → ${targetMode} for user ${session.user.email} [${userStatus}]`)
 
     return NextResponse.json({
       success: true,

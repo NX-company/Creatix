@@ -217,9 +217,12 @@ type Store = {
   selectedElement: {
     selector: string
     innerHTML: string
+    outerHTML?: string
     textContent: string
+    parentSelector?: string
+    parentContext?: string
   } | null
-  setSelectedElement: (element: { selector: string; innerHTML: string; textContent: string } | null) => void
+  setSelectedElement: (element: { selector: string; innerHTML: string; outerHTML?: string; textContent: string; parentSelector?: string; parentContext?: string } | null) => void
   
   lastGeneratedContent: string
   setLastGeneratedContent: (content: string) => void

@@ -18,6 +18,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const projects = useStore((state) => state.projects)
   const createProject = useStore((state) => state.createProject)
   const loadHTMLFromIndexedDB = useStore((state) => state.loadHTMLFromIndexedDB)
@@ -247,9 +248,9 @@ export default function Home() {
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Sidebar - Hidden on mobile, fixed width on desktop */}
-        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 transition-transform duration-300 h-full w-72 flex-shrink-0`}>
-          <Sidebar />
+        {/* Sidebar - Hidden on mobile, dynamic width on desktop */}
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 transition-all duration-300 h-full flex-shrink-0 ${sidebarCollapsed ? 'w-16' : 'w-72'}`}>
+          <Sidebar onCollapseChange={setSidebarCollapsed} />
         </div>
 
         {/* Overlay for mobile sidebar */}

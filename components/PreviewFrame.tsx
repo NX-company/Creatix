@@ -2,7 +2,7 @@
 
 import { useStore } from '@/lib/store'
 import { Download, Loader2, Edit3, RotateCcw, Check, Target, X, Maximize2, Move } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { generateDocumentFiles } from '@/lib/documentGenerator'
 import { DOC_TYPE_LABELS, DOC_TYPE_FILE_TYPES } from '@/lib/constants'
 // import NanoBananaEditor from './NanoBananaEditor' // Disabled
@@ -33,9 +33,137 @@ export default function PreviewFrame() {
   const [zoomLevel, setZoomLevel] = useState(100)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
+  // Генерация уникального CSS селектора для элемента
+  const getElementSelector = (element: HTMLElement): string => {
+    // 1. Приоритет: ID
+    if (element.id) return `#${element.id}`
+    
+    const tag = element.tagName.toLowerCase()
+    
+    // 2. Класс + nth-child для точности
+    const classes = element.className ? `.${element.className.split(' ').filter(c => c).join('.')}` : ''
+    
+    // 3. Получаем путь от родителя для уникальности
+    const parent = element.parentElement
+    if (!parent) return tag + classes
+    
+    const siblings = Array.from(parent.children)
+    const index = siblings.indexOf(element)
+    
+    // 4. Родительский контекст для уникальности
+    let parentSelector = ''
+    if (parent.id) {
+      parentSelector = `#${parent.id} > `
+    } else if (parent.className) {
+      const parentClasses = parent.className.split(' ').filter(c => c).join('.')
+      parentSelector = `.${parentClasses} > `
+    }
+    
+    // 5. Финальный селектор: родитель > элемент.класс:nth-child(N)
+    return `${parentSelector}${tag}${classes}:nth-child(${index + 1})`
+  }
+
+  // Обработчики для режима выделения
+  const handleMouseOver = useCallback((e: Event) => {
+    const target = e.target as HTMLElement
+    if (target && target !== document.body && target.tagName !== 'HTML') {
+      target.style.outline = '2px solid #f59e0b'
+      target.style.cursor = 'pointer'
+    }
+  }, [])
+
+  const handleMouseOut = useCallback((e: Event) => {
+    const target = e.target as HTMLElement
+    if (target) {
+      target.style.outline = ''
+      target.style.cursor = ''
+    }
+  }, [])
+
+  const handleElementClick = useCallback((e: Event) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const target = e.target as HTMLElement
+    if (target && target.tagName !== 'HTML' && target.tagName !== 'BODY') {
+      const selector = getElementSelector(target)
+      const textContent = target.innerText || target.textContent || ''
+      const truncatedText = textContent.length > 200 
+        ? textContent.substring(0, 200) + '...' 
+        : textContent
+      
+      // Собираем расширенный контекст для точного редактирования
+      const parent = target.parentElement
+      const parentContext = parent ? `<${parent.tagName.toLowerCase()}${parent.className ? ` class="${parent.className}"` : ''}${parent.id ? ` id="${parent.id}"` : ''}>` : ''
+      
+      setSelectedElement({
+        selector,
+        innerHTML: target.innerHTML,
+        outerHTML: target.outerHTML,
+        textContent: truncatedText,
+        parentSelector: parent ? getElementSelector(parent) : undefined,
+        parentContext: parentContext
+      })
+      
+      const iframe = iframeRef.current
+      if (iframe && iframe.contentDocument) {
+        const allElements = iframe.contentDocument.querySelectorAll('*')
+        allElements.forEach(el => {
+          const htmlEl = el as HTMLElement
+          htmlEl.style.outline = ''
+          htmlEl.style.backgroundColor = ''
+          htmlEl.style.cursor = ''
+        })
+      }
+      
+      // Очень яркая и заметная обводка
+      target.style.outline = '6px solid #10b981'
+      target.style.outlineOffset = '2px'
+      target.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'
+      target.style.cursor = 'pointer'
+      target.style.position = 'relative'
+      target.style.boxShadow = '0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5)'
+      target.style.animation = 'pulse-border 2s ease-in-out infinite'
+      
+      // Добавляем стили для пульсации
+      if (iframe?.contentDocument && !iframe.contentDocument.getElementById('pulse-animation-style')) {
+        const style = iframe.contentDocument.createElement('style')
+        style.id = 'pulse-animation-style'
+        style.textContent = `
+          @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5); }
+            50% { box-shadow: 0 0 0 2px #10b981, 0 0 30px rgba(16, 185, 129, 0.8); }
+          }
+        `
+        iframe.contentDocument.head.appendChild(style)
+      }
+      
+      // Отправляем красивое сообщение в чат
+      addMessage({
+        role: 'assistant',
+        content: `✅ Область зафиксирована для редактирования
+
+📍 Элемент: \`${selector}\`
+
+📝 Содержимое:
+"${truncatedText}"
+
+🎯 AI будет редактировать ТОЛЬКО эту область! Примеры команд:
+• "Вставь сюда изображение кота и текст про него"
+• "Добавь фото продукта"
+• "Вставь описание товара"
+• "Сделай красным"
+• "Увеличь размер шрифта"
+• "Замени текст на..."
+
+💡 Обводка останется после редактирования - можете менять много раз!`
+      })
+    }
+  }, [setSelectedElement, addMessage])
+
   // Восстановление обводки выбранного элемента после обновления HTML
   useEffect(() => {
-    if (!selectedElement) return
+    if (!selectedElement || !selectedElement.selector) return
     
     const iframe = iframeRef.current
     if (!iframe?.contentDocument) return
@@ -79,6 +207,39 @@ export default function PreviewFrame() {
     
     return () => clearTimeout(timer)
   }, [htmlPreview, selectedElement])
+
+  // Автоматическое включение режима выбора области
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+
+    const isSelectModeActive = selectedElement !== null && !selectedElement.selector
+
+    if (isSelectModeActive) {
+      // Включаем режим выбора
+      const timer = setTimeout(() => {
+        const doc = iframe.contentDocument
+        if (!doc) return
+
+        doc.body.addEventListener('mouseover', handleMouseOver)
+        doc.body.addEventListener('mouseout', handleMouseOut)
+        doc.body.addEventListener('click', handleElementClick)
+
+        console.log('🎯 Режим выбора области активирован')
+      }, 100)
+
+      return () => {
+        clearTimeout(timer)
+        const doc = iframe.contentDocument
+        if (doc) {
+          doc.body.removeEventListener('mouseover', handleMouseOver)
+          doc.body.removeEventListener('mouseout', handleMouseOut)
+          doc.body.removeEventListener('click', handleElementClick)
+          console.log('🔴 Режим выбора области деактивирован')
+        }
+      }
+    }
+  }, [selectedElement, handleMouseOver, handleMouseOut, handleElementClick])
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -148,114 +309,6 @@ export default function PreviewFrame() {
       iframe.removeEventListener('load', handleIframeLoad)
     }
   }, [htmlPreview, addMessage])
-
-  // Генерация уникального CSS селектора для элемента
-  const getElementSelector = (element: HTMLElement): string => {
-    if (element.id) return `#${element.id}`
-    
-    const tag = element.tagName.toLowerCase()
-    const parent = element.parentElement
-    
-    if (!parent) return tag
-    
-    const siblings = Array.from(parent.children)
-    const index = siblings.indexOf(element)
-    
-    return `${tag}:nth-child(${index + 1})`
-  }
-
-  // Обработчики для режима выделения
-  const handleMouseOver = (e: Event) => {
-    const target = e.target as HTMLElement
-    if (target && target !== document.body && target.tagName !== 'HTML') {
-      target.style.outline = '2px solid #f59e0b'
-      target.style.cursor = 'pointer'
-    }
-  }
-
-  const handleMouseOut = (e: Event) => {
-    const target = e.target as HTMLElement
-    if (target) {
-      target.style.outline = ''
-      target.style.cursor = ''
-    }
-  }
-
-  const handleElementClick = (e: Event) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    const target = e.target as HTMLElement
-    if (target && target.tagName !== 'HTML' && target.tagName !== 'BODY') {
-      const selector = getElementSelector(target)
-      const textContent = target.innerText || target.textContent || ''
-      const truncatedText = textContent.length > 200 
-        ? textContent.substring(0, 200) + '...' 
-        : textContent
-      
-      setSelectedElement({
-        selector,
-        innerHTML: target.innerHTML,
-        textContent: truncatedText
-      })
-      
-      const iframe = iframeRef.current
-      if (iframe && iframe.contentDocument) {
-        const allElements = iframe.contentDocument.querySelectorAll('*')
-        allElements.forEach(el => {
-          const htmlEl = el as HTMLElement
-          htmlEl.style.outline = ''
-          htmlEl.style.backgroundColor = ''
-          htmlEl.style.cursor = ''
-        })
-      }
-      
-      // Очень яркая и заметная обводка
-      target.style.outline = '6px solid #10b981'
-      target.style.outlineOffset = '2px'
-      target.style.backgroundColor = 'rgba(16, 185, 129, 0.15)'
-      target.style.cursor = 'pointer'
-      target.style.position = 'relative'
-      target.style.boxShadow = '0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5)'
-      target.style.animation = 'pulse-border 2s ease-in-out infinite'
-      
-      // Добавляем стили для пульсации (iframe уже объявлен выше)
-      if (iframe?.contentDocument && !iframe.contentDocument.getElementById('pulse-animation-style')) {
-        const style = iframe.contentDocument.createElement('style')
-        style.id = 'pulse-animation-style'
-        style.textContent = `
-          @keyframes pulse-border {
-            0%, 100% { box-shadow: 0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.5); }
-            50% { box-shadow: 0 0 0 2px #10b981, 0 0 30px rgba(16, 185, 129, 0.8); }
-          }
-        `
-        iframe.contentDocument.head.appendChild(style)
-      }
-      
-      // НЕ убираем event listeners - режим остается активным!
-      
-      // Отправляем красивое сообщение в чат
-      addMessage({
-        role: 'assistant',
-        content: `✅ Область зафиксирована для редактирования
-
-📍 Элемент: \`${selector}\`
-
-📝 Содержимое:
-"${truncatedText}"
-
-🎯 AI будет редактировать ТОЛЬКО эту область! Примеры команд:
-• "Вставь сюда изображение кота и текст про него"
-• "Добавь фото продукта"
-• "Вставь описание товара"
-• "Сделай красным"
-• "Увеличь размер шрифта"
-• "Замени текст на..."
-
-💡 Обводка останется после редактирования - можете менять много раз!`
-      })
-    }
-  }
 
   // Переключить режим выделения элементов
   const enableSelectMode = () => {
@@ -788,27 +841,27 @@ export default function PreviewFrame() {
 
   return (
     <div className="flex h-full flex-col">
-        <div className="p-2 sm:p-3 border-b border-border bg-background/80 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 justify-between shadow-sm">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">Превью: {docLabel}</span>
+        <div className="p-1.5 sm:p-2 border-b border-border bg-background/80 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center gap-1.5 justify-between shadow-sm">
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs sm:text-sm font-medium truncate">Превью: {docLabel}</span>
             {fileTypes.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                Сохранит: {fileTypes.join(' + ')}
+              <span className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                {fileTypes.join(' + ')}
               </span>
             )}
           </div>
           
-          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
-              {[50, 75, 100].map(zoom => (
+          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full sm:w-auto overflow-x-auto">
+            {/* Zoom Controls - Компактный */}
+            <div className="flex items-center gap-0.5 backdrop-blur-md bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-0.5 sm:p-1 border border-purple-300/30 shadow-sm">
+              {[50, 75, 100, 125].map(zoom => (
                 <button
                   key={zoom}
                   onClick={() => setZoomLevel(zoom)}
-                  className={`px-1.5 py-1 rounded text-[10px] font-medium transition-all ${
+                  className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-semibold transition-all min-w-[30px] sm:min-w-[34px] ${
                     zoomLevel === zoom 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-accent'
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' 
+                      : 'text-gray-700 hover:bg-white/70'
                   }`}
                   title={`${zoom}%`}
                 >
@@ -819,90 +872,56 @@ export default function PreviewFrame() {
             
             {!isEditing && (
               <>
-                <button
-                  onClick={enableSelectMode}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold transition-all text-xs shadow-md relative ${
-                    isSelectMode 
-                      ? 'bg-orange-600 text-white hover:bg-orange-700 ring-2 ring-orange-300 animate-pulse' 
-                      : 'bg-gray-600 text-white hover:bg-gray-700'
-                  }`}
-                  title={isSelectMode ? '✓ Режим активен - кликните для выключения' : 'Включить режим выбора области'}
-                >
-                  <Target className={`w-4 h-4 ${isSelectMode ? 'animate-ping absolute' : ''}`} />
-                  <Target className="w-4 h-4 relative" />
-                  <span>{isSelectMode ? 'Режим ВКЛ' : 'Область'}</span>
-                  {selectedElement && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-green-500 text-white rounded text-[9px] font-bold">
-                      ✓
-                    </span>
-                  )}
-                </button>
-                
-                {/* Кнопка перемещения временно отключена
-                <button
-                  onClick={toggleDragMode}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all text-[11px] ${
-                    isDragMode 
-                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                      : 'bg-muted text-foreground hover:bg-accent'
-                  }`}
-                  title={isDragMode ? 'Выключить перемещение' : 'Переместить элементы'}
-                >
-                  <Move className="w-3 h-3" />
-                  <span className="hidden sm:inline">{isDragMode ? 'Выкл' : 'Переместить'}</span>
-                </button>
-                */}
-                
+                {/* Кнопка редактирования - Компактная */}
                 <button
                   onClick={enableEditMode}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-muted text-foreground rounded-md hover:bg-accent transition-all text-[11px]"
-                  title="Редактировать текст"
+                  className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-sm text-[10px] sm:text-xs font-medium min-h-[26px] sm:min-h-[30px]"
+                  title="Редактировать"
                 >
-                  <Edit3 className="w-3 h-3" />
-                  <span className="hidden sm:inline">Редакт.</span>
+                  <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span className="hidden sm:inline">Редактор</span>
                 </button>
                 
-                <div className="flex flex-col gap-2 w-full sm:w-auto">
-                  <div className="flex flex-wrap gap-1">
-                    {fileTypes.map((format) => {
-                      const isSelected = selectedFormats.length === 0 || selectedFormats.includes(format)
-                      return (
-                        <button
-                          key={format}
-                          onClick={() => {
-                            if (selectedFormats.includes(format)) {
-                              setSelectedFormats(selectedFormats.filter(f => f !== format))
-                            } else {
-                              setSelectedFormats([...selectedFormats, format])
-                            }
-                          }}
-                          className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-md transition-all ${
-                            isSelected 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          {format}
-                        </button>
-                      )
-                    })}
-                  </div>
+                {/* Блок скачивания - Горизонтальный компактный */}
+                <div className="flex items-center gap-0.5 sm:gap-1 backdrop-blur-md bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-0.5 sm:p-1 border border-blue-300/30 shadow-sm">
+                  {/* Форматы в ряд */}
+                  {fileTypes.map((format) => {
+                    const isSelected = selectedFormats.length === 0 || selectedFormats.includes(format)
+                    return (
+                      <button
+                        key={format}
+                        onClick={() => {
+                          if (selectedFormats.includes(format)) {
+                            setSelectedFormats(selectedFormats.filter(f => f !== format))
+                          } else {
+                            setSelectedFormats([...selectedFormats, format])
+                          }
+                        }}
+                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-semibold rounded transition-all ${
+                          isSelected 
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                            : 'bg-white/50 text-gray-600 hover:bg-white/80'
+                        }`}
+                        title={format}
+                      >
+                        {format}
+                      </button>
+                    )
+                  })}
                   
+                  {/* Кнопка скачивания компактная */}
                   <button
                     onClick={() => handleSaveToFiles(selectedFormats)}
                     disabled={saving}
-                    className="flex items-center justify-center gap-1 px-2 py-1.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all text-[11px]"
-                    title={selectedFormats.length === 0 ? 'Сохранить всё' : `Сохранить ${selectedFormats.length} формат(а)`}
+                    className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all text-[9px] sm:text-[10px] font-bold min-h-[24px] sm:min-h-[28px]"
+                    title={selectedFormats.length === 0 ? 'Скачать все' : `Скачать ${selectedFormats.length}`}
                   >
                     {saving ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>...</span>
-                      </>
+                      <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
                     ) : (
                       <>
-                        <Download className="w-3 h-3" />
-                        <span>{selectedFormats.length === 0 ? 'Всё' : `(${selectedFormats.length})`}</span>
+                        <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span className="hidden sm:inline">↓</span>
                       </>
                     )}
                   </button>
@@ -918,20 +937,23 @@ export default function PreviewFrame() {
             
             {isEditing && (
               <>
+                {/* Кнопка отмены - Компактная */}
                 <button
                   onClick={cancelChanges}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-muted text-foreground rounded-md hover:bg-accent transition-all text-[11px]"
-                  title="Отменить изменения"
+                  className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-sm text-[10px] sm:text-xs font-medium min-h-[26px] sm:min-h-[30px]"
+                  title="Отменить"
                 >
-                  <RotateCcw className="w-3 h-3" />
+                  <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span className="hidden sm:inline">Отменить</span>
                 </button>
+                
+                {/* Кнопка применения - Компактная */}
                 <button
                   onClick={applyChanges}
-                  className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all text-[11px]"
-                  title="Применить изменения"
+                  className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-sm text-[10px] sm:text-xs font-medium min-h-[26px] sm:min-h-[30px]"
+                  title="Применить"
                 >
-                  <Check className="w-3 h-3" />
+                  <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span className="hidden sm:inline">Применить</span>
                   <span className="sm:hidden">✓</span>
                 </button>
@@ -940,51 +962,18 @@ export default function PreviewFrame() {
           </div>
         </div>
 
-        {/* Индикатор режима выбора области */}
-        {isSelectMode && !selectedElement && !isEditing && (
-          <div className="p-2.5 bg-orange-50 border-b border-orange-200 text-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-orange-600 font-medium">🎯 Режим выбора активен</span>
-                <span className="text-orange-500 text-xs">Кликните на элемент в превью →</span>
+        {/* Индикатор выбранной области */}
+        {selectedElement && selectedElement.selector && !isEditing && (
+          <div className="p-3 bg-green-50 border-b border-green-300">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-green-600 animate-pulse" />
+              <div>
+                <span className="text-green-800 font-bold text-sm block">Область выбрана</span>
+                <code className="bg-green-200 px-2 py-1 rounded text-xs font-mono text-green-900 inline-block mt-1">
+                  {selectedElement.selector}
+                </code>
               </div>
-              <button
-                onClick={enableSelectMode}
-                className="text-orange-600 hover:text-orange-700 text-xs px-2 py-1 rounded hover:bg-orange-100 transition-colors"
-              >
-                ✕ Выключить
-              </button>
             </div>
-          </div>
-        )}
-
-        {/* Индикатор выбранной области - ЯРКИЙ И ЗАМЕТНЫЙ */}
-        {selectedElement && !isEditing && (
-          <div className="p-4 bg-gradient-to-r from-green-100 to-emerald-100 border-b-4 border-green-500 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 bg-green-500 rounded-full animate-pulse">
-                  <Target className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <span className="text-green-800 font-bold text-base block">🎯 ОБЛАСТЬ ВЫБРАНА</span>
-                  <code className="bg-green-200 px-2 py-1 rounded text-xs font-mono text-green-900 inline-block mt-1">
-                    {selectedElement.selector}
-                  </code>
-                </div>
-              </div>
-              <button
-                onClick={clearSelection}
-                className="flex items-center gap-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold text-xs transition-all shadow-md"
-                title="Снять выделение"
-              >
-                <X className="w-4 h-4" />
-                Снять
-              </button>
-            </div>
-            <p className="mt-3 text-sm text-green-800 bg-white/50 p-2 rounded italic">
-              &ldquo;{selectedElement.textContent.substring(0, 100)}{selectedElement.textContent.length > 100 ? '...' : ''}&rdquo;
-            </p>
           </div>
         )}
 

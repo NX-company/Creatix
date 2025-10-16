@@ -25,8 +25,17 @@ export default function OnboardingTour() {
       showButtons: ['next', 'previous', 'close'],
       nextBtnText: 'Далее →',
       prevBtnText: '← Назад',
-      doneBtnText: 'Готово',
+      doneBtnText: 'Готово! 🚀',
       progressText: '{{current}} из {{total}}',
+      
+      smoothScroll: true,
+      animate: true,
+      
+      popoverClass: 'creatix-tour-popover',
+      overlayOpacity: 0.5,
+      stagePadding: 8,
+      allowClose: true,
+      disableActiveInteraction: false,
       
       onDestroyStarted: () => {
         localStorage.setItem(TOUR_KEY, 'true')
@@ -38,17 +47,19 @@ export default function OnboardingTour() {
           popover: {
             title: '👋 Добро пожаловать в Creatix!',
             description: `
-              <div class="space-y-2">
-                <p class="text-sm mb-2">Мы создали AI-ассистента для генерации документов:</p>
-                <div class="text-sm space-y-1 mb-2">
+              <div class="space-y-3">
+                <p class="text-base font-semibold text-purple-600 mb-2">🎨 Мы создаем ДИЗАЙНЫ документов с помощью AI</p>
+                <p class="text-sm text-gray-700 mb-2">Не просто текст, а готовый красивый дизайн с версткой, изображениями и стилем:</p>
+                <div class="text-sm space-y-1 mb-2 bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded-lg">
                   <div>✨ Коммерческие предложения</div>
-                  <div>📄 Счета</div>
-                  <div>✉️ Письма</div>
+                  <div>📄 Счета и договоры</div>
                   <div>📊 Презентации</div>
-                  <div>🎨 Логотипы</div>
+                  <div>✉️ Email-рассылки</div>
+                  <div>🎨 Логотипы и бренды</div>
                   <div>🛍️ Карточки товаров</div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Хотите быструю экскурсию? (займет 60 секунд)</p>
+                <p class="text-sm font-medium text-green-600">→ Готовый дизайн за 30 секунд!</p>
+                <p class="text-xs text-gray-500 mt-2">Экскурсия займет 1 минуту</p>
               </div>
             `,
           },
@@ -56,19 +67,17 @@ export default function OnboardingTour() {
         {
           element: '[data-tour="doc-types"]',
           popover: {
-            title: '📄 Выберите тип документа',
+            title: '📄 Шаг 1: Выберите тип дизайна',
             description: `
               <div class="text-sm space-y-2">
-                <p class="mb-2">Здесь вы выбираете, что хотите создать:</p>
-                <ul class="space-y-1 mb-2">
-                  <li>• <strong>Коммерческое предложение</strong> - для B2B продаж</li>
-                  <li>• <strong>Счет</strong> - с автоматическими расчетами</li>
-                  <li>• <strong>Письмо</strong> - email-рассылки</li>
-                  <li>• <strong>Презентация</strong> - для встреч и питчей</li>
-                  <li>• <strong>Логотип</strong> - несколько вариантов дизайна</li>
-                  <li>• <strong>Карточка товара</strong> - для маркетплейсов</li>
-                </ul>
-                <p class="text-xs text-gray-500">💡 Каждый тип имеет свой промпт и структуру</p>
+                <p class="mb-2 font-medium">Выберите что создать:</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div>📄 КП</div>
+                  <div>📊 Презентация</div>
+                  <div>✉️ Письмо</div>
+                  <div>🎨 Логотип</div>
+                </div>
+                <p class="text-xs text-purple-600 mt-2">💡 Каждый тип имеет свой стиль и структуру</p>
               </div>
             `,
             side: 'right',
@@ -78,86 +87,38 @@ export default function OnboardingTour() {
         {
           element: '[data-tour="mode-switcher"]',
           popover: {
-            title: '🎯 Два режима работы',
+            title: '🎯 Шаг 2: Режим работы',
             description: `
               <div class="text-sm space-y-2">
-                <div>
-                  <div class="font-semibold mb-1">📋 Plan (Планирование):</div>
-                  <ul class="ml-4 text-xs space-y-0.5">
-                    <li>• Детальное обсуждение с AI</li>
-                    <li>• AI задает уточняющие вопросы</li>
-                    <li>• Выбор конкретных параметров</li>
-                    <li>• Лучший результат для сложных задач</li>
-                  </ul>
+                <div class="bg-blue-50 p-2 rounded">
+                  <div class="font-semibold text-sm mb-1">📋 Plan - Планирование</div>
+                  <p class="text-xs">AI задаст вопросы для идеального результата</p>
                 </div>
-                <div>
-                  <div class="font-semibold mb-1">⚡ Build (Быстрая генерация):</div>
-                  <ul class="ml-4 text-xs space-y-0.5">
-                    <li>• Мгновенное создание</li>
-                    <li>• Без лишних вопросов</li>
-                    <li>• Можно редактировать после</li>
-                    <li>• Для типовых документов</li>
-                  </ul>
+                <div class="bg-green-50 p-2 rounded">
+                  <div class="font-semibold text-sm mb-1">⚡ Build - Мгновенно</div>
+                  <p class="text-xs">Создание дизайна за 30 секунд без вопросов</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">💡 Новичкам рекомендуем начать с Plan</p>
+                <p class="text-xs text-purple-600 mt-2">💡 Новичкам рекомендуем Plan</p>
               </div>
             `,
             side: 'top',
             align: 'center',
-          },
-        },
-        {
-          element: '[data-tour="app-mode"]',
-          popover: {
-            title: '⚡ Выберите уровень качества',
-            description: `
-              <div class="text-sm space-y-2">
-                <div>
-                  <div class="font-semibold mb-1">🆓 Бесплатный:</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• Базовая генерация текста</li>
-                    <li>• Без AI изображений</li>
-                  </ul>
-                </div>
-                <div>
-                  <div class="font-semibold mb-1">🚀 Продвинутый (рекомендуем):</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• Генерация AI изображений</li>
-                    <li>• Анализ загруженных фото</li>
-                    <li>• Парсинг сайтов</li>
-                  </ul>
-                </div>
-                <div>
-                  <div class="font-semibold mb-1">💎 PRO:</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• Максимальное качество</li>
-                    <li>• HD изображения</li>
-                    <li>• Анализ видео</li>
-                  </ul>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">💡 Попробуйте Продвинутый режим!</p>
-              </div>
-            `,
-            side: 'right',
-            align: 'start',
           },
         },
         {
           element: '[data-tour="chat-input"]',
           popover: {
-            title: '💬 Просто опишите что нужно',
+            title: '💬 Шаг 3: Опишите что нужно',
             description: `
               <div class="text-sm space-y-2">
-                <p class="mb-2">Примеры команд:</p>
-                <div class="space-y-1 mb-2 bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs">
-                  <div>📄 "Создай КП для кафе 'Бодрое Утро'"</div>
-                  <div>📊 "Сделай презентацию про огурцы"</div>
-                  <div>🎨 "Создай 5 вариантов логотипа"</div>
-                  <div>📄 "Счет с 5 изображениями клубники"</div>
-                  <div>✉️ "Письмо о новой акции со скидкой 20%"</div>
+                <p class="mb-2 font-medium">Просто напишите задачу:</p>
+                <div class="space-y-1 bg-gray-50 p-2 rounded text-xs">
+                  <div>📄 "КП для кафе с 3 фото блюд"</div>
+                  <div>📊 "Презентация про огурцы на 5 слайдов"</div>
+                  <div>🎨 "Логотип для строительной компании"</div>
                 </div>
-                <p class="text-xs text-gray-500 mb-1">💡 Укажите количество изображений!</p>
-                <p class="text-xs text-gray-400">⌨️ Enter - отправить, Shift+Enter - новая строка</p>
+                <p class="text-xs text-green-600 mt-2">✨ AI сгенерирует готовый дизайн!</p>
+                <p class="text-xs text-gray-400">⌨️ Enter - отправить | Shift+Enter - новая строка</p>
               </div>
             `,
             side: 'top',
@@ -165,81 +126,51 @@ export default function OnboardingTour() {
           },
         },
         {
-          element: '[data-tour="file-upload"]',
+          element: '[data-tour="chat-input"]',
           popover: {
-            title: '📤 Загружайте свои файлы',
+            title: '🎯 Шаг 4: Точечное редактирование',
             description: `
               <div class="text-sm space-y-2">
-                <p class="mb-2">Что можно загрузить:</p>
-                <div>
-                  <div class="font-semibold mb-1">🖼️ Изображения:</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• Логотипы компании</li>
-                    <li>• Фото товаров</li>
-                    <li>• Референсы для дизайна</li>
-                    <li>• AI проанализирует и использует</li>
-                  </ul>
+                <p class="mb-2 font-medium">Кнопка с прицелом справа от отправки:</p>
+                <div class="bg-orange-50 p-2 rounded space-y-2">
+                  <div class="font-semibold text-sm">🎯 Как использовать:</div>
+                  <ol class="text-xs space-y-1 ml-4 list-decimal">
+                    <li>Нажмите кнопку с прицелом 🎯</li>
+                    <li>Кликните на элемент в дизайне справа</li>
+                    <li>Напишите что изменить именно в нем</li>
+                  </ol>
                 </div>
-                <div>
-                  <div class="font-semibold mb-1">🎥 Видео (только PRO):</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• Обзоры продуктов</li>
-                    <li>• AI извлечет ключевые моменты</li>
-                  </ul>
+                <div class="text-xs bg-green-50 p-2 rounded">
+                  <strong>Примеры:</strong>
+                  <div class="mt-1 space-y-0.5">
+                    <div>• "Измени заголовок"</div>
+                    <div>• "Добавь картинку сюда"</div>
+                    <div>• "Поменяй цвет на красный"</div>
+                  </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">📋 Форматы: JPG, PNG, GIF, WebP, MP4</p>
+                <p class="text-xs text-purple-600 font-medium mt-2">💡 AI точно поймет КУДА вносить изменения!</p>
               </div>
             `,
             side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="website-parse"]',
-          popover: {
-            title: '🌐 Парсинг сайтов',
-            description: `
-              <div class="text-sm space-y-2">
-                <p class="mb-2">Вставьте ссылку на любой сайт:</p>
-                <div class="space-y-1 mb-2">
-                  <div>🏢 <strong>Сайт компании клиента</strong></div>
-                  <div class="text-xs ml-4">→ AI извлечет название, описание, услуги</div>
-                  <div>🛍️ <strong>Страница товара</strong></div>
-                  <div class="text-xs ml-4">→ AI заполнит карточку автоматически</div>
-                  <div>💼 <strong>Страница "О компании"</strong></div>
-                  <div class="text-xs ml-4">→ AI узнает о бизнесе клиента</div>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">💡 Доступно с Продвинутого режима!</p>
-              </div>
-            `,
-            side: 'top',
-            align: 'start',
+            align: 'end',
           },
         },
         {
           element: '[data-tour="preview"]',
           popover: {
-            title: '👁️ Предпросмотр результата',
+            title: '👁️ Шаг 5: Дизайн готов!',
             description: `
               <div class="text-sm space-y-2">
-                <p class="mb-2">Здесь отображается ваш документ:</p>
-                <div>
-                  <div class="font-semibold mb-1">✏️ Редактирование:</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• "Измени заголовок"</li>
-                    <li>• "Добавь раздел с ценами"</li>
-                    <li>• "Поменяй цвет на синий"</li>
-                    <li>• AI помнит контекст!</li>
-                  </ul>
+                <p class="mb-2 font-medium">Здесь ваш готовый дизайн:</p>
+                <div class="bg-purple-50 p-2 rounded">
+                  <div class="font-semibold text-sm mb-1">✏️ Редактируйте</div>
+                  <p class="text-xs">"Измени заголовок", "Добавь раздел с ценами"</p>
                 </div>
-                <div>
-                  <div class="font-semibold mb-1">💾 Сохранение:</div>
-                  <ul class="ml-4 text-xs">
-                    <li>• Выберите формат (PDF, DOCX, PNG)</li>
-                    <li>• Или сохраните все в ZIP</li>
-                  </ul>
+                <div class="bg-blue-50 p-2 rounded">
+                  <div class="font-semibold text-sm mb-1">💾 Скачивайте</div>
+                  <p class="text-xs">PDF, DOCX, PNG, HTML - любой формат</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">💡 Редактируйте сколько угодно!</p>
+                <p class="text-xs text-green-600 mt-2">✨ AI помнит контекст разговора!</p>
               </div>
             `,
             side: 'left',
@@ -248,34 +179,41 @@ export default function OnboardingTour() {
         },
         {
           popover: {
-            title: '🎉 Готово! Теперь вы знаете основы',
+            title: '🎉 Готово! Создавайте дизайны',
             description: `
-              <div class="text-sm space-y-2">
-                <div>
-                  <strong>1️⃣ Чем детальнее промпт - тем лучше результат</strong>
-                  <div class="text-xs text-gray-600 ml-4 mt-1">
-                    <div>"Создай КП" ❌</div>
-                    <div>"Создай КП для кафе с меню завтраков, 3 фото блюд" ✅</div>
+              <div class="text-sm space-y-3">
+                <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded-lg space-y-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg">💡</span>
+                    <div>
+                      <strong class="text-sm">Детальнее = Лучше</strong>
+                      <p class="text-xs text-gray-600">"КП для кафе с 3 фото блюд" ✅</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg">🎯</span>
+                    <div>
+                      <strong class="text-sm">Кнопка выделения области</strong>
+                      <p class="text-xs text-gray-600">Для точного редактирования элементов</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg">📋</span>
+                    <div>
+                      <strong class="text-sm">Plan для новичков</strong>
+                      <p class="text-xs text-gray-600">AI задаст нужные вопросы</p>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-lg">✨</span>
+                    <div>
+                      <strong class="text-sm">AI помнит контекст</strong>
+                      <p class="text-xs text-gray-600">"Измени это", "Добавь туда"</p>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <strong>2️⃣ Используйте Plan для первого документа</strong>
-                  <div class="text-xs text-gray-600 ml-4">AI задаст правильные вопросы</div>
-                </div>
-                <div>
-                  <strong>3️⃣ Загружайте логотип компании</strong>
-                  <div class="text-xs text-gray-600 ml-4">Он автоматически вставится в документ</div>
-                </div>
-                <div>
-                  <strong>4️⃣ AI помнит контекст разговора</strong>
-                  <div class="text-xs text-gray-600 ml-4">"Измени это", "Добавь туда" - поймет!</div>
-                </div>
-                <div>
-                  <strong>5️⃣ Укажите количество изображений</strong>
-                  <div class="text-xs text-gray-600 ml-4">"с 5 картинками", "7 вариантов лого"</div>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">💡 Если застряли - нажмите "🎓 Показать тур заново"</p>
-                <p class="text-base font-semibold text-center mt-3">Удачи в создании документов! 🚀</p>
+                <p class="text-base font-bold text-center text-purple-600 mt-3">Создавайте красивые дизайны! 🚀</p>
+                <p class="text-xs text-gray-500 text-center">Повторить тур можно в любой момент</p>
               </div>
             `,
           },

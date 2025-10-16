@@ -59,4 +59,93 @@
   }
 }
 
+/* Плавные переходы для onboarding tour (driver.js) */
+.creatix-tour-popover {
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.25), 
+              0 10px 30px rgba(0, 0, 0, 0.15) !important;
+  border: 2px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 16px !important;
+}
+
+.driver-active-element {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  outline: none !important;
+}
+
+.driver-overlay {
+  transition: opacity 0.4s ease-out !important;
+  backdrop-filter: blur(3px);
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Подсветка элемента */
+.driver-highlighted-element {
+  box-shadow: 0 0 0 5px rgba(139, 92, 246, 0.4),
+              0 0 0 10px rgba(139, 92, 246, 0.2),
+              0 0 40px rgba(139, 92, 246, 0.3) !important;
+  border-radius: 12px !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  z-index: 10000 !important;
+}
+
+/* Анимация появления */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Кастомные кнопки tour */
+.driver-popover-next-btn,
+.driver-popover-prev-btn,
+.driver-popover-close-btn {
+  transition: all 0.3s ease !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+.driver-popover-next-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+}
+
+.driver-popover-next-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4) !important;
+}
+
+.driver-popover-prev-btn {
+  background: rgba(107, 114, 128, 0.1) !important;
+  color: #6b7280 !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background: rgba(107, 114, 128, 0.2) !important;
+}
+
+.driver-popover-close-btn {
+  opacity: 0.6 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.driver-popover-close-btn:hover {
+  opacity: 1 !important;
+}
+
+/* Прогресс бар */
+.driver-popover-progress-text {
+  color: #8b5cf6 !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
 

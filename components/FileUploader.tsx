@@ -1,6 +1,6 @@
 'use client'
 
-import { Upload } from 'lucide-react'
+import { ImagePlus } from 'lucide-react'
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { FILE_SIZE_LIMITS } from '@/lib/constants'
@@ -223,8 +223,11 @@ export default function FileUploader() {
 
   return (
     <>
-      <label className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-[44px] min-h-[44px] px-2 sm:px-3 md:px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:opacity-90 cursor-pointer transition-opacity text-xs sm:text-sm">
-        <Upload className="w-4 h-4" />
+      <label 
+        className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-[44px] min-h-[44px] px-2 sm:px-3 md:px-4 py-2 bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:shadow-blue-500/50 hover:-translate-y-0.5 active:scale-95 cursor-pointer transition-all text-xs sm:text-sm font-semibold"
+        title="Загрузить изображения или файлы"
+      >
+        <ImagePlus className={`w-4 h-4 sm:w-5 sm:h-5 ${uploading ? 'animate-pulse' : ''}`} />
         <span className="hidden sm:inline">{uploading ? 'Загрузка...' : 'Импорт'}</span>
         <input
           type="file"

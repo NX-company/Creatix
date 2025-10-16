@@ -3,7 +3,7 @@
 import { useState, FormEvent, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, CheckCircle, Sparkles } from 'lucide-react'
+import { Loader2, CheckCircle, Sparkles, Eye, EyeOff } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { signIn } from 'next-auth/react'
 import Logo from '@/components/Logo'
@@ -19,6 +19,8 @@ function RegisterForm() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -143,8 +145,15 @@ function RegisterForm() {
             )}
 
             {success && (
-              <div className="bg-green-500/10 border border-green-500 text-green-600 px-4 py-3 rounded-lg text-sm">
-                ✅ Регистрация успешна! Перенаправление на страницу входа...
+              <div className="bg-green-500/10 border border-green-500 text-green-600 px-4 py-3 rounded-lg text-sm space-y-2">
+                <div className="font-semibold">✅ Регистрация успешна!</div>
+                <div className="text-xs">
+                  📧 Мы отправили письмо с подтверждением на ваш email.<br />
+                  Проверьте почту и перейдите по ссылке для активации аккаунта.
+                </div>
+                <div className="text-xs text-green-600/70 mt-2">
+                  Перенаправление на страницу входа...
+                </div>
               </div>
             )}
 
@@ -184,32 +193,60 @@ function RegisterForm() {
               <label htmlFor="password" className="block text-sm font-medium mb-2">
                 Пароль
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                placeholder="Минимум 6 символов"
-                required
-                disabled={loading || success}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                  placeholder="Минимум 6 символов"
+                  required
+                  disabled={loading || success}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                  disabled={loading || success}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
                 Подтвердите пароль
               </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                placeholder="Повторите пароль"
-                required
-                disabled={loading || success}
-              />
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                  placeholder="Повторите пароль"
+                  required
+                  disabled={loading || success}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                  disabled={loading || success}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button
@@ -230,7 +267,7 @@ function RegisterForm() {
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Уже есть аккаунт?{' '}
-            <Link href="/login" className="text-primary hover:underline font-medium">
+            <Link href="/login" className="text-primary hover:underline font-bold text-base">
               Войти
             </Link>
           </div>

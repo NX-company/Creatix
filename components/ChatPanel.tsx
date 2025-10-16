@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Send, Loader2, Globe } from 'lucide-react'
+import { Send, Loader2, Globe, Target } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { motion } from 'framer-motion'
 import { generateContent, generateHTML, getPromptForAction } from '@/lib/api'
@@ -484,7 +484,12 @@ export default function ChatPanel() {
       
       if (isEdit) {
         console.log('🔧 Edit mode activated!')
-        console.log('🎯 Selected element:', selectedElement)
+        console.log('🎯 Selected element:', {
+          selector: selectedElement.selector,
+          parentSelector: selectedElement.parentSelector,
+          parentContext: selectedElement.parentContext,
+          contentLength: selectedElement.outerHTML?.length || selectedElement.innerHTML.length
+        })
         
         let editMessage = '✏️ Вношу изменения'
         if (selectedElement) {
@@ -1192,7 +1197,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         </div>
         
         {/* Поле ввода */}
-        <div className="p-2 sm:p-3 flex gap-1.5 sm:gap-2">
+        <div className="p-2 sm:p-2.5 lg:p-3 flex gap-1.5 sm:gap-2">
           <div data-tour="file-upload">
             <FileUploader />
           </div>
@@ -1206,7 +1211,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
                 }
               }}
               disabled={loading || isParsingWebsite || !useStore.getState().isFeatureAvailable('parseWebsite')}
-              className={`min-w-[44px] min-h-[44px] w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full transition-all shadow-md hover:shadow-lg ${
+              className={`min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 flex items-center justify-center rounded-full transition-all shadow-md hover:shadow-lg ${
                 useStore.getState().isFeatureAvailable('parseWebsite')
                   ? 'bg-blue-500 text-white hover:bg-blue-600'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -1217,7 +1222,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
                   : 'Доступно в Продвинутом режиме'
               }
             >
-              <Globe className="w-5 h-5" />
+              <Globe className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
             </button>
             {!useStore.getState().isFeatureAvailable('parseWebsite') && (
               <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/80 text-white text-xs px-2 py-1 rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1237,16 +1242,47 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
                 ? '💬 Опишите что хотите...'
                 : '🚀 Опишите задачу...'
             }
-            className="flex-1 min-h-[44px] px-2 sm:px-3 py-2 text-sm sm:text-base bg-background text-foreground border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            className="flex-1 min-h-[40px] sm:min-h-[44px] lg:min-h-[48px] px-2 sm:px-3 lg:px-4 py-2 text-xs sm:text-sm lg:text-base bg-background text-foreground border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
             disabled={loading}
           />
+          
+          {/* Кнопка выбора области */}
+          <button
+            onClick={() => {
+              const isActive = selectedElement !== null
+              setSelectedElement(isActive ? null : { selector: '', textContent: '', outerHTML: '' })
+              
+              if (!isActive) {
+                addMessage({
+                  role: 'assistant',
+                  content: `🎯 Режим выбора области включен!\n\n👆 Кликните на любой элемент в предпросмотре`
+                })
+              } else {
+                addMessage({
+                  role: 'assistant',
+                  content: '🔴 Режим выбора области выключен'
+                })
+              }
+            }}
+            title={selectedElement?.selector ? `Область выбрана: ${selectedElement.selector}` : selectedElement ? 'Режим выбора активен - кликните в превью' : 'Включить режим выбора области'}
+            className={`min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] px-2 sm:px-3 lg:px-3.5 py-2 rounded-md transition-all shadow-md hover:shadow-lg flex items-center justify-center ${
+              selectedElement?.selector 
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : selectedElement 
+                ? 'bg-orange-600 text-white hover:bg-orange-700'
+                : 'bg-gray-600 text-white hover:bg-gray-700'
+            }`}
+          >
+            <Target className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ${selectedElement ? 'animate-pulse' : ''}`} />
+          </button>
+          
           <button
             onClick={handleRun}
             disabled={loading || !input.trim()}
             data-auto-run="true"
-            className="min-w-[44px] min-h-[44px] px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center"
+            className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] px-2.5 sm:px-3 lg:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center"
           >
-            {loading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {loading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
           </button>
         </div>
       </div>

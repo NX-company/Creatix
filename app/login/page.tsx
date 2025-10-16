@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { signIn } from 'next-auth/react'
 import Logo from '@/components/Logo'
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const resetGuestGenerations = useStore((state) => state.resetGuestGenerations)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -89,16 +90,30 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-xs sm:text-sm font-medium mb-2">
                 Пароль
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full min-h-[48px] px-3 sm:px-4 py-3 text-sm sm:text-base bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
-                placeholder="Введите пароль"
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full min-h-[48px] px-3 sm:px-4 py-3 pr-12 text-sm sm:text-base bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition"
+                  placeholder="Введите пароль"
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button
@@ -143,7 +158,7 @@ export default function LoginPage() {
 
           <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-muted-foreground">
             Нет аккаунта?{' '}
-            <Link href="/register" className="text-primary hover:underline font-medium">
+            <Link href="/register" className="text-primary hover:underline font-bold text-sm sm:text-base">
               Зарегистрироваться
             </Link>
           </div>
