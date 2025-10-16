@@ -23,28 +23,28 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const result = await signIn('credentials', {
+        username,
+        password,
+        redirect: false
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Ошибка входа')
+      if (result?.error) {
+        setError('Неверный логин или пароль')
         setLoading(false)
         return
       }
 
-      // Clear guest mode and reset generation counter on successful login
-      sessionStorage.removeItem('isGuestMode')
-      setIsGuestMode(false)
-      resetGuestGenerations()
-      console.log('✅ Guest mode and generation counter reset after login')
-      
-      router.push('/')
-      router.refresh()
+      if (result?.ok) {
+        // Clear guest mode and reset generation counter on successful login
+        sessionStorage.removeItem('isGuestMode')
+        setIsGuestMode(false)
+        resetGuestGenerations()
+        console.log('✅ Login successful via NextAuth Credentials')
+        
+        router.push('/')
+        router.refresh()
+      }
     } catch (err) {
       setError('Ошибка подключения к серверу')
       setLoading(false)

@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['localhost'],
     formats: ['image/webp', 'image/avif'],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'inline',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async headers() {
     return [
