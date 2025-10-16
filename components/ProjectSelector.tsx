@@ -61,6 +61,21 @@ export default function ProjectSelector() {
     presentation: 'Презентация',
     logo: 'Логотип',
     'product-card': 'Карточка',
+    'commercial-proposal': 'КП',
+    'business-card': 'Визитка',
+    'youtube-thumbnail': 'YouTube',
+    'vk-post': 'VK',
+    'telegram-post': 'Telegram',
+    'wildberries-card': 'WB',
+    'ozon-card': 'Ozon',
+    'yandex-market-card': 'Яндекс',
+    'avito-card': 'Avito',
+    'brand-book': 'Брендбук',
+    'icon-set': 'Иконки',
+    'ui-kit': 'UI Kit',
+    'email-template': 'Email',
+    'newsletter': 'Рассылка',
+    'custom-design': 'Кастом',
   }
 
   return (
