@@ -198,7 +198,7 @@ function getDefaultQuestionsForDocType(docType: DocType, userInput: string): Sma
     questions: [
       {
         question: 'Основная цель этого дизайна?',
-        options: null,
+        options: undefined,
         why: 'Понять назначение',
         key: 'purpose'
       },
