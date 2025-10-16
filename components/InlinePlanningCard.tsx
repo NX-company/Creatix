@@ -132,7 +132,22 @@ const QUESTIONS_BY_DOCTYPE: Record<DocType, string[]> = {
     'Призыв к действию (купить, заказать, узнать больше)',
     'Дополнительные пожелания',
     'Количество AI изображений товара (1-4)'
-  ]
+  ],
+  'commercial-proposal': [],
+  'business-card': [],
+  'youtube-thumbnail': [],
+  'vk-post': [],
+  'telegram-post': [],
+  'wildberries-card': [],
+  'ozon-card': [],
+  'yandex-market-card': [],
+  'avito-card': [],
+  'brand-book': [],
+  'icon-set': [],
+  'ui-kit': [],
+  'email-template': [],
+  'newsletter': [],
+  'custom-design': []
 }
 
 const PAGE_LIMITS: Record<DocType, { min: number; max: number } | null> = {
@@ -141,7 +156,22 @@ const PAGE_LIMITS: Record<DocType, { min: number; max: number } | null> = {
   email: { min: 1, max: 2 },
   presentation: { min: 1, max: 10 },
   logo: null,
-  'product-card': null
+  'product-card': null,
+  'commercial-proposal': null,
+  'business-card': null,
+  'youtube-thumbnail': null,
+  'vk-post': null,
+  'telegram-post': null,
+  'wildberries-card': null,
+  'ozon-card': null,
+  'yandex-market-card': null,
+  'avito-card': null,
+  'brand-book': null,
+  'icon-set': null,
+  'ui-kit': null,
+  'email-template': null,
+  'newsletter': null,
+  'custom-design': null
 }
 
 const IMAGE_LIMITS: Record<DocType, { min: number; max: number; label: string } | null> = {
@@ -150,7 +180,22 @@ const IMAGE_LIMITS: Record<DocType, { min: number; max: number; label: string } 
   email: { min: 1, max: 4, label: 'Количество AI изображений' },
   presentation: { min: 1, max: 6, label: 'Количество AI изображений' },
   logo: { min: 1, max: 10, label: 'Количество вариантов логотипа' },
-  'product-card': { min: 1, max: 4, label: 'Количество AI изображений товара' }
+  'product-card': { min: 1, max: 4, label: 'Количество AI изображений товара' },
+  'commercial-proposal': null,
+  'business-card': null,
+  'youtube-thumbnail': null,
+  'vk-post': null,
+  'telegram-post': null,
+  'wildberries-card': null,
+  'ozon-card': null,
+  'yandex-market-card': null,
+  'avito-card': null,
+  'brand-book': null,
+  'icon-set': null,
+  'ui-kit': null,
+  'email-template': null,
+  'newsletter': null,
+  'custom-design': null
 }
 
 export default function InlinePlanningCard({ docType, onSubmit, onSkip }: InlinePlanningCardProps) {
