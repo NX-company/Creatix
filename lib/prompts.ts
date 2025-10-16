@@ -1521,6 +1521,51 @@ CSS ПРАВИЛА (inline):
 □ Все тексты читаемые
 □ Цена актуальна
 □ Нет опечаток`
+  },
+  'commercial-proposal': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'business-card': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'youtube-thumbnail': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'vk-post': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'telegram-post': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'wildberries-card': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'ozon-card': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'yandex-market-card': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'avito-card': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'brand-book': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'icon-set': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'ui-kit': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'email-template': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'newsletter': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
+  },
+  'custom-design': {
+    system: '', contentGeneration: '', layoutSuggestions: '', htmlGeneration: '', validation: '', export: ''
   }
 }
 
