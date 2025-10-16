@@ -59,8 +59,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token, user }) {
       if (session.user) {
         session.user.id = (token.id || user?.id) as string
-        session.user.role = (token.role || user?.role || 'USER') as string
-        session.user.appMode = (token.appMode || user?.appMode || 'FREE') as string
+        session.user.role = (token.role || user?.role || 'USER') as any
+        session.user.appMode = (token.appMode || user?.appMode || 'FREE') as any
         session.user.trialEndsAt = (token.trialEndsAt || user?.trialEndsAt || null) as Date | null
         session.user.trialGenerations = (token.trialGenerations || user?.trialGenerations || 0) as number
       }
