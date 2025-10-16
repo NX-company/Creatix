@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = user.role || 'USER'
-        token.appMode = (user.appMode || 'FREE').toLowerCase()
+        token.appMode = (user.appMode || 'FREE') as any
         token.trialEndsAt = user.trialEndsAt || null
         token.trialGenerations = user.trialGenerations || 0
       }
@@ -44,7 +44,7 @@ export const authOptions: NextAuthOptions = {
           
           if (dbUser) {
             token.role = dbUser.role
-            token.appMode = dbUser.appMode.toLowerCase()
+            token.appMode = dbUser.appMode as any
             token.trialEndsAt = dbUser.trialEndsAt
             token.trialGenerations = dbUser.trialGenerations
             console.log(`🔄 Token updated for user ${dbUser.id}: appMode=${dbUser.appMode}, trialGenerations=${dbUser.trialGenerations}, trialEndsAt=${dbUser.trialEndsAt}`)
