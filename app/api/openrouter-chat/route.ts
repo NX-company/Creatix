@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
 import { logApiUsage } from '@/lib/db'
 import { getRequestManager } from '@/lib/requestManager'
+import { prisma } from '@/lib/db'
 
 export const maxDuration = 60
 
@@ -37,22 +39,29 @@ export async function POST(request: NextRequest) {
     console.log(`OpenRouter: Generated ${result.content.length} characters`)
 
     // Логируем использование API
-    const user = await getUserFromRequest(request)
-    if (user && result.usage) {
-      const tokensUsed = result.usage.total_tokens || 0
-      const costs = MODEL_COSTS[model] || { input: 0.0001, output: 0.0003 }
-      const inputTokens = result.usage.prompt_tokens || 0
-      const outputTokens = result.usage.completion_tokens || 0
-      const cost = (inputTokens / 1000 * costs.input) + (outputTokens / 1000 * costs.output)
-      
-      await logApiUsage({
-        userId: user.id,
-        provider: 'OpenRouter',
-        model: model,
-        endpoint: '/api/openrouter-chat',
-        tokensUsed: tokensUsed,
-        cost: cost
+    const session = await getServerSession(authOptions)
+    if (session?.user?.email && result.usage) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
       })
+      
+      if (user) {
+        const tokensUsed = result.usage.total_tokens || 0
+        const costs = MODEL_COSTS[model] || { input: 0.0001, output: 0.0003 }
+        const inputTokens = result.usage.prompt_tokens || 0
+        const outputTokens = result.usage.completion_tokens || 0
+        const cost = (inputTokens / 1000 * costs.input) + (outputTokens / 1000 * costs.output)
+        
+        await logApiUsage({
+          userId: user.id,
+          provider: 'OpenRouter',
+          model: model,
+          endpoint: '/api/openrouter-chat',
+          tokensUsed: tokensUsed,
+          cost: cost
+        })
+      }
     }
 
     return NextResponse.json({

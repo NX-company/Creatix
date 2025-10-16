@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Replicate from 'replicate'
-import { getUserFromRequest } from '@/lib/auth'
-import { logApiUsage } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+import { logApiUsage, prisma } from '@/lib/db'
 
 export const maxDuration = 60
 
@@ -174,17 +175,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ ${modelName} generation complete`)
 
-    const user = await getUserFromRequest(request)
-    if (user) {
-      const cost = FLUX_MODEL_COSTS[model] || 0.003
-      await logApiUsage({
-        userId: user.id,
-        provider: 'Replicate',
-        model: model,
-        endpoint: '/api/flux-generate',
-        tokensUsed: 0,
-        cost: cost
+    const session = await getServerSession(authOptions)
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
       })
+      
+      if (user) {
+        const cost = FLUX_MODEL_COSTS[model] || 0.003
+        await logApiUsage({
+          userId: user.id,
+          provider: 'Replicate',
+          model: model,
+          endpoint: '/api/flux-generate',
+          tokensUsed: 0,
+          cost: cost
+        })
+      }
     }
 
     return NextResponse.json({

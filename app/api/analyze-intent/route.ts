@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/lib/auth'
-import { logApiUsage } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+import { logApiUsage, prisma } from '@/lib/db'
 
 export const maxDuration = 30
 
@@ -92,18 +93,25 @@ export async function POST(request: NextRequest) {
     console.log(`   Confidence: ${result.confidence}`)
     console.log(`   Info: ${result.extractedInfo}`)
     
-    const user = await getUserFromRequest(request)
-    if (user && data.usage) {
-      const tokensUsed = data.usage.total_tokens || 0
-      const cost = (tokensUsed / 1000) * 0.00015
-      await logApiUsage({
-        userId: user.id,
-        provider: 'OpenRouter',
-        model: 'openai/gpt-4o-mini',
-        endpoint: '/api/analyze-intent',
-        tokensUsed: tokensUsed,
-        cost: cost
+    const session = await getServerSession(authOptions)
+    if (session?.user?.email && data.usage) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
       })
+      
+      if (user) {
+        const tokensUsed = data.usage.total_tokens || 0
+        const cost = (tokensUsed / 1000) * 0.00015
+        await logApiUsage({
+          userId: user.id,
+          provider: 'OpenRouter',
+          model: 'openai/gpt-4o-mini',
+          endpoint: '/api/analyze-intent',
+          tokensUsed: tokensUsed,
+          cost: cost
+        })
+      }
     }
     
     return NextResponse.json({

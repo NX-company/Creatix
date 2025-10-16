@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { HttpsProxyAgent } from 'https-proxy-agent'
-import { getUserFromRequest } from '@/lib/auth'
-import { logApiUsage } from '@/lib/db'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+import { logApiUsage, prisma } from '@/lib/db'
 
 export const maxDuration = 60
 
@@ -93,16 +94,23 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ DALL-E 3 generation complete`)
 
-    const user = await getUserFromRequest(request)
-    if (user) {
-      await logApiUsage({
-        userId: user.id,
-        provider: 'OpenAI',
-        model: 'dall-e-3',
-        endpoint: '/api/dalle-generate',
-        tokensUsed: 0,
-        cost: DALLE_3_COST
+    const session = await getServerSession(authOptions)
+    if (session?.user?.email) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
       })
+      
+      if (user) {
+        await logApiUsage({
+          userId: user.id,
+          provider: 'OpenAI',
+          model: 'dall-e-3',
+          endpoint: '/api/dalle-generate',
+          tokensUsed: 0,
+          cost: DALLE_3_COST
+        })
+      }
     }
 
     return NextResponse.json({
