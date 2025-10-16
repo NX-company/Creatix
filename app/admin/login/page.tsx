@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
 import Logo from '@/components/Logo'
 
@@ -127,12 +128,12 @@ export default function AdminLogin() {
         </div>
 
         <div className="mt-6 text-center">
-          <a
+          <Link
             href="/"
             className="text-slate-400 hover:text-white text-sm transition inline-flex items-center gap-2"
           >
             ← Вернуться на главную
-          </a>
+          </Link>
         </div>
       </div>
     </div>
