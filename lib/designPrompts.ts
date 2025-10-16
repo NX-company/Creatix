@@ -337,7 +337,22 @@ FULL-SCREEN СЛАЙДЫ (каждая секция = отдельная стр�
 5. Box-shadow для объема и глубины
 6. Изображение товара занимает 50-60% пространства
 7. Цена - самый крупный и яркий элемент после изображения
-`
+`,
+    'commercial-proposal': '',
+    'business-card': '',
+    'youtube-thumbnail': '',
+    'vk-post': '',
+    'telegram-post': '',
+    'wildberries-card': '',
+    'ozon-card': '',
+    'yandex-market-card': '',
+    'avito-card': '',
+    'brand-book': '',
+    'icon-set': '',
+    'ui-kit': '',
+    'email-template': '',
+    'newsletter': '',
+    'custom-design': '',
   }
 
   return `${commonStyles}
