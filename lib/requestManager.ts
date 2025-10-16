@@ -192,7 +192,7 @@ class UnifiedRequestManager {
           this.keyPool.markSuccess(apiKey)
 
           return {
-            url: response.data[0].url,
+            url: response.data?.[0]?.url || '',
             model: options.model || 'dall-e-3',
           }
         } catch (error) {
