@@ -484,12 +484,14 @@ export default function ChatPanel() {
       
       if (isEdit) {
         console.log('🔧 Edit mode activated!')
-        console.log('🎯 Selected element:', {
-          selector: selectedElement.selector,
-          parentSelector: selectedElement.parentSelector,
-          parentContext: selectedElement.parentContext,
-          contentLength: selectedElement.outerHTML?.length || selectedElement.innerHTML.length
-        })
+        if (selectedElement) {
+          console.log('🎯 Selected element:', {
+            selector: selectedElement.selector,
+            parentSelector: selectedElement.parentSelector,
+            parentContext: selectedElement.parentContext,
+            contentLength: selectedElement.outerHTML?.length || selectedElement.innerHTML.length
+          })
+        }
         
         let editMessage = '✏️ Вношу изменения'
         if (selectedElement) {
