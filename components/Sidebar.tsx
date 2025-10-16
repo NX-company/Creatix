@@ -21,6 +21,7 @@ interface GenerationsInfo {
   nextResetDate: string
   freeMonthlyGenerations?: number
   advancedMonthlyGenerations?: number
+  subscriptionEndsAt?: Date | null
 }
 
 export default function Sidebar() {
