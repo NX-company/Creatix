@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/db'
 import { getGenerationLimit, SUBSCRIPTION_PRICES } from '@/lib/generationLimits'
 import { AppMode } from '@prisma/client'

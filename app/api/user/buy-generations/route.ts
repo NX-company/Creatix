@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/db'
 import { BONUS_PACK_GENERATIONS, BONUS_PACK_PRICE } from '@/lib/generationLimits'
 
