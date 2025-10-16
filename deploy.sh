@@ -1,47 +1,65 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting deployment..."
+echo "🚀 Starting full deployment for Creatix..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Переход в директорию проекта
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 cd /root/Creatix
 
-# Обновление кода
-echo "📥 Pulling latest code from GitHub..."
+echo -e "${BLUE}📦 Step 1/9: Stopping PM2...${NC}"
+pm2 stop creatix || echo "App not running"
+
+echo -e "${BLUE}📦 Step 2/9: Pulling latest code from GitHub...${NC}"
 git pull origin main
 
-# Установка зависимостей
-echo "📦 Installing dependencies..."
+echo -e "${BLUE}📦 Step 3/9: Installing dependencies...${NC}"
 npm install
 
-# Генерация Prisma Client
-echo "🔧 Generating Prisma Client..."
+echo -e "${BLUE}📦 Step 4/9: Copying .env file...${NC}"
+if [ -f server.env ]; then
+  cp server.env .env
+  echo -e "${GREEN}✅ .env file copied${NC}"
+else
+  echo -e "${RED}⚠️  server.env not found, using existing .env${NC}"
+fi
+
+echo -e "${BLUE}📦 Step 5/9: Generating Prisma Client...${NC}"
 npx prisma generate
 
-# Запуск миграций
-echo "🗄️ Running database migrations..."
+echo -e "${BLUE}📦 Step 6/9: Running database migrations...${NC}"
 npx prisma migrate deploy
 
-# Сборка проекта
-echo "🏗️ Building project..."
-npm run build
+echo -e "${BLUE}📦 Step 7/9: Building production bundle (this may take 2-3 minutes)...${NC}"
+ESLINT_NO_DEV_ERRORS=true npm run build
 
-# Проверка наличия BUILD_ID
+echo -e "${BLUE}📦 Step 8/9: Verifying build...${NC}"
 if [ ! -f ".next/BUILD_ID" ]; then
-  echo "❌ Build failed - BUILD_ID not found!"
+  echo -e "${RED}❌ Build failed - BUILD_ID not found!${NC}"
   exit 1
 fi
 
-# Перезапуск PM2
-echo "🔄 Restarting PM2..."
-pm2 restart creatix || pm2 start npm --name "creatix" -- start
+BUILD_ID=$(cat .next/BUILD_ID)
+echo -e "${GREEN}✅ Build successful! BUILD_ID: $BUILD_ID${NC}"
 
-# Сохранение конфигурации PM2
+echo -e "${BLUE}📦 Step 9/9: Restarting PM2...${NC}"
+pm2 restart creatix || pm2 start npm --name "creatix" -- start
 pm2 save
 
-echo "✅ Deployment completed successfully!"
-echo "🌐 Application is running at https://aicreatix.ru"
-
-# Проверка статуса
+echo ""
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo -e "${BLUE}🌐 Application: https://aicreatix.ru${NC}"
+echo ""
+echo -e "${BLUE}📊 Checking application status...${NC}"
 pm2 status
-
+echo ""
+echo -e "${BLUE}📝 Last 20 lines of logs:${NC}"
+pm2 logs creatix --lines 20 --nostream

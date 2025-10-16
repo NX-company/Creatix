@@ -1,0 +1,13 @@
+cd /root/Creatix
+pm2 stop creatix
+git pull origin main
+npm install
+cp server.env .env
+npx prisma generate
+npx prisma migrate deploy
+ESLINT_NO_DEV_ERRORS=true npm run build
+ls -la .next/BUILD_ID
+pm2 restart creatix || pm2 start npm --name "creatix" -- start
+pm2 save
+pm2 logs creatix --lines 30 --nostream
+
