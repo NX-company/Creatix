@@ -1252,7 +1252,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           <button
             onClick={() => {
               const isActive = selectedElement !== null
-              setSelectedElement(isActive ? null : { selector: '', textContent: '', outerHTML: '' })
+              setSelectedElement(isActive ? null : { selector: '', innerHTML: '', textContent: '', outerHTML: '' })
               
               if (!isActive) {
                 addMessage({
