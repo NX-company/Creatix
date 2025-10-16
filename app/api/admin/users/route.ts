@@ -25,7 +25,12 @@ export async function GET(request: NextRequest) {
         trialEndsAt: true,
         trialGenerations: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        _count: {
+          select: {
+            projects: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -34,7 +39,12 @@ export async function GET(request: NextRequest) {
 
     const usersWithTrialStatus = users.map(user => ({
       ...user,
-      isInTrial: user.trialEndsAt ? new Date(user.trialEndsAt) > new Date() : false
+      isInTrial: user.trialEndsAt ? new Date(user.trialEndsAt) > new Date() : false,
+      _count: {
+        projects: user._count?.projects || 0,
+        apiUsage: 0
+      },
+      totalCost: 0
     }))
 
     return NextResponse.json({ users: usersWithTrialStatus })
