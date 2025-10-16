@@ -147,7 +147,7 @@ function getDefaultQuestionsForDocType(docType: DocType, userInput: string): Sma
       questions: [
         {
           question: 'Текст на превью (заголовок)?',
-          options: null,
+          options: undefined,
           why: 'Основной текст привлекает внимание',
           key: 'thumbnailText'
         },
@@ -171,19 +171,19 @@ function getDefaultQuestionsForDocType(docType: DocType, userInput: string): Sma
       questions: [
         {
           question: 'Название товара?',
-          options: null,
+          options: undefined,
           why: 'Основное название для карточки',
           key: 'productName'
         },
         {
           question: 'Цена товара?',
-          options: null,
+          options: undefined,
           why: 'Для отображения на карточке',
           key: 'price'
         },
         {
           question: 'Ключевые преимущества (3-5)?',
-          options: null,
+          options: undefined,
           why: 'Что выделяет товар среди конкурентов',
           key: 'features'
         }
