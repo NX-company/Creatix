@@ -87,6 +87,21 @@ export const IMAGE_SLOTS_CONFIG: Record<DocType, number> = {
   presentation: 5,
   logo: 3,
   'product-card': 3,
+  'commercial-proposal': 3,
+  'business-card': 1,
+  'youtube-thumbnail': 1,
+  'vk-post': 1,
+  'telegram-post': 1,
+  'wildberries-card': 3,
+  'ozon-card': 3,
+  'yandex-market-card': 3,
+  'avito-card': 3,
+  'brand-book': 5,
+  'icon-set': 10,
+  'ui-kit': 5,
+  'email-template': 2,
+  'newsletter': 2,
+  'custom-design': 3,
 }
 
 export const IMAGE_GENERATION_PROMPTS: Record<DocType, string[]> = {
@@ -121,5 +136,20 @@ export const IMAGE_GENERATION_PROMPTS: Record<DocType, string[]> = {
     'product detail shot, professional lighting, clean white background',
     'product in use, lifestyle photography, natural lighting'
   ],
+  'commercial-proposal': [],
+  'business-card': [],
+  'youtube-thumbnail': [],
+  'vk-post': [],
+  'telegram-post': [],
+  'wildberries-card': [],
+  'ozon-card': [],
+  'yandex-market-card': [],
+  'avito-card': [],
+  'brand-book': [],
+  'icon-set': [],
+  'ui-kit': [],
+  'email-template': [],
+  'newsletter': [],
+  'custom-design': [],
 }
 
