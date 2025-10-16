@@ -288,6 +288,21 @@ const STYLE_PRESETS: Record<DocType, StylePreset[]> = {
       preview: 'linear-gradient(135deg, #10b981 0%, #ffffff 100%)',
     },
   ],
+  'commercial-proposal': [],
+  'business-card': [],
+  'youtube-thumbnail': [],
+  'vk-post': [],
+  'telegram-post': [],
+  'wildberries-card': [],
+  'ozon-card': [],
+  'yandex-market-card': [],
+  'avito-card': [],
+  'brand-book': [],
+  'icon-set': [],
+  'ui-kit': [],
+  'email-template': [],
+  'newsletter': [],
+  'custom-design': [],
 }
 
 export default function StyleEditor() {
