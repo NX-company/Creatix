@@ -42,9 +42,12 @@ export async function GET(request: NextRequest) {
       isInTrial: user.trialEndsAt ? new Date(user.trialEndsAt) > new Date() : false,
       _count: {
         projects: user._count?.projects || 0,
-        apiUsage: 0
+        apiUsage: 0,
+        transactions: 0
       },
-      totalCost: 0
+      totalCost: 0,
+      totalRevenue: 0,
+      balance: 0
     }))
 
     return NextResponse.json({ users: usersWithTrialStatus })
