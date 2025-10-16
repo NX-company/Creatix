@@ -303,6 +303,10 @@ const createEmptyPlanningDataByDocType = (): Record<DocType, PlanningData> => {
   return ALL_DOC_TYPES.reduce((acc, type) => ({ ...acc, [type]: createEmptyPlanningData() }), {} as Record<DocType, PlanningData>)
 }
 
+const createEmptyHTMLPreviews = (): Record<DocType, string> => {
+  return ALL_DOC_TYPES.reduce((acc, type) => ({ ...acc, [type]: '' }), {} as Record<DocType, string>)
+}
+
 const defaultSections: Section[] = [
   { id: 's1', name: 'Шапка', enabled: true, order: 1 },
   { id: 's2', name: 'Введение', enabled: true, order: 2 },
@@ -334,14 +338,7 @@ const createDefaultProject = (name: string, docType: DocType): Project => {
     planningDataByDocType: createEmptyPlanningDataByDocType(),
     
     htmlPreview: '',
-    htmlPreviews: {
-      proposal: '',
-      invoice: '',
-      email: '',
-      presentation: '',
-      logo: '',
-      'product-card': '',
-    },
+    htmlPreviews: createEmptyHTMLPreviews(),
     currentStep: 'import',
     styleConfig: { ...defaultStyleConfig },
     selectedStyleName: null,
@@ -416,14 +413,7 @@ export const useStore = create<Store>()(
           docType: newProject.docType,
           messages: newProject.messages,
           htmlPreview: newProject.htmlPreview,
-          htmlPreviews: newProject.htmlPreviews || {
-            proposal: '',
-            invoice: '',
-            email: '',
-            presentation: '',
-            logo: '',
-            'product-card': '',
-          },
+          htmlPreviews: newProject.htmlPreviews || createEmptyHTMLPreviews(),
           currentStep: newProject.currentStep,
           styleConfig: newProject.styleConfig,
           selectedStyleName: newProject.selectedStyleName,
@@ -462,14 +452,7 @@ export const useStore = create<Store>()(
           docType: newDocType,
           messages: newProject?.messages || [],
           htmlPreview: '',
-          htmlPreviews: {
-            proposal: '',
-            invoice: '',
-            email: '',
-            presentation: '',
-            logo: '',
-            'product-card': '',
-          },
+          htmlPreviews: createEmptyHTMLPreviews(),
           currentStep: newProject?.currentStep || 'import',
           styleConfig: newProject?.styleConfig || { ...defaultStyleConfig },
           selectedStyleName: newProject?.selectedStyleName || null,
@@ -510,14 +493,7 @@ export const useStore = create<Store>()(
           messages: messagesForType,
           planningData: planningDataForType,
           htmlPreview: '',
-          htmlPreviews: {
-            proposal: '',
-            invoice: '',
-            email: '',
-            presentation: '',
-            logo: '',
-            'product-card': '',
-          },
+          htmlPreviews: createEmptyHTMLPreviews(),
           currentStep: project.currentStep,
           styleConfig: project.styleConfig,
           selectedStyleName: project.selectedStyleName,
@@ -601,14 +577,7 @@ export const useStore = create<Store>()(
       },
       
       htmlPreview: '',
-      htmlPreviews: {
-        proposal: '',
-        invoice: '',
-        email: '',
-        presentation: '',
-        logo: '',
-        'product-card': '',
-      },
+      htmlPreviews: createEmptyHTMLPreviews(),
       setHtmlPreview: (html) => {
         const currentDocType = get().docType
         const currentProjectId = get().currentProjectId
