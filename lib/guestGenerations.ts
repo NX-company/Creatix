@@ -1,5 +1,5 @@
 const GUEST_GENERATIONS_KEY = 'creatix_guest_generations'
-const GUEST_LIMIT = 3
+const GUEST_LIMIT = 1
 
 export interface GuestGenerationsData {
   used: number

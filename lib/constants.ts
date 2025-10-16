@@ -16,7 +16,7 @@ export const DEBOUNCE_DELAYS = {
 
 export const MAX_RELOAD_ATTEMPTS = 3
 
-export const STORAGE_VERSION = 5
+export const STORAGE_VERSION = 6
 
 export const API_TIMEOUTS = {
   DEFAULT: 60000,
@@ -25,21 +25,81 @@ export const API_TIMEOUTS = {
 } as const
 
 export const DOC_TYPE_LABELS: Record<string, string> = {
+  // Старые типы (обратная совместимость)
   proposal: 'Коммерческое предложение',
   invoice: 'Счёт',
   email: 'Письмо',
-  presentation: 'Презентация компании',
-  logo: 'Логотип',
   'product-card': 'Карточка товара',
+  
+  // Презентации
+  presentation: 'Презентация компании',
+  
+  // Брендинг
+  logo: 'Логотип',
+  'brand-book': 'Брендбук',
+  'icon-set': 'Набор иконок',
+  'ui-kit': 'UI Kit',
+  
+  // Бизнес
+  'commercial-proposal': 'Коммерческое предложение',
+  'business-card': 'Визитка',
+  
+  // Соц сети
+  'youtube-thumbnail': 'YouTube превью',
+  'vk-post': 'VK пост',
+  'telegram-post': 'Telegram пост',
+  
+  // Маркетплейсы
+  'wildberries-card': 'Карточка Wildberries',
+  'ozon-card': 'Карточка Ozon',
+  'yandex-market-card': 'Карточка Яндекс.Маркет',
+  'avito-card': 'Объявление Avito',
+  
+  // Email
+  'email-template': 'Email шаблон',
+  newsletter: 'Email рассылка',
+  
+  // Кастомное
+  'custom-design': 'Кастомный дизайн',
 } as const
 
 export const DOC_TYPE_FILE_TYPES: Record<string, string[]> = {
+  // Старые типы (обратная совместимость)
   proposal: ['PDF', 'Excel', 'DOC'],
   invoice: ['Excel', 'PDF', 'DOC'],
   email: ['HTML', 'DOC'],
-  presentation: ['PDF', 'DOC'],
-  logo: ['SVG', 'PNG', 'PDF', 'DOC'],
   'product-card': ['PNG (WB 3:4)', 'PNG (Универсал)', 'PDF'],
+  
+  // Презентации
+  presentation: ['PDF', 'DOC'],
+  
+  // Брендинг
+  logo: ['SVG', 'PNG', 'PDF'],
+  'brand-book': ['PDF', 'DOC'],
+  'icon-set': ['SVG', 'PNG'],
+  'ui-kit': ['PDF', 'SVG', 'PNG'],
+  
+  // Бизнес
+  'commercial-proposal': ['PDF', 'Excel', 'DOC'],
+  'business-card': ['PNG', 'PDF', 'SVG'],
+  
+  // Соц сети
+  'youtube-thumbnail': ['PNG (1280x720)', 'JPG'],
+  'vk-post': ['PNG (1080x1080)', 'JPG'],
+  'telegram-post': ['PNG', 'JPG'],
+  
+  // Маркетплейсы
+  'wildberries-card': ['PNG (900x1200)'],
+  'ozon-card': ['PNG (1000x1000)'],
+  'yandex-market-card': ['PNG (1200x1200)'],
+  'avito-card': ['PNG', 'JPG'],
+  
+  // Email
+  'email-template': ['HTML'],
+  newsletter: ['HTML'],
+  
+  // Кастомное
+  'custom-design': ['PNG', 'PDF'],
 } as const
 
 export const EXCEL_STYLES = {

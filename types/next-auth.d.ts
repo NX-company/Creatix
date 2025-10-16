@@ -25,6 +25,8 @@ declare module "next-auth/jwt" {
     id: string
     role: Role
     appMode: AppMode
+    trialEndsAt: Date | null
+    trialGenerations: number
   }
 }
 

@@ -78,30 +78,39 @@ function extractCreationWithQuantity(message: string): UserIntent | null {
 }
 
 function isCreationCommand(message: string): boolean {
+  // Добавляем как повелительные, так и инфинитивные формы глаголов
   const creationVerbs = [
-    'создай', 'сделай', 'сгенери', 'нарисуй', 
-    'покажи', 'построй', 'составь', 'напиши'
+    'создай', 'создать', 'сделай', 'сделать', 
+    'сгенери', 'генерир', 'нарисуй', 'нарисовать',
+    'покажи', 'показать', 'построй', 'построить', 
+    'составь', 'составить', 'напиши', 'написать',
+    'хочу', 'нужно', 'надо', 'требуется'
   ]
   
   const creationObjects = [
     'кп', 'коммерческое', 'предложение', 
     'счёт', 'счет', 'инвойс',
     'письмо', 'email', 'рассылку',
-    'презентацию', 'слайды',
+    'презентацию', 'презентация', 'слайды',
     'логотип', 'лого',
     'карточку', 'товар',
-    'документ', 'файл'
+    'документ', 'файл', 'дизайн'
   ]
   
-  for (const verb of creationVerbs) {
-    if (message.includes(verb)) {
-      if (creationObjects.some(obj => message.includes(obj))) {
-        return true
-      }
-      if (!hasEditContext(message)) {
-        return true
-      }
-    }
+  // Проверяем наличие глаголов создания
+  const hasCreationVerb = creationVerbs.some(verb => message.includes(verb))
+  
+  // Проверяем наличие объектов создания
+  const hasCreationObject = creationObjects.some(obj => message.includes(obj))
+  
+  // Если есть и глагол, и объект - это точно создание
+  if (hasCreationVerb && hasCreationObject && !hasEditContext(message)) {
+    return true
+  }
+  
+  // Если есть только глагол без контекста редактирования
+  if (hasCreationVerb && !hasEditContext(message)) {
+    return true
   }
   
   return false

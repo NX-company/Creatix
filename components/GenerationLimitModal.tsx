@@ -1,16 +1,27 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { X, Zap, Check } from 'lucide-react'
+import { X, Zap, Check, Package, AlertCircle } from 'lucide-react'
 import Logo from './Logo'
+import { getNextResetDate } from '@/lib/generationLimits'
 
 interface GenerationLimitModalProps {
   isOpen: boolean
   onClose: () => void
   remaining: number
+  isAuthenticated?: boolean
+  appMode?: string
+  onBuyPack?: () => void
 }
 
-export default function GenerationLimitModal({ isOpen, onClose, remaining }: GenerationLimitModalProps) {
+export default function GenerationLimitModal({ 
+  isOpen, 
+  onClose, 
+  remaining,
+  isAuthenticated = false,
+  appMode = 'FREE',
+  onBuyPack,
+}: GenerationLimitModalProps) {
   const router = useRouter()
 
   if (!isOpen) return null
@@ -23,8 +34,20 @@ export default function GenerationLimitModal({ isOpen, onClose, remaining }: Gen
     router.push('/login')
   }
 
+  const handleUpgrade = () => {
+    router.push('/register?plan=advanced')
+  }
+
+  const nextReset = getNextResetDate()
+  const nextResetFormatted = nextReset.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+  })
+
+  const isAdvancedUser = appMode === 'ADVANCED' || appMode === 'PRO'
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 9999 }}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -53,65 +76,139 @@ export default function GenerationLimitModal({ isOpen, onClose, remaining }: Gen
             <div className="relative">
               <div className="absolute inset-0 bg-orange-500/20 blur-2xl rounded-full animate-pulse" />
               <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 p-4 rounded-full">
-                <Zap className="w-8 h-8 text-white" fill="currentColor" />
+                {remaining === 0 ? (
+                  <AlertCircle className="w-8 h-8 text-white" />
+                ) : (
+                  <Zap className="w-8 h-8 text-white" fill="currentColor" />
+                )}
               </div>
             </div>
           </div>
 
           {/* Title */}
           <h2 className="text-2xl font-bold text-center mb-3">
-            {remaining === 0 ? 'Бесплатные генерации закончились' : 'Почти закончились!'}
+            {remaining === 0 ? 'Генерации закончились' : 'Почти закончились!'}
           </h2>
 
           {/* Description */}
           <p className="text-center text-muted-foreground mb-6">
-            {remaining === 0 
-              ? 'Вы использовали все 3 бесплатные генерации. Зарегистрируйтесь, чтобы продолжить создавать документы!'
-              : `У вас осталась ${remaining === 1 ? '1 бесплатная генерация' : `${remaining} бесплатные генерации`}. Зарегистрируйтесь, чтобы получить больше!`
-            }
+            {isAuthenticated ? (
+              remaining === 0 ? (
+                <>
+                  У вас осталось 0 генераций этого месяца.
+                  <br />
+                  <span className="text-sm">Следующее пополнение: {nextResetFormatted}</span>
+                </>
+              ) : (
+                `У вас осталось ${remaining} ${remaining === 1 ? 'генерация' : 'генераций'} до конца месяца.`
+              )
+            ) : (
+              remaining === 0 
+                ? 'Вы использовали бесплатную генерацию. Зарегистрируйтесь, чтобы продолжить!'
+                : 'Зарегистрируйтесь, чтобы получить больше генераций!'
+            )}
           </p>
 
-          {/* Benefits */}
-          <div className="bg-muted/50 rounded-lg p-4 mb-6 space-y-3">
-            <div className="flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-              <span className="text-sm text-foreground">Неограниченные генерации документов</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-              <span className="text-sm text-foreground">Сохранение всех проектов в облаке</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-              <span className="text-sm text-foreground">Продвинутые режимы генерации</span>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-              <span className="text-sm text-foreground">Приоритетная поддержка</span>
-            </div>
-          </div>
+          {/* Options for authenticated users */}
+          {isAuthenticated ? (
+            <>
+              {/* Option 1: Buy Pack (for ADVANCED users) */}
+              {isAdvancedUser && onBuyPack && remaining === 0 && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Package className="w-5 h-5 text-blue-400" />
+                    <span className="font-semibold text-white">Купить дополнительные генерации</span>
+                  </div>
+                  <button
+                    onClick={onBuyPack}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all"
+                  >
+                    Купить +30 за 300₽
+                  </button>
+                </div>
+              )}
 
-          {/* Buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={handleRegister}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Зарегистрироваться бесплатно
-            </button>
-            
-            <button
-              onClick={handleLogin}
-              className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              Уже есть аккаунт? Войти
-            </button>
-          </div>
+              {/* Option 2: Upgrade (for FREE users) */}
+              {!isAdvancedUser && (
+                <div className="bg-muted/50 rounded-lg p-4 mb-6 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground">100 генераций с AI изображениями</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground">До 10 Flux Schnell на документ</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground">Парсинг сайтов</span>
+                  </div>
+                </div>
+              )}
 
-          {/* Footer note */}
-          <p className="text-xs text-center text-muted-foreground mt-4">
-            Регистрация занимает менее 30 секунд
-          </p>
+              {/* Buttons */}
+              <div className="space-y-3">
+                {!isAdvancedUser ? (
+                  <button
+                    onClick={handleUpgrade}
+                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Перейти на ADVANCED за 1000₽/мес
+                  </button>
+                ) : (
+                  <button
+                    onClick={onClose}
+                    className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3 px-6 rounded-lg transition-all duration-200"
+                  >
+                    Посмотреть мои документы
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground mt-4">
+                Генерации обновятся {nextResetFormatted}
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Benefits for guests */}
+              <div className="bg-muted/50 rounded-lg p-4 mb-6 space-y-3">
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground">30 бесплатных генераций/месяц</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground">Сохранение проектов</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground">История документов</span>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={handleRegister}
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Зарегистрироваться бесплатно
+                </button>
+                
+                <button
+                  onClick={handleLogin}
+                  className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3 px-6 rounded-lg transition-all duration-200"
+                >
+                  Уже есть аккаунт? Войти
+                </button>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground mt-4">
+                Регистрация занимает менее 30 секунд
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -26,6 +26,7 @@ export default function Home() {
   const docType = useStore((state) => state.docType)
   const setDocType = useStore((state) => state.setDocType)
   const appMode = useStore((state) => state.appMode)
+  const setAppMode = useStore((state) => state.setAppMode)
   const setIsGuestMode = useStore((state) => state.setIsGuestMode)
   const setWorkMode = useStore((state) => state.setWorkMode)
   const guestGenerationsUsed = useStore((state) => state.guestGenerationsUsed)
@@ -89,6 +90,40 @@ export default function Home() {
     }
   }, [mounted, session, status, setIsGuestMode, setWorkMode])
 
+  // Sync appMode with user session (ONLY for trial/free users, NOT for paid)
+  useEffect(() => {
+    if (!mounted || status === 'loading') return
+    
+    if (session?.user) {
+      const userAppMode = ((session.user as any).appMode || 'free').toLowerCase()
+      const userSubscription = (session.user as any).subscriptionEndsAt
+      const hasPaidSubscription = userSubscription && new Date(userSubscription) > new Date()
+      
+      // Платные пользователи могут свободно переключать режимы - НЕ синхронизируем!
+      if (hasPaidSubscription) {
+        console.log(`💎 Paid user - free mode switching enabled (base: ${userAppMode})`)
+        return // Выходим, не меняем appMode
+      }
+      
+      // Для trial/free пользователей синхронизируем с session
+      if (appMode !== userAppMode) {
+        console.log(`🔄 Syncing appMode from session: ${userAppMode} (trial/free user)`)
+        setAppMode(userAppMode)
+      }
+    } else {
+      // Guest mode - check if it's first generation from welcome (should be ADVANCED as demo)
+      const isFirstGeneration = sessionStorage.getItem('first_generation_advanced') === 'true'
+      
+      if (isFirstGeneration) {
+        console.log('🎁 First generation - using ADVANCED mode as demo')
+        setAppMode('advanced')
+      } else if (appMode !== 'free') {
+        console.log('🔄 Resetting to FREE mode for guest')
+        setAppMode('free')
+      }
+    }
+  }, [mounted, session, status, setAppMode])
+
   useEffect(() => {
     if (!mounted) return
 
@@ -149,7 +184,7 @@ export default function Home() {
       welcomeDocType,
       isFirstTime,
       autoGenerate,
-      messagesLength: messages.length
+      messagesLength: messages?.length || 0
     })
     
     if (welcomePrompt && isFirstTime) {
@@ -188,14 +223,14 @@ export default function Home() {
       return
     }
     
-    if (messages.length === 0) {
+    if (messages && messages.length === 0) {
       console.log('💬 Adding default welcome message')
       addMessage({
         role: 'assistant',
         content: getWelcomeMessage(docType, appMode)
       })
     }
-  }, [mounted, messages.length, addMessage, docType, appMode, projects.length, setDocType])
+  }, [mounted, messages?.length, addMessage, docType, appMode, projects.length, setDocType])
 
   if (!mounted) {
     return null

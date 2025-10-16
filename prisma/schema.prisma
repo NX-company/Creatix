@@ -8,26 +8,40 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
-  name              String?
-  username          String?   @unique
-  password          String?
-  role              Role      @default(USER)
-  appMode           AppMode   @default(FREE)
-  isActive          Boolean   @default(true)
-  trialEndsAt       DateTime?
-  trialGenerations  Int       @default(0)
-  emailVerified     DateTime?
-  image             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  sessions      Session[]
-  apiUsage      ApiUsage[]
-  transactions  Transaction[]
-  projects      Project[]
-  accounts      Account[]
+  id                         String    @id @default(uuid())
+  email                      String    @unique
+  name                       String?
+  username                   String?   @unique
+  password                   String?
+  role                       Role      @default(USER)
+  appMode                    AppMode   @default(FREE)
+  isActive                   Boolean   @default(true)
+  trialEndsAt                DateTime?
+  trialGenerations           Int       @default(0)
+  monthlyGenerations         Int       @default(0)
+  generationLimit            Int       @default(30)
+  bonusGenerations           Int       @default(0)
+  freeMonthlyGenerations     Int       @default(0)
+  advancedMonthlyGenerations Int       @default(0)
+  lastResetDate              DateTime?
+  subscriptionEndsAt         DateTime?
+
+  // S3 Storage Limits
+  projectsCount Int @default(0) // Текущее количество проектов
+  projectsLimit Int @default(5) // Лимит: 5 проектов
+  filesCount    Int @default(0) // Текущее количество файлов (общий на все проекты)
+  filesLimit    Int @default(70) // Лимит: 70 файлов на все проекты
+
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions     Session[]
+  apiUsage     ApiUsage[]
+  transactions Transaction[]
+  projects     Project[]
+  accounts     Account[]
 }
 
 enum Role {
@@ -66,7 +80,7 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
 }
 
@@ -79,25 +93,25 @@ model VerificationToken {
 }
 
 model ApiUsage {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider    String
-  model       String
-  endpoint    String
-  tokensUsed  Int      @default(0)
-  cost        Float    @default(0)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   String
+  model      String
+  endpoint   String
+  tokensUsed Int      @default(0)
+  cost       Float    @default(0)
+  createdAt  DateTime @default(now())
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount      Float
-  type        String
-  status      String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  type      String
+  status    String
+  createdAt DateTime @default(now())
 }
 
 model ModeSettings {
@@ -109,58 +123,73 @@ model ModeSettings {
 }
 
 model Project {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String
-  docType       String
-  workMode      String   @default("plan")
-  styleConfig   String?
-  sections      String?
-  priceItems    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  messages      ProjectMessage[]
-  files         ProjectFile[]
-  planningData  ProjectPlanningData?
+  id          String  @id @default(uuid())
+  userId      String
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  docType     String
+  workMode    String  @default("plan")
+  styleConfig String?
+  sections    String?
+  priceItems  String?
+
+  // S3 Storage
+  s3Key    String? // Путь в S3: documents/user-{userId}/{projectId}.html
+  s3Url    String? // Полный URL для доступа к файлу
+  fileSize Int? // Размер HTML файла в байтах
+  isSaved  Boolean @default(false) // Сохранен ли проект в S3
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages     ProjectMessage[]
+  files        ProjectFile[]
+  planningData ProjectPlanningData?
+
+  @@index([userId, createdAt]) // Индекс для быстрой сортировки по дате создания
 }
 
 model ProjectMessage {
-  id          String   @id @default(uuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  role        String
-  content     String
-  type        String?
-  timestamp   DateTime @default(now())
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  type      String?
+  timestamp DateTime @default(now())
 }
 
 model ProjectFile {
-  id          String   @id @default(uuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  fileName    String
-  fileType    String
-  fileSize    Int
-  storagePath String
-  uploadedAt  DateTime @default(now())
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileType  String // image/png, image/jpeg, etc.
+  fileSize  Int // Размер в байтах
+
+  // S3 Storage
+  s3Key String // Путь в S3: images/user-{userId}/uploads/{fileId}.{ext}
+  s3Url String // Полный URL для доступа
+
+  uploadedAt DateTime @default(now())
+
+  @@index([projectId])
 }
 
 model ProjectPlanningData {
-  id                    String   @id @default(uuid())
-  projectId             String   @unique
-  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  theme                 String?
-  targetAudience        String?
-  goals                 String?
-  keyMessages           String?
-  visualPreferences     String?
-  additionalNotes       String?
-  selectedQuestions     String?
-  pageCount             Int?
-  currentQuestionIndex  Int      @default(0)
-  answerMode            String?
-  collectedAnswers      String?
-  isComplete            Boolean  @default(false)
+  id                   String  @id @default(uuid())
+  projectId            String  @unique
+  project              Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  theme                String?
+  targetAudience       String?
+  goals                String?
+  keyMessages          String?
+  visualPreferences    String?
+  additionalNotes      String?
+  selectedQuestions    String?
+  pageCount            Int?
+  currentQuestionIndex Int     @default(0)
+  answerMode           String?
+  collectedAnswers     String?
+  isComplete           Boolean @default(false)
 }

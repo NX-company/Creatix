@@ -3,33 +3,44 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { FileText, Mail, Presentation, Receipt, Image, ChevronLeft, ChevronRight, ShoppingBag, LogOut, User, LogIn } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, LogOut, User, LogIn, Package, Sparkles, Zap } from 'lucide-react'
 import { useStore, type DocType } from '@/lib/store'
 import { cn } from '@/lib/cn'
 import ModeSelector from './ModeSelector'
 import Logo from './Logo'
+import { DOC_CATEGORIES, migrateOldDocType } from '@/lib/docTypesConfig'
+import BuyGenerationsModal from './BuyGenerationsModal'
+import UpgradeModal from './UpgradeModal'
 
-const docTypes: { type: DocType; icon: any; label: string }[] = [
-  { type: 'proposal', icon: FileText, label: 'Коммерческое предложение' },
-  { type: 'invoice', icon: Receipt, label: 'Счёт' },
-  { type: 'email', icon: Mail, label: 'Письмо' },
-  { type: 'presentation', icon: Presentation, label: 'Презентация компании' },
-  { type: 'logo', icon: Image, label: 'Логотип' },
-  { type: 'product-card', icon: ShoppingBag, label: 'Карточка товара' },
-]
+interface GenerationsInfo {
+  appMode: string
+  monthlyGenerations: number
+  generationLimit: number
+  bonusGenerations: number
+  availableGenerations: number
+  nextResetDate: string
+  freeMonthlyGenerations?: number
+  advancedMonthlyGenerations?: number
+}
 
 export default function Sidebar() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   const { 
     docType, 
     setDocType, 
     isGuestMode,
     guestGenerationsUsed,
     guestGenerationsLimit,
-    getRemainingGenerations
+    getRemainingGenerations,
+    appMode
   } = useStore()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('presentation')
+  const [showBuyModal, setShowBuyModal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [generationsInfo, setGenerationsInfo] = useState<GenerationsInfo | null>(null)
+  const [isLoadingGenerations, setIsLoadingGenerations] = useState(false)
 
   const currentUser = isGuestMode ? { 
     username: 'Гость', 
@@ -45,8 +56,76 @@ export default function Sidebar() {
 
   const handleDocTypeChange = (newType: DocType) => {
     if (docType === newType) return
-    setDocType(newType)
+    const migratedType = migrateOldDocType(newType)
+    setDocType(migratedType)
   }
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategory(expandedCategory === categoryId ? null : categoryId)
+  }
+
+  const fetchGenerationsInfo = async () => {
+    // Don't fetch for guests or trial users
+    if (isGuestMode || !session?.user || currentUser?.isInTrial) return
+    
+    setIsLoadingGenerations(true)
+    try {
+      const response = await fetch('/api/user/generations')
+      if (response.ok) {
+        const data = await response.json()
+        setGenerationsInfo(data)
+      } else {
+        console.error('Failed to fetch generations info:', response.status)
+      }
+    } catch (error) {
+      console.error('Failed to fetch generations info:', error)
+    } finally {
+      setIsLoadingGenerations(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchGenerationsInfo()
+  }, [session, isGuestMode, currentUser?.isInTrial])
+  
+  // Listen for generation consumption events
+  useEffect(() => {
+    const handleGenerationConsumed = () => {
+      console.log('🔄 Generation consumed event received, refreshing counter...')
+      fetchGenerationsInfo()
+    }
+    
+    const handleTrialGenerationConsumed = async (event: any) => {
+      console.log('🔄 Trial generation consumed event received, refreshing session...')
+      
+      // Update NextAuth session to reflect new trial data
+      try {
+        await updateSession()
+        console.log('✅ Session updated successfully')
+      } catch (error) {
+        console.error('Failed to update session:', error)
+        // Fallback: reload page if session update fails
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      }
+    }
+    
+    const handleModeSwitched = () => {
+      console.log('🔄 Mode switched, refreshing counter...')
+      fetchGenerationsInfo()
+    }
+    
+    window.addEventListener('generationConsumed', handleGenerationConsumed)
+    window.addEventListener('trialGenerationConsumed', handleTrialGenerationConsumed)
+    window.addEventListener('mode-switched', handleModeSwitched)
+    
+    return () => {
+      window.removeEventListener('generationConsumed', handleGenerationConsumed)
+      window.removeEventListener('trialGenerationConsumed', handleTrialGenerationConsumed)
+      window.removeEventListener('mode-switched', handleModeSwitched)
+    }
+  }, [session, isGuestMode, currentUser?.isInTrial])
 
   const handleLogout = async () => {
     try {
@@ -61,6 +140,10 @@ export default function Sidebar() {
       // Fallback: force redirect even if signOut fails
       window.location.href = '/login'
     }
+  }
+
+  const handleBuySuccess = () => {
+    fetchGenerationsInfo()
   }
 
   return (
@@ -88,29 +171,67 @@ export default function Sidebar() {
         </button>
       </div>
       
-      <div className={cn("p-1.5 flex-1 overflow-y-auto", isCollapsed && "px-1")}>
+      <div className={cn("p-2 flex-1 overflow-y-auto", isCollapsed && "px-1")}>
         {!isCollapsed && (
-          <p className="text-xs text-muted-foreground mb-1.5 px-2">Тип документа</p>
+          <p className="text-sm text-muted-foreground mb-2 px-2 font-medium">Что создаем?</p>
         )}
-        <div className="space-y-0.5" data-tour="doc-types">
-          {docTypes.map((dt) => {
-            const Icon = dt.icon
+        <div className="space-y-1.5" data-tour="doc-types">
+          {DOC_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon
+            const isExpanded = expandedCategory === category.id
+            
             return (
-              <button
-                key={dt.type}
-                onClick={() => handleDocTypeChange(dt.type)}
-                title={isCollapsed ? dt.label : undefined}
-                className={cn(
-                  'w-full flex items-center gap-2 rounded text-sm transition-all touch-manipulation min-h-[36px]',
-                  isCollapsed ? 'justify-center p-1.5' : 'text-left px-2 py-1.5',
-                  docType === dt.type
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
+              <div key={category.id}>
+                {/* Category Header */}
+                <button
+                  onClick={() => toggleCategory(category.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2.5 rounded-md transition-all touch-manipulation min-h-[48px]',
+                    isCollapsed ? 'justify-center p-2' : 'text-left px-3 py-2.5 justify-between',
+                    isExpanded ? 'bg-accent text-accent-foreground font-semibold' : 'hover:bg-accent/50 font-medium'
+                  )}
+                  title={isCollapsed ? category.name : undefined}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <CategoryIcon className="w-5 h-5 flex-shrink-0" />
+                    {!isCollapsed && (
+                      <span className="truncate text-sm">{category.name}</span>
+                    )}
+                  </div>
+                  {!isCollapsed && (
+                    isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Doc Types */}
+                {isExpanded && !isCollapsed && (
+                  <div className="ml-7 mt-1.5 space-y-1">
+                    {category.types.map((type) => {
+                      const TypeIcon = type.icon
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => handleDocTypeChange(type.id)}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 rounded-md text-sm transition-all touch-manipulation min-h-[44px] px-3 py-2',
+                            docType === type.id
+                              ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                              : 'hover:bg-accent hover:text-accent-foreground font-medium'
+                          )}
+                        >
+                          <TypeIcon className="w-4 h-4 flex-shrink-0" />
+                          <div className="flex-1 text-left">
+                            <div className="truncate">{type.label}</div>
+                            {type.dimensions && (
+                              <div className="text-[11px] opacity-75 mt-0.5">{type.dimensions}</div>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {!isCollapsed && <span className="truncate text-xs">{dt.label}</span>}
-              </button>
+              </div>
             )
           })}
         </div>
@@ -202,22 +323,146 @@ export default function Sidebar() {
                 {currentUser.trialDaysLeft} {currentUser.trialDaysLeft === 1 ? 'день' : 'дней'}
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden mb-3">
               <div 
                 className="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all duration-500 rounded-full"
                 style={{ width: `${((currentUser.trialGenerationsLeft || 0) / 30) * 100}%` }}
               />
             </div>
+            
+            {/* Кнопка апгрейда для пробного периода */}
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95 mb-2"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Улучшить до Продвинутый</span>
+            </button>
+            
             {(currentUser.trialGenerationsLeft || 0) === 0 && (
-              <p className="text-xs text-green-600 mt-2 font-medium">
-                Свяжитесь с нами для продолжения!
+              <p className="text-xs text-orange-600 text-center font-medium">
+                🔥 Пробный период закончился!
               </p>
             )}
-            {(currentUser.trialGenerationsLeft || 0) <= 30 && (currentUser.trialGenerationsLeft || 0) > 0 && (
-              <p className="text-xs text-green-600 mt-2">
+            {(currentUser.trialGenerationsLeft || 0) <= 10 && (currentUser.trialGenerationsLeft || 0) > 0 && (
+              <p className="text-xs text-orange-600 text-center font-medium">
+                🔥 Осталось мало генераций!
+              </p>
+            )}
+            {(currentUser.trialGenerationsLeft || 0) > 10 && (
+              <p className="text-xs text-green-600 text-center">
                 Осталось {currentUser.trialGenerationsLeft} генераций!
               </p>
             )}
+          </div>
+        )}
+
+        {/* Generations counter for registered users (non-trial) */}
+        {!isCollapsed && !isGuestMode && session?.user && !currentUser?.isInTrial && generationsInfo && (
+          <div className="mb-3 p-3 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-500 p-1 rounded">
+                  <Sparkles className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-xs font-semibold text-foreground">Генерации</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {new Date(generationsInfo.nextResetDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-2xl font-bold text-blue-600">
+                {(() => {
+                  const currentMode = appMode.toLowerCase()
+                  const limit = currentMode === 'free' ? 30 : currentMode === 'advanced' ? 100 : 300
+                  const used = currentMode === 'free' 
+                    ? (generationsInfo.freeMonthlyGenerations || 0)
+                    : currentMode === 'advanced'
+                      ? (generationsInfo.advancedMonthlyGenerations || 0)
+                      : (generationsInfo.monthlyGenerations || 0)
+                  // Бонусы работают ТОЛЬКО для платных режимов (ADVANCED/PRO), НЕ для FREE
+                  const bonus = currentMode === 'free' ? 0 : (generationsInfo.bonusGenerations || 0)
+                  return Math.max(0, limit - used + bonus)
+                })()}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                / {appMode.toLowerCase() === 'free' ? 30 : appMode.toLowerCase() === 'advanced' ? 100 : 300}
+                {appMode.toLowerCase() !== 'free' && generationsInfo.bonusGenerations > 0 && (
+                  <span className="text-green-500 ml-1">+{generationsInfo.bonusGenerations}</span>
+                )}
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden mb-3">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-500 rounded-full"
+                style={{ 
+                  width: `${(() => {
+                    const currentMode = appMode.toLowerCase()
+                    const limit = currentMode === 'free' ? 30 : currentMode === 'advanced' ? 100 : 300
+                    const used = currentMode === 'free' 
+                      ? (generationsInfo.freeMonthlyGenerations || 0)
+                      : currentMode === 'advanced'
+                        ? (generationsInfo.advancedMonthlyGenerations || 0)
+                        : (generationsInfo.monthlyGenerations || 0)
+                    // Бонусы только для платных режимов
+                    const bonus = currentMode === 'free' ? 0 : (generationsInfo.bonusGenerations || 0)
+                    const available = Math.max(0, limit - used + bonus)
+                    return Math.min(100, (available / limit) * 100)
+                  })()}%` 
+                }}
+              />
+            </div>
+            
+            {/* Кнопки действий */}
+            <div className="space-y-2">
+              {appMode.toLowerCase() === 'free' && (() => {
+                // Проверяем, есть ли активная подписка
+                const hasPaidSubscription = generationsInfo.subscriptionEndsAt && 
+                  new Date(generationsInfo.subscriptionEndsAt) > new Date()
+                
+                // Кнопка "Улучшить" только для НЕоплаченных пользователей
+                if (!hasPaidSubscription) {
+                  return (
+                    <>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Улучшить до Продвинутый</span>
+                      </button>
+                      {(() => {
+                        const used = generationsInfo.freeMonthlyGenerations || 0
+                        const available = Math.max(0, 30 - used)
+                        return available <= 5 && (
+                          <p className="text-[10px] text-center text-orange-600 font-medium">
+                            🔥 Осталось мало генераций!
+                          </p>
+                        )
+                      })()}
+                    </>
+                  )
+                }
+                
+                // Для оплаченных пользователей - просто показываем сообщение
+                return (
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    Вы можете переключиться на ⚡ Продвинутый режим
+                  </p>
+                )
+              })()}
+              
+              {(appMode.toLowerCase() === 'advanced' || appMode.toLowerCase() === 'pro') && (
+                <button
+                  onClick={() => setShowBuyModal(true)}
+                  className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
+                >
+                  <Package className="w-3 h-3" />
+                  <span>Купить +30 за 300₽</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
         
@@ -247,6 +492,34 @@ export default function Sidebar() {
           </button>
         )}
       </div>
+
+      {/* Buy Generations Modal */}
+      {generationsInfo && (
+        <BuyGenerationsModal
+          isOpen={showBuyModal}
+          onClose={() => setShowBuyModal(false)}
+          currentGenerations={(() => {
+            const currentMode = appMode.toLowerCase()
+            const limit = currentMode === 'free' ? 30 : currentMode === 'advanced' ? 100 : 300
+            const used = currentMode === 'free' 
+              ? (generationsInfo.freeMonthlyGenerations || 0)
+              : currentMode === 'advanced'
+                ? (generationsInfo.advancedMonthlyGenerations || 0)
+                : (generationsInfo.monthlyGenerations || 0)
+            // Бонусы только для платных режимов
+            const bonus = currentMode === 'free' ? 0 : (generationsInfo.bonusGenerations || 0)
+            return Math.max(0, limit - used + bonus)
+          })()}
+          onSuccess={handleBuySuccess}
+        />
+      )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        currentMode={generationsInfo?.appMode || 'FREE'}
+      />
     </div>
   )
 }

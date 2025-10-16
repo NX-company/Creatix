@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
 import { getUserFromRequest } from '@/lib/auth'
 import { logApiUsage } from '@/lib/db'
+import { getRequestManager } from '@/lib/requestManager'
 
 export const maxDuration = 60
 
@@ -14,46 +14,35 @@ const MODEL_COSTS: Record<string, { input: number; output: number }> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, model = 'google/gemini-2.5-flash-lite', temperature = 0.7, max_tokens } = await request.json()
+    const { messages, model = 'google/gemini-2.5-flash-lite', temperature = 0.7, max_tokens, priority = 5 } = await request.json()
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages array required' }, { status: 400 })
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY?.trim()
-    if (!apiKey) {
-      console.error('OPENROUTER_API_KEY is not configured')
-      return NextResponse.json({ error: 'OpenRouter API key not configured' }, { status: 500 })
-    }
-
-    console.log(`OpenRouter: Calling ${model}...`)
+    console.log(`OpenRouter: Calling ${model}... (priority: ${priority})`)
     console.log(`Messages: ${messages.length}`)
 
-    const client = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: apiKey,
-      defaultHeaders: {
-        "HTTP-Referer": "https://nx-studio.vercel.app",
-        "X-Title": "Creatix Agent",
-      }
+    // Используем новый Request Manager с очередью и пулом ключей
+    const requestManager = getRequestManager()
+    
+    const result = await requestManager.openrouterRequest({
+      model,
+      messages,
+      temperature,
+      max_tokens,
+      priority,
     })
 
-    const completion = await client.chat.completions.create({
-      model: model,
-      messages: messages as any,
-      temperature: temperature,
-      ...(max_tokens ? { max_tokens } : {})
-    })
+    console.log(`OpenRouter: Generated ${result.content.length} characters`)
 
-    const content = completion.choices[0]?.message?.content || ''
-    console.log(`OpenRouter: Generated ${content.length} characters`)
-
+    // Логируем использование API
     const user = await getUserFromRequest(request)
-    if (user && completion.usage) {
-      const tokensUsed = completion.usage.total_tokens || 0
+    if (user && result.usage) {
+      const tokensUsed = result.usage.total_tokens || 0
       const costs = MODEL_COSTS[model] || { input: 0.0001, output: 0.0003 }
-      const inputTokens = completion.usage.prompt_tokens || 0
-      const outputTokens = completion.usage.completion_tokens || 0
+      const inputTokens = result.usage.prompt_tokens || 0
+      const outputTokens = result.usage.completion_tokens || 0
       const cost = (inputTokens / 1000 * costs.input) + (outputTokens / 1000 * costs.output)
       
       await logApiUsage({
@@ -68,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      content: content,
+      content: result.content,
     })
   } catch (error) {
     console.error('OpenRouter chat error:', error)

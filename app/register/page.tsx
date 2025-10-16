@@ -1,15 +1,18 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, FormEvent, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle, Sparkles } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { signIn } from 'next-auth/react'
 import Logo from '@/components/Logo'
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const plan = searchParams.get('plan') || 'free'
+  
   const setIsGuestMode = useStore((state) => state.setIsGuestMode)
   const resetGuestGenerations = useStore((state) => state.resetGuestGenerations)
   const [email, setEmail] = useState('')
@@ -19,6 +22,10 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    console.log('📋 Registration page loaded with plan:', plan)
+  }, [plan])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -78,6 +85,30 @@ export default function RegisterPage() {
               <Logo size="lg" />
             </div>
             <p className="text-muted-foreground">Создайте аккаунт</p>
+            
+            {plan === 'advanced' && (
+              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-semibold text-blue-500">ADVANCED план</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  100 генераций с AI изображениями за 1000₽/мес
+                </p>
+              </div>
+            )}
+            
+            {plan === 'free' && (
+              <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-semibold text-green-500">FREE план</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  30 генераций/месяц бесплатно
+                </p>
+              </div>
+            )}
           </div>
 
           <button
@@ -209,4 +240,15 @@ export default function RegisterPage() {
   )
 }
 
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
+  )
+}
 

@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { verifyTokenForMiddleware } from '@/lib/auth'
 
 const publicPaths = ['/login', '/register', '/welcome']
 const adminPaths = ['/admin']
+const adminPublicPaths = ['/admin/login']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
   const isAdminPath = adminPaths.some(path => pathname.startsWith(path))
+  const isAdminPublicPath = adminPublicPaths.some(path => pathname.startsWith(path))
   const isApiRoute = pathname.startsWith('/api/')
 
   // Allow public paths and API routes
@@ -17,7 +20,48 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check NextAuth session
+  // Allow admin login page without authentication
+  if (isAdminPublicPath) {
+    return NextResponse.next()
+  }
+
+  // Check admin access first - use auth-token cookie
+  if (isAdminPath) {
+    const authToken = request.cookies.get('auth-token')?.value
+    
+    console.log('🔐 Admin path access attempt:', {
+      path: pathname,
+      hasAuthToken: !!authToken
+    })
+    
+    if (!authToken) {
+      console.log('❌ No auth-token, redirecting to admin login')
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+
+    // Verify admin token
+    const adminUser = await verifyTokenForMiddleware(authToken)
+    
+    if (!adminUser || adminUser.role !== 'ADMIN') {
+      console.log('❌ Invalid admin token or not admin role, redirecting to admin login')
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+    
+    console.log('✅ Admin access granted for:', adminUser.id)
+    
+    // Add admin info to headers
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-admin-id', adminUser.id)
+    requestHeaders.set('x-admin-role', adminUser.role)
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    })
+  }
+  
+  // Check NextAuth session for regular users
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   
   // Check if this is a guest user from welcome page
@@ -25,16 +69,6 @@ export async function middleware(request: NextRequest) {
   
   // Check if user has visited before (using cookie)
   const hasVisited = request.cookies.get('has_visited')
-
-  // Check admin access first - require authentication and ADMIN role
-  if (isAdminPath) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    if (token.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-  }
 
   // If no session and not a guest
   if (!token && !isGuest) {

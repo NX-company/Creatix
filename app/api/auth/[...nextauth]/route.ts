@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/db"
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
     GoogleProvider({
@@ -20,13 +20,51 @@ const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id
-        session.user.role = user.role || 'USER'
-        session.user.appMode = user.appMode || 'FREE'
-        session.user.trialEndsAt = user.trialEndsAt || null
-        session.user.trialGenerations = user.trialGenerations || 0
+    async jwt({ token, user, trigger }) {
+      // On initial sign in, populate token from user
+      if (user) {
+        token.id = user.id
+        token.role = user.role || 'USER'
+        token.appMode = (user.appMode || 'FREE').toLowerCase() // Convert to lowercase for store compatibility
+        token.trialEndsAt = user.trialEndsAt || null
+        token.trialGenerations = user.trialGenerations || 0
+      }
+      
+      // On session update (trigger === 'update'), refresh data from database
+      if (trigger === 'update' && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              id: true,
+              role: true,
+              appMode: true,
+              trialEndsAt: true,
+              trialGenerations: true,
+            }
+          })
+          
+          if (dbUser) {
+            token.role = dbUser.role
+            token.appMode = dbUser.appMode.toLowerCase() // Convert to lowercase for store compatibility
+            token.trialEndsAt = dbUser.trialEndsAt
+            token.trialGenerations = dbUser.trialGenerations
+            console.log(`🔄 Token updated for user ${dbUser.id}: appMode=${dbUser.appMode}, trialGenerations=${dbUser.trialGenerations}, trialEndsAt=${dbUser.trialEndsAt}`)
+          }
+        } catch (error) {
+          console.error('Error refreshing token from DB:', error)
+        }
+      }
+      
+      return token
+    },
+    async session({ session, token, user }) {
+      if (session.user) {
+        session.user.id = (token.id || user?.id) as string
+        session.user.role = (token.role || user?.role || 'USER') as string
+        session.user.appMode = (token.appMode || user?.appMode || 'FREE') as string
+        session.user.trialEndsAt = (token.trialEndsAt || user?.trialEndsAt || null) as Date | null
+        session.user.trialGenerations = (token.trialGenerations || user?.trialGenerations || 0) as number
       }
       return session
     },
@@ -75,7 +113,7 @@ const authOptions: NextAuthOptions = {
     error: '/login',
   },
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   debug: process.env.NODE_ENV === 'development',
 }

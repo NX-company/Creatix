@@ -783,8 +783,8 @@ export default function PreviewFrame() {
     )
   }
 
-  const fileTypes = docTypeFileTypes[docType]
-  const docLabel = docTypeLabels[docType]
+  const fileTypes = docTypeFileTypes[docType] || []
+  const docLabel = docTypeLabels[docType] || 'Документ'
 
   return (
     <div className="flex h-full flex-col">

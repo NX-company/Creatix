@@ -182,7 +182,7 @@ export default function ProjectSelector() {
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>{docTypeLabels[project.docType]}</span>
                             <span>•</span>
-                            <span>{project.messages.length} сообщ.</span>
+                            <span>{project.messagesByDocType?.[project.docType]?.length || 0} сообщ.</span>
                             <span>•</span>
                             <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
                           </div>

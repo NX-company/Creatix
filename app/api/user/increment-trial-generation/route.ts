@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../../auth/[...nextauth]/route'
 import { prisma } from '@/lib/db'
+
+const TRIAL_LIMIT = 30
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req)
+    const session = await getServerSession(authOptions)
 
-    if (!user) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Не авторизован' },
         { status: 401 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        trialGenerations: true,
+        trialEndsAt: true
+      }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Пользователь не найден' },
+        { status: 404 }
       )
     }
 
@@ -26,14 +45,15 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    const trialGenerationsLeft = Math.max(0, 3 - updatedUser.trialGenerations)
+    const trialGenerationsLeft = Math.max(0, TRIAL_LIMIT - updatedUser.trialGenerations)
 
-    console.log(`✅ Trial generation incremented for user ${user.id}: ${updatedUser.trialGenerations}/3`)
+    console.log(`✅ Trial generation incremented for user ${user.id}: ${updatedUser.trialGenerations}/${TRIAL_LIMIT}, осталось: ${trialGenerationsLeft}`)
 
     return NextResponse.json({
       success: true,
       trialGenerations: updatedUser.trialGenerations,
-      trialGenerationsLeft
+      trialGenerationsLeft,
+      trialLimit: TRIAL_LIMIT
     })
   } catch (error) {
     console.error('Increment trial generation error:', error)

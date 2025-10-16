@@ -1,4 +1,5 @@
 import { PROMPTS, type PromptConfig } from './prompts'
+import { getDocTypePrompt } from './docTypePrompts'
 import type { DocType } from './store'
 import { fetchWithTimeout } from './fetchWithTimeout'
 import { API_TIMEOUTS } from './constants'
@@ -55,35 +56,74 @@ function getStructureTemplate(docType: string): string {
    - Контакты + юр.информация (14px)`,
 
     invoice: `
-1. HEADER (padding: 40px 0):
-   - Flex: logo слева + "Счет №XXX" справа
-   - Дата под номером
+⚠️ ВАЖНО: Счет должен быть оптимизирован для ПЕЧАТИ на A4 (210×297mm)!
+
+ОБЩИЕ ТРЕБОВАНИЯ:
+- max-width: 800px (оптимально для A4)
+- padding страницы: 30px (не 80px!)
+- Компактная верстка, минимум пустого пространства
+- Все в одну колонку для мобильных
+- Шрифт: 14-16px для основного текста, 12px для мелкого
+
+1. HEADER (padding: 20px 0, border-bottom: 2px solid primary):
+   - Flex: logo слева (max-width: 120px) + правая часть (text-align: right)
+   - Справа: 
+     * "СЧЁТ НА ОПЛАТУ №[номер]" (font-size: 24px, font-weight: 700, color: primary)
+     * Дата выставления (font-size: 14px, color: #666)
    
-2. РЕКВИЗИТЫ (padding: 40px 0):
+2. РЕКВИЗИТЫ (padding: 25px 0):
+   - Два блока друг под другом (НЕ grid на две колонки!)
+   - Каждый блок: border: 1px solid #ddd, padding: 15px, margin-bottom: 15px
+   
+   Блок "Поставщик (Исполнитель)":
+   - H3: font-size: 14px, font-weight: 700, margin-bottom: 10px, color: primary
+   - Список реквизитов: font-size: 13px, line-height: 1.6
+   - Поля: Название компании, ИНН, КПП, Адрес, Телефон, Email
+   
+   Блок "Покупатель (Заказчик)":
+   - Аналогичная структура
+   
+3. ТАБЛИЦА ПОЗИЦИЙ (margin: 25px 0):
+   - table: width: 100%, border-collapse: collapse, font-size: 14px
+   - thead: background: primary (не градиент!), color: white
+   - Колонки: №, Наименование, Кол-во, Ед., Цена, Сумма
+   - th: padding: 12px 10px, text-align: left, font-weight: 600
+   - td: padding: 12px 10px, border: 1px solid #e0e0e0
+   - Числа (кол-во, цена, сумма): text-align: right, font-family: monospace
+   - Чередующиеся строки tbody tr:nth-child(even): background: #f9f9f9
+   
+4. ИТОГО (margin: 20px 0, padding: 15px, background: #f5f5f5, border: 1px solid #ddd):
+   - Выравнивание справа (text-align: right)
+   - Строки:
+     * Сумма без НДС: font-size: 14px
+     * НДС 20%: font-size: 14px
+     * ИТОГО К ОПЛАТЕ: font-size: 18px, font-weight: 700, color: primary, margin-top: 8px, border-top: 2px solid primary, padding-top: 8px
+   
+5. УСЛОВИЯ ОПЛАТЫ (padding: 20px, border: 1px solid primary, margin: 25px 0):
+   - H3 "Условия оплаты" (font-size: 16px, font-weight: 700, margin-bottom: 12px, color: primary)
+   - Текст: font-size: 13px, line-height: 1.6
+   - Банковские реквизиты списком
+   - Срок оплаты
+   
+6. ПОДПИСИ (padding: 30px 0, border-top: 1px solid #ddd):
    - Grid 2 колонки (gap: 40px)
-   - Левая: "Продавец" + реквизиты
-   - Правая: "Покупатель" + реквизиты
-   - Все border: 1px solid #e0e0e0, padding: 20px
+   - Каждая: 
+     * Заголовок "Руководитель" / "Главный бухгалтер" (font-size: 12px, color: #666)
+     * Линия для подписи: border-bottom: 1px solid #333, margin: 20px 0, min-width: 200px
+     * "Печать М.П." в правом блоке
    
-3. ТАБЛИЦА ПОЗИЦИЙ (margin: 40px 0):
-   - table width: 100%, border-collapse: collapse
-   - thead: background: primary, color: white
-   - td: padding: 15px, border: 1px solid #e0e0e0
-   - Числа: text-align: right
-   - Чередующиеся строки: background: rgba(0,0,0,0.02)
-   
-4. ИТОГО (padding: 20px, background: rgba(primary, 0.1)):
-   - Без НДС: font-size: 16px
-   - НДС: font-size: 16px
-   - ИТОГО: font-size: 24px, font-weight: 700, color: primary
-   
-5. УСЛОВИЯ ОПЛАТЫ (padding: 30px, border: 2px solid primary):
-   - H3 "Условия оплаты" (22px)
-   - Сроки, реквизиты банка
-   
-6. FOOTER (padding: 30px 0):
-   - Подпись, печать (если есть)
-   - Контакты мелким шрифтом (14px)`,
+7. FOOTER (padding: 15px 0, border-top: 1px solid #eee):
+   - Мелкий текст (font-size: 11px, color: #888, text-align: center)
+   - "Документ составлен в электронной форме и действителен без печати и подписи"
+
+⚠️ КРИТИЧНО для счета:
+- НЕ используй padding: 80px 0 (слишком много!)
+- НЕ используй box-shadow: 0 4px 20px (счет для печати!)
+- НЕ используй border-radius: 12px (официальный документ!)
+- Используй простые, четкие границы
+- Все числа выравнивай справа
+- Монохромная схема (primary цвет только для акцентов)
+- Оптимизация для печати: @media print правила!`,
 
     logo: `
 1. HEADER (padding: 40px 0, text-align: center):
@@ -208,7 +248,91 @@ function getStructureTemplate(docType: string): string {
 7. CTA секция (padding: 60px 0, background: rgba(primary, 0.05)):
    - H2 "Готовы заказать?" (36px)
    - Кнопка "Купить" (padding: 20px 60px, font-size: 20px)
-   - Контакты под кнопкой`
+   - Контакты под кнопкой`,
+
+    'business-card': `
+⚠️ ВАЖНО: Визитка должна быть в СТАНДАРТНОМ ФОРМАТЕ 90×50mm (850×500px для качественной печати)!
+
+ОБЩИЕ ТРЕБОВАНИЯ:
+- Размер контейнера: 850px × 500px (width × height)
+- Две карточки (лицевая и обратная сторона) рядом друг с другом
+- Каждая карточка: border: 2px solid #e0e0e0, border-radius: 8px
+- Современный, минималистичный дизайн
+- Максимум 2-3 цвета
+- Шрифты: 1-2 семейства (основной + акцентный)
+- Минимум текста: только самое важное!
+
+СТРУКТУРА:
+
+1. КОНТЕЙНЕР ОБЕИХ СТОРОН (display: flex, gap: 40px, justify-content: center):
+   - Две карточки по 850×500px каждая
+   - padding-контейнера: 60px
+
+2. ЛИЦЕВАЯ СТОРОНА (850×500px, position: relative):
+   - Background: чистый цвет или тонкий градиент (primary → lighten(primary, 10%))
+   - padding: 50px
+   - display: flex, flex-direction: column, justify-content: space-between
+   
+   ВЕРХНЯЯ ЧАСТЬ:
+   - Логотип или инициалы (если IMAGE_0):
+     * max-width: 120px
+     * margin-bottom: 30px
+   - ИЛИ текстовый логотип: font-size: 32px, font-weight: 700, letter-spacing: 2px
+   
+   ЦЕНТРАЛЬНАЯ ЧАСТЬ:
+   - ФИО / Название компании:
+     * font-size: 28px
+     * font-weight: 700
+     * margin-bottom: 10px
+     * color: white (если темный фон) или primary
+   - Должность:
+     * font-size: 16px
+     * font-weight: 400
+     * opacity: 0.9
+     * letter-spacing: 1px
+     * text-transform: uppercase
+   
+   НИЖНЯЯ ЧАСТЬ:
+   - Минимум инфо (например, только сайт или одна контактная линия)
+   - font-size: 14px
+   - opacity: 0.8
+
+3. ОБРАТНАЯ СТОРОНА (850×500px):
+   - Background: white или очень светлый оттенок
+   - padding: 50px
+   - display: flex, flex-direction: column, justify-content: center
+   - border: 1px solid #e0e0e0 (легкая граница)
+   
+   БЛОК КОНТАКТОВ (выровнять по центру вертикально):
+   - H3 "Контакты" (font-size: 18px, font-weight: 600, margin-bottom: 25px, color: primary)
+   - Список контактов (font-size: 15px, line-height: 2):
+     * Телефон: +7 (XXX) XXX-XX-XX
+     * Email: email@company.com
+     * Сайт: www.company.com
+     * Адрес (опционально)
+   - Каждая строка:
+     * display: flex, align-items: center, gap: 12px
+     * Иконка слева (width: 20px, height: 20px, color: primary)
+     * Текст справа
+   
+   НИЖНИЙ БЛОК (опционально):
+   - QR-код (если IMAGE_1):
+     * max-width: 100px
+     * margin-top: 30px
+     * opacity: 0.8
+   - Или дополнительная информация мелким шрифтом (12px, color: #888)
+
+⚠️ КРИТИЧНО для визитки:
+- НЕ перегружай информацией! Визитка - это не резюме
+- Минимум 10pt шрифт (для печати)
+- Не используй больше 3 цветов
+- Много воздуха (white space) - это хорошо!
+- Лицевая сторона = запоминающийся образ
+- Обратная сторона = практичная информация
+- Обе карточки должны гармонировать по стилю
+- Если есть IMAGE_0 - это логотип для лицевой стороны
+- Если есть IMAGE_1 - это QR-код для обратной стороны
+- Используй тонкие линии-разделители при необходимости (border-top: 1px solid rgba(primary, 0.2))`
   }
 
   return templates[docType] || templates.proposal
@@ -374,6 +498,13 @@ ${uploadedImages.map((img, i) => `${i + 1}. "${img.name}" → используй
 - Если изображений много - сделай прокручиваемую галерею
 - ОБЯЗАТЕЛЬНО используй ВСЕ загруженные изображения (IMAGE_0, IMAGE_1, IMAGE_2, IMAGE_3, IMAGE_4...)
 
+Для ВИЗИТКИ (business-card):
+- IMAGE_0: ЛОГОТИП на лицевой стороне визитки (max-width: 120px, в верхней части)
+- IMAGE_1: QR-КОД на обратной стороне визитки (max-width: 100px, в нижней части обратной стороны)
+- Если есть больше изображений - игнорируй их (визитка содержит максимум 2 изображения)
+- Лицевая сторона: минималистичный дизайн с логотипом, ФИО и должностью
+- Обратная сторона: контактная информация с иконками + QR-код внизу
+
 📝 КАК ВСТАВЛЯТЬ:
 <img src="IMAGE_0" alt="${uploadedImages[0]?.name || 'Изображение'}" style="max-width: 200px; height: auto;" />
 
@@ -405,6 +536,48 @@ ${modernDesign}
 
 📐 СТРОГАЯ СИСТЕМА ОТСТУПОВ (ОБЯЗАТЕЛЬНО):
 
+${docType === 'invoice' ? `
+⚠️ СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ СЧЁТА:
+КОНТЕЙНЕРЫ:
+- max-width: 800px; margin: 0 auto; padding: 30px (НЕ 80px!)
+
+СЕКЦИИ:
+- padding: 20-25px 0 (компактно для печати!)
+- НЕ используй padding: 80px 0
+
+КАРТОЧКИ/БЛОКИ:
+- padding: 15px
+- margin-bottom: 15px
+- border: 1px solid #ddd (НЕ box-shadow!)
+- border-radius: 0 (официальный документ!)
+
+ТАБЛИЦЫ:
+- padding ячеек: 12px 10px
+- border: 1px solid #e0e0e0
+- НЕ используй скругления!
+` : docType === 'business-card' ? `
+⚠️ СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ ВИЗИТКИ:
+КОНТЕЙНЕР:
+- display: flex; justify-content: center; gap: 40px; padding: 60px
+- background: #f5f5f5 (светлый фон вокруг карточек)
+
+КАЖДАЯ КАРТОЧКА:
+- width: 850px; height: 500px (ФИКСИРОВАННЫЙ размер!)
+- border: 2px solid #e0e0e0
+- border-radius: 8px
+- box-shadow: 0 4px 15px rgba(0,0,0,0.1)
+
+ЛИЦЕВАЯ СТОРОНА:
+- padding: 50px
+- display: flex; flex-direction: column; justify-content: space-between
+- background: gradient или solid primary color
+
+ОБРАТНАЯ СТОРОНА:
+- padding: 50px
+- display: flex; flex-direction: column; justify-content: center
+- background: white
+- border: 1px solid #e0e0e0
+` : `
 КОНТЕЙНЕРЫ:
 - max-width: 1200px; margin: 0 auto; padding: 0 40px (desktop) / 0 20px (mobile)
 
@@ -419,6 +592,7 @@ ${modernDesign}
 - gap: 30px (для grid/flex)
 - border-radius: 12px
 - box-shadow: 0 4px 20px rgba(0,0,0,0.08)
+`}
 
 ТИПОГРАФИКА ОТСТУПЫ:
 - H1: margin-bottom: 30px
@@ -436,6 +610,37 @@ ${modernDesign}
 
 🔤 ОБЯЗАТЕЛЬНАЯ ТИПОГРАФИКА:
 
+${docType === 'invoice' ? `
+⚠️ ТИПОГРАФИКА ДЛЯ СЧЁТА (оптимизирована для печати A4):
+- H1 (номер счёта): font-size: 24px; font-weight: 700; color: primary
+- H2: font-size: 18px; font-weight: 600; color: #1a1a1a
+- H3: font-size: 14-16px; font-weight: 700; color: primary
+- Body: font-size: 14px; font-weight: 400; line-height: 1.6; color: #333
+- Small: font-size: 12px; color: #666
+- Таблица: font-size: 14px
+- Footer: font-size: 11px; color: #888
+
+MOBILE (@media max-width: 768px):
+- H1: 22px
+- Body: 13px
+- Таблица: 12px
+` : docType === 'business-card' ? `
+⚠️ ТИПОГРАФИКА ДЛЯ ВИЗИТКИ (оптимизирована для печати 90×50mm):
+
+ЛИЦЕВАЯ СТОРОНА:
+- ФИО/Название: font-size: 28px; font-weight: 700; letter-spacing: 0.5px
+- Должность: font-size: 16px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase
+- Логотип текстовый: font-size: 32px; font-weight: 700; letter-spacing: 2px
+- Дополнительный текст: font-size: 14px; opacity: 0.8
+
+ОБРАТНАЯ СТОРОНА:
+- Заголовок "Контакты": font-size: 18px; font-weight: 600; color: primary
+- Контактные данные: font-size: 15px; line-height: 2; color: #333
+- Иконки: width: 20px; height: 20px; color: primary
+- Мелкий текст: font-size: 12px; color: #888
+
+⚠️ Минимальный размер шрифта: 10pt (14px) для читаемости при печати!
+` : `
 DESKTOP:
 - H1: font-size: 48px; font-weight: 700; line-height: 1.2; color: #1a1a1a
 - H2: font-size: 36px; font-weight: 600; line-height: 1.3; color: #1a1a1a
@@ -449,9 +654,17 @@ MOBILE (@media max-width: 768px):
 - H2: 30px
 - H3: 24px
 - Body: 16px
+`}
 
 📱 АДАПТИВНОСТЬ (ОБЯЗАТЕЛЬНО):
 
+${docType === 'business-card' ? `
+⚠️ ДЛЯ ВИЗИТКИ: НЕ ДЕЛАЙ АДАПТИВНОСТЬ!
+- Визитка имеет фиксированный размер 850×500px
+- НЕ используй @media queries для карточек
+- На мобильных карточки могут уменьшаться пропорционально (transform: scale())
+- Но внутренние размеры и шрифты остаются фиксированными
+` : `
 @media (max-width: 768px) {
   - Все шрифты ×0.85
   - padding секций ×0.75
@@ -460,9 +673,82 @@ MOBILE (@media max-width: 768px):
   - Кнопки: width: 100%; min-height: 48px
   - Изображения: width: 100%
 }
+`}
+
+${docType === 'invoice' ? `
+🖨️ ПРАВИЛА ДЛЯ ПЕЧАТИ (ОБЯЗАТЕЛЬНО для счёта):
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  header, footer {
+    page-break-inside: avoid;
+  }
+  table {
+    page-break-inside: avoid;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+}
+` : docType === 'business-card' ? `
+🖨️ ПРАВИЛА ДЛЯ ПЕЧАТИ ВИЗИТКИ:
+
+@media print {
+  @page {
+    size: 90mm 50mm;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  /* Печатать обе стороны отдельно */
+  .business-card-front {
+    page-break-after: always;
+  }
+}
+` : ''}
 
 🎨 ДИЗАЙН СИСТЕМА:
 
+${docType === 'invoice' ? `
+⚠️ ДЛЯ СЧЁТА (официальный документ):
+BOX-SHADOW: НЕ ИСПОЛЬЗУЙ! (документ для печати)
+BORDER-RADIUS: 0 (прямые углы!)
+BORDERS: 1px solid #ddd или #e0e0e0 (четкие границы)
+COLORS: Минимум цвета, primary только для акцентов
+` : docType === 'business-card' ? `
+⚠️ ДЛЯ ВИЗИТКИ (премиум дизайн):
+BOX-SHADOW:
+- Карточки: box-shadow: 0 4px 15px rgba(0,0,0,0.1) (мягкая тень)
+- НЕ используй глубокие тени внутри карточки
+
+BORDER-RADIUS:
+- Карточки: 8px (мягкое скругление)
+- Изображения (логотип): 4px или 0 (в зависимости от стиля)
+
+ЦВЕТА:
+- Максимум 2-3 цвета
+- Лицевая сторона: primary цвет или градиент (но не яркий!)
+- Обратная сторона: white или #fafafa
+- Текст на темном: white или rgba(255,255,255,0.9)
+- Акценты: primary цвет
+
+BORDERS:
+- Карточки: 2px solid #e0e0e0 (четкая граница)
+- Разделители (если нужны): 1px solid rgba(primary, 0.2)
+` : `
 BOX-SHADOW:
 - Карточки: box-shadow: 0 4px 20px rgba(0,0,0,0.08)
 - Hover: box-shadow: 0 8px 30px rgba(0,0,0,0.12)
@@ -473,6 +759,7 @@ BORDER-RADIUS:
 - Кнопки: 8px
 - Изображения: 12px
 - Малые элементы: 6px
+`}
 
 TRANSITIONS:
 - Все интерактивные элементы: transition: all 0.3s ease
@@ -608,6 +895,9 @@ const getSystemPrompt = (docType: string): string => {
   const config = PROMPTS[docType as DocType]
   const basePrompt = config?.system || "Ты помощник по созданию документов."
   
+  // Добавляем специальный промпт для типа документа из docTypePrompts.ts
+  const docTypeSpecificPrompt = getDocTypePrompt(docType as DocType)
+  
   // Добавляем интеллектуальное понимание контекста
   const contextualPrompt = `${basePrompt}
 
@@ -642,7 +932,15 @@ You are an AI that deeply understands user intent and context. Your task is to:
 - Extract company names, product names, prices from the request
 - Be intelligent: understand context, not just keywords
 
-RESPOND WITH UNDERSTANDING AND PRECISION.`
+RESPOND WITH UNDERSTANDING AND PRECISION.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 СПЕЦИФИКА ТИПА ДОКУМЕНТА:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${docTypeSpecificPrompt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
   
   return contextualPrompt
 }

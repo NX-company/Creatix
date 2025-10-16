@@ -1,14 +1,37 @@
 import { fetchWithTimeout } from '../fetchWithTimeout'
 import { API_TIMEOUTS } from '../constants'
 import type { DocType, PlanningData, AppMode } from '../store'
+import { generateSmartQuestions, parseSmartAnswers, type SmartDialogResult } from './smartDialogAgent'
+import { getDocTypeConfig } from '../docTypesConfig'
 
-const DOC_TYPE_LABELS: Record<DocType, string> = {
+// Deprecated: Старые лейблы для обратной совместимости
+const DOC_TYPE_LABELS: Record<string, string> = {
   proposal: 'коммерческого предложения',
   invoice: 'счёта',
   email: 'письма',
   presentation: 'презентации',
   logo: 'логотипа',
-  'product-card': 'карточки товара'
+  'product-card': 'карточки товара',
+  'commercial-proposal': 'коммерческого предложения',
+  'business-card': 'визитной карточки',
+  'youtube-thumbnail': 'YouTube превью',
+  'vk-post': 'VK поста',
+  'telegram-post': 'Telegram поста',
+  'wildberries-card': 'карточки товара для Wildberries',
+  'ozon-card': 'карточки товара для Ozon',
+  'yandex-market-card': 'карточки товара для Яндекс.Маркет',
+  'avito-card': 'объявления для Avito',
+  'brand-book': 'брендбука',
+  'icon-set': 'набора иконок',
+  'ui-kit': 'UI Kit',
+  'email-template': 'email-шаблона',
+  'newsletter': 'email-рассылки',
+  'custom-design': 'кастомного дизайна'
+}
+
+function getDocTypeLabel(docType: DocType): string {
+  const config = getDocTypeConfig(docType)
+  return config?.label.toLowerCase() || DOC_TYPE_LABELS[docType] || 'документа'
 }
 
 function extractNumberFromText(text: string): number | null {
@@ -66,7 +89,7 @@ async function extractPlanningData(
     .map(([q, a]) => `${q}: ${a}`)
     .join('\n')
 
-  const prompt = `Извлеки данные планирования из ответов пользователя для ${DOC_TYPE_LABELS[docType]}.
+  const prompt = `Извлеки данные планирования из ответов пользователя для ${getDocTypeLabel(docType)}.
 
 ОТВЕТЫ:
 ${answersText}
@@ -223,7 +246,7 @@ export async function processPlanningMode(
     }
   }
   
-  const prompt = `Ты Planning Agent. Извлеки из ответа пользователя информацию для планирования ${DOC_TYPE_LABELS[docType]}.
+  const prompt = `Ты Planning Agent. Извлеки из ответа пользователя информацию для планирования ${getDocTypeLabel(docType)}.
 
 ОТВЕТ ПОЛЬЗОВАТЕЛЯ: "${userInput}"
 
@@ -351,4 +374,112 @@ ${planningData.keyMessages.length > 0 ? planningData.keyMessages.map((m, i) => `
   console.log(`📋 Plan Context generated (${plan.length} chars):`, plan.substring(0, 200) + '...')
   
   return plan
+}
+
+// Новый режим: Умный диалог (Smart Dialog Mode)
+// Вместо длинного списка вопросов - 2-4 умных вопроса на основе первого сообщения
+export async function processSmartDialogMode(
+  userInput: string,
+  docType: DocType,
+  currentPlanningData: PlanningData,
+  appMode: AppMode,
+  isFirstMessage: boolean
+): Promise<{ response: string; updatedData: Partial<PlanningData>; isComplete: boolean; smartDialog?: SmartDialogResult }> {
+  
+  const modelByMode: Record<AppMode, string> = {
+    free: 'google/gemini-2.5-flash-lite',
+    advanced: 'google/gemini-2.0-flash-001',
+    pro: 'openai/gpt-4o'
+  }
+  
+  const selectedModel = modelByMode[appMode]
+  
+  // Первое сообщение: генерируем умные вопросы
+  if (isFirstMessage) {
+    try {
+      const smartDialog = await generateSmartQuestions(userInput, docType, selectedModel)
+      
+      const questionsText = smartDialog.questions
+        .map((q, i) => {
+          const optionsText = q.options ? `\n   Варианты: ${q.options.join(', ')}` : ''
+          return `${i + 1}. ${q.question}${optionsText}`
+        })
+        .join('\n\n')
+      
+      const response = `${smartDialog.analysis}\n\n📝 Ответьте на ${smartDialog.questions.length} вопроса:\n\n${questionsText}\n\n💡 Можете ответить списком или одним сообщением.`
+      
+      return {
+        response,
+        updatedData: {
+          theme: smartDialog.extractedData.theme || userInput,
+          additionalNotes: JSON.stringify(smartDialog.extractedData),
+          selectedQuestions: smartDialog.questions.map(q => q.question),
+          currentQuestionIndex: 0,
+          answerMode: 'sequential',
+          collectedAnswers: {}
+        },
+        isComplete: false,
+        smartDialog
+      }
+    } catch (error) {
+      console.error('Smart dialog generation failed:', error)
+      // Fallback на обычный режим
+      return {
+        response: `✅ Понял вашу задачу!\n\nЧто еще важно учесть? Расскажите подробнее о:\n• Целевой аудитории\n• Ключевых сообщениях\n• Визуальных предпочтениях\n\nКогда будете готовы - переключайтесь на Build!`,
+        updatedData: {
+          theme: userInput
+        },
+        isComplete: false
+      }
+    }
+  }
+  
+  // Второе и последующие сообщения: обрабатываем ответы по очереди
+  if (currentPlanningData.selectedQuestions && currentPlanningData.selectedQuestions.length > 0) {
+    const { selectedQuestions, currentQuestionIndex, answerMode, collectedAnswers } = currentPlanningData
+    
+    // Sequential mode: один вопрос за раз
+    if (answerMode === 'sequential') {
+      const currentQuestion = selectedQuestions[currentQuestionIndex || 0]
+      const updatedAnswers = { ...collectedAnswers, [currentQuestion]: userInput }
+      
+      const nextIndex = (currentQuestionIndex || 0) + 1
+      
+      // Еще есть вопросы?
+      if (nextIndex < selectedQuestions.length) {
+        return {
+          response: `✅ Принял ответ! Вопрос ${nextIndex + 1}/${selectedQuestions.length}:\n\n❓ ${selectedQuestions[nextIndex]}`,
+          updatedData: {
+            currentQuestionIndex: nextIndex,
+            collectedAnswers: updatedAnswers
+          },
+          isComplete: false
+        }
+      } else {
+        // Все вопросы заданы - извлекаем финальные данные
+        const extractedData = await extractPlanningData(updatedAnswers, docType, selectedModel)
+        return {
+          response: `✅ Отлично! Все ответы приняты.\n\n💡 План готов. Если хотите что-то изменить или дополнить - пишите, иначе переключайтесь на Build для генерации!`,
+          updatedData: {
+            ...extractedData,
+            collectedAnswers: updatedAnswers,
+            isComplete: true
+          },
+          isComplete: false
+        }
+      }
+    }
+  }
+  
+  // Fallback: если нет selectedQuestions или что-то пошло не так
+  const extractedData = await extractPlanningData({ 'Ответы пользователя': userInput }, docType, selectedModel)
+  
+  return {
+    response: `✅ Отлично! Принял ваши ответы.\n\n💡 План готов. Если хотите что-то изменить или дополнить - пишите, иначе переключайтесь на Build для генерации!`,
+    updatedData: {
+      ...extractedData,
+      collectedAnswers: { ...currentPlanningData.collectedAnswers, 'Ответы': userInput }
+    },
+    isComplete: false
+  }
 }

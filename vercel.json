@@ -2,6 +2,12 @@
   "buildCommand": "npx prisma generate && npx prisma db push && npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/reset-generations",
+      "schedule": "0 0 1 * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

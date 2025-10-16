@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import SessionProvider from '@/components/SessionProvider'
 
@@ -11,18 +11,15 @@ export const metadata: Metadata = {
         url: '/favicon.svg',
         type: 'image/svg+xml',
       },
-      {
-        url: '/creatix-logo.svg',
-        type: 'image/svg+xml',
-      },
     ],
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#8B5CF6',
 }
 

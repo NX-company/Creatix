@@ -29,7 +29,10 @@ export async function generateDocumentWithMode(params: {
   parsedWebsiteData?: any
   onProgress?: ProgressCallback
 }): Promise<GenerationResult> {
-  const { prompt, docType, mode, styleConfig, uploadedImages, parsedWebsiteData, onProgress } = params
+  const { prompt, docType, styleConfig, uploadedImages, parsedWebsiteData, onProgress } = params
+  
+  // Normalize mode to lowercase to ensure compatibility with MODE_CONFIG
+  const mode = (params.mode?.toLowerCase() || 'free') as AppMode
 
   const notify = (message: string) => {
     console.log(message)
@@ -37,11 +40,14 @@ export async function generateDocumentWithMode(params: {
   }
   
   // Логируем что получили в prompt
-  if (prompt.includes('УТВЕРЖДЕННЫЙ ПЛАН')) {
+  if (prompt.includes('ПЛАН ДОКУМЕНТА')) {
     console.log('✅ Orchestrator received PLAN CONTEXT in prompt')
-    const planMatch = prompt.match(/📋 УТВЕРЖДЕННЫЙ ПЛАН ДОКУМЕНТА[\s\S]*?⚠️ ВАЖНО: Следуй ЭТОМУ плану при генерации документа!/)
+    const planMatch = prompt.match(/📋 ПЛАН ДОКУМЕНТА[\s\S]*?⚠️ ВАЖНО: Следуй ЭТОМУ плану при генерации документа!/)
     if (planMatch) {
       console.log('📋 Plan section length:', planMatch[0].length, 'chars')
+      if (planMatch[0].includes('собран через диалог')) {
+        console.log('💬 Conversational plan detected')
+      }
     }
   } else {
     console.log('ℹ️ No plan context in prompt (direct build mode)')

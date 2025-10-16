@@ -6,7 +6,41 @@ import { saveHTMLPreview, getHTMLPreview, deleteHTMLPreview } from './storage/in
 import { getWelcomeMessage } from './welcomeMessages'
 import type { GeneratedImage } from './agents/imageAgent'
 
-export type DocType = 'proposal' | 'invoice' | 'email' | 'presentation' | 'logo' | 'product-card'
+// Категория документа
+export type DocCategory = 'presentation' | 'business' | 'social' | 'marketplace' | 'branding' | 'email' | 'custom'
+
+// Типы документов
+export type DocType = 
+  // Презентации
+  | 'presentation'
+  // Бизнес
+  | 'commercial-proposal'
+  | 'invoice'
+  | 'business-card'
+  // Соц сети
+  | 'youtube-thumbnail'
+  | 'vk-post'
+  | 'telegram-post'
+  // Маркетплейсы
+  | 'wildberries-card'
+  | 'ozon-card'
+  | 'yandex-market-card'
+  | 'avito-card'
+  // Брендинг
+  | 'logo'
+  | 'brand-book'
+  | 'icon-set'
+  | 'ui-kit'
+  // Email
+  | 'email-template'
+  | 'newsletter'
+  // Кастомное
+  | 'custom-design'
+  
+  // Старые типы для обратной совместимости
+  | 'proposal'  // -> commercial-proposal
+  | 'email'     // -> email-template
+  | 'product-card' // -> wildberries-card
 
 export type AppMode = 'free' | 'advanced' | 'pro'
 
@@ -84,7 +118,16 @@ export type Project = {
   docType: DocType
   createdAt: number
   updatedAt: number
-  messages: Message[]
+  
+  // NEW: Раздельные истории по типам
+  messagesByDocType: Record<DocType, Message[]>
+  // NEW: Раздельное планирование по типам
+  planningDataByDocType: Record<DocType, PlanningData>
+  
+  // Deprecated (для миграции старых проектов)
+  messages?: Message[]
+  planningData?: PlanningData
+  
   htmlPreview: string
   htmlPreviews?: Record<DocType, string>
   currentStep: Step
@@ -101,7 +144,6 @@ export type Project = {
   priceItems: PriceItem[]
   generatedFiles: GeneratedFile[]
   workMode: WorkMode
-  planningData: PlanningData
   generatedImagesForExport: GeneratedImage[]
 }
 
@@ -227,6 +269,40 @@ type Store = {
   resetPlanningData: () => void
 }
 
+// Вспомогательные функции для создания пустых данных по типам
+const ALL_DOC_TYPES: DocType[] = [
+  'proposal', 'invoice', 'email', 'presentation', 'logo', 'product-card',
+  'commercial-proposal', 'business-card',
+  'youtube-thumbnail', 'vk-post', 'telegram-post',
+  'wildberries-card', 'ozon-card', 'yandex-market-card', 'avito-card',
+  'brand-book', 'icon-set', 'ui-kit',
+  'email-template', 'newsletter', 'custom-design'
+]
+
+const createEmptyMessagesByDocType = (): Record<DocType, Message[]> => {
+  return ALL_DOC_TYPES.reduce((acc, type) => ({ ...acc, [type]: [] }), {} as Record<DocType, Message[]>)
+}
+
+const createEmptyPlanningData = (): PlanningData => ({
+  theme: '',
+  targetAudience: '',
+  goals: [],
+  keyMessages: [],
+  visualPreferences: '',
+  additionalNotes: '',
+  isComplete: false,
+  selectedQuestions: [],
+  pageCount: undefined,
+  imageCount: undefined,
+  currentQuestionIndex: 0,
+  answerMode: null,
+  collectedAnswers: {},
+})
+
+const createEmptyPlanningDataByDocType = (): Record<DocType, PlanningData> => {
+  return ALL_DOC_TYPES.reduce((acc, type) => ({ ...acc, [type]: createEmptyPlanningData() }), {} as Record<DocType, PlanningData>)
+}
+
 const defaultSections: Section[] = [
   { id: 's1', name: 'Шапка', enabled: true, order: 1 },
   { id: 's2', name: 'Введение', enabled: true, order: 2 },
@@ -251,7 +327,12 @@ const createDefaultProject = (name: string, docType: DocType): Project => {
     docType,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    messages: [],
+    
+    // NEW: Пустые истории для всех типов
+    messagesByDocType: createEmptyMessagesByDocType(),
+    // NEW: Пустое планирование для всех типов
+    planningDataByDocType: createEmptyPlanningDataByDocType(),
+    
     htmlPreview: '',
     htmlPreviews: {
       proposal: '',
@@ -268,20 +349,6 @@ const createDefaultProject = (name: string, docType: DocType): Project => {
     priceItems: [],
     generatedFiles: [],
     workMode: 'plan',
-    planningData: {
-      theme: '',
-      targetAudience: '',
-      goals: [],
-      keyMessages: [],
-      visualPreferences: '',
-      additionalNotes: '',
-      isComplete: false,
-      selectedQuestions: [],
-      pageCount: undefined,
-      currentQuestionIndex: 0,
-      answerMode: null,
-      collectedAnswers: {},
-    },
     generatedImagesForExport: [],
   }
   return project
@@ -309,13 +376,22 @@ export const useStore = create<Store>()(
         const project = state.getCurrentProject()
         if (!project) return
         
+        // Сохраняем текущие данные для текущего типа документа
+        const currentDocType = state.docType
+        const updatedMessagesByDocType = { ...project.messagesByDocType }
+        updatedMessagesByDocType[currentDocType] = state.messages
+        
+        const updatedPlanningDataByDocType = { ...project.planningDataByDocType }
+        updatedPlanningDataByDocType[currentDocType] = state.planningData
+        
         set({
           projects: state.projects.map(p =>
             p.id === state.currentProjectId
               ? {
                   ...p,
                   updatedAt: Date.now(),
-                  messages: state.messages,
+                  messagesByDocType: updatedMessagesByDocType,
+                  planningDataByDocType: updatedPlanningDataByDocType,
                   currentStep: state.currentStep,
                   styleConfig: state.styleConfig,
                   selectedStyleName: state.selectedStyleName,
@@ -324,7 +400,6 @@ export const useStore = create<Store>()(
                   docType: state.docType,
                   generatedFiles: state.generatedFiles,
                   workMode: state.workMode,
-                  planningData: state.planningData,
                 }
               : p
           ),
@@ -412,10 +487,28 @@ export const useStore = create<Store>()(
         const project = get().projects.find(p => p.id === id)
         if (!project) return
         
+        // Миграция: если старый проект, создаем новые поля
+        if (!project.messagesByDocType) {
+          project.messagesByDocType = createEmptyMessagesByDocType()
+          project.messagesByDocType[project.docType] = project.messages || []
+        }
+        if (!project.planningDataByDocType) {
+          project.planningDataByDocType = createEmptyPlanningDataByDocType()
+          project.planningDataByDocType[project.docType] = project.planningData || createEmptyPlanningData()
+        }
+        
+        // Загружаем данные для текущего типа документа проекта
+        const currentDocType = project.docType
+        const messagesForType = project.messagesByDocType[currentDocType] || []
+        const planningDataForType = project.planningDataByDocType[currentDocType] || createEmptyPlanningData()
+        
+        console.log(`📋 Switched to project "${project.name}", docType: ${currentDocType}, messages: ${messagesForType.length}`)
+        
         set({
           currentProjectId: id,
-          docType: project.docType,
-          messages: project.messages,
+          docType: currentDocType,
+          messages: messagesForType,
+          planningData: planningDataForType,
           htmlPreview: '',
           htmlPreviews: {
             proposal: '',
@@ -433,15 +526,6 @@ export const useStore = create<Store>()(
           generatedFiles: project.generatedFiles,
           uploadedImages: [],
           workMode: project.workMode || 'plan',
-          planningData: project.planningData || {
-            theme: '',
-            targetAudience: '',
-            goals: [],
-            keyMessages: [],
-            visualPreferences: '',
-            additionalNotes: '',
-            isComplete: false,
-          },
         })
         
         get().loadHTMLFromIndexedDB()
@@ -457,36 +541,37 @@ export const useStore = create<Store>()(
       
       docType: 'proposal',
       setDocType: (type) => {
-        const currentAppMode = get().appMode
+        const state = get()
+        const currentAppMode = state.appMode
+        const currentProject = state.getCurrentProject()
+        
+        // Сохраняем текущие данные перед переключением
+        get().saveCurrentProject()
+        
+        // Загружаем данные для нового типа из проекта
+        const newMessages = currentProject?.messagesByDocType?.[type] || []
+        const newPlanningData = currentProject?.planningDataByDocType?.[type] || createEmptyPlanningData()
+        
+        console.log(`📋 Switching to ${type}, loaded ${newMessages.length} messages, planningData:`, newPlanningData)
         
         set({ 
           docType: type,
           htmlPreview: '',
-          messages: get().messages,
+          messages: newMessages,
+          planningData: newPlanningData,
           lastGeneratedContent: '',
           lastGeneratedImages: [],
           selectedElement: null,
           workMode: 'plan',
-          planningData: {
-            theme: '',
-            targetAudience: '',
-            goals: [],
-            keyMessages: [],
-            visualPreferences: '',
-            additionalNotes: '',
-            isComplete: false,
-            selectedQuestions: [],
-            pageCount: undefined,
-            currentQuestionIndex: 0,
-            answerMode: null,
-            collectedAnswers: {},
-          },
         })
         
-        get().addMessage({
-          role: 'assistant',
-          content: getWelcomeMessage(type, currentAppMode)
-        })
+        // Добавляем welcome message только если история пустая
+        if (newMessages.length === 0) {
+          get().addMessage({
+            role: 'assistant',
+            content: getWelcomeMessage(type, currentAppMode)
+          })
+        }
         
         get().loadHTMLFromIndexedDB()
         debouncedSaveProject(() => get().saveCurrentProject())
@@ -702,7 +787,7 @@ export const useStore = create<Store>()(
       setIsGuestMode: (isGuest) => set({ isGuestMode: isGuest }),
       
       guestGenerationsUsed: 0,
-      guestGenerationsLimit: 3,
+      guestGenerationsLimit: 1,
       incrementGuestGenerations: () => {
         const { guestGenerationsUsed, guestGenerationsLimit } = get()
         const newUsed = Math.min(guestGenerationsUsed + 1, guestGenerationsLimit)
@@ -747,6 +832,7 @@ export const useStore = create<Store>()(
       setAppMode: (mode) => set({ appMode: mode }),
       isFeatureAvailable: (feature) => {
         const { appMode } = get()
+        const normalizedMode = (appMode?.toLowerCase() || 'free') as AppMode
         const FEATURE_ACCESS: Record<AppMode, Record<string, boolean>> = {
           free: {
             uploadImages: true,
@@ -768,26 +854,13 @@ export const useStore = create<Store>()(
             multimodalAnalysis: true,
           },
         }
-        return FEATURE_ACCESS[appMode][feature] ?? false
+        return FEATURE_ACCESS[normalizedMode]?.[feature] ?? false
       },
       
       workMode: 'plan',
       setWorkMode: (mode) => set({ workMode: mode }),
       
-      planningData: {
-        theme: '',
-        targetAudience: '',
-        goals: [],
-        keyMessages: [],
-        visualPreferences: '',
-        additionalNotes: '',
-        isComplete: false,
-        selectedQuestions: [],
-        pageCount: undefined,
-        currentQuestionIndex: 0,
-        answerMode: null,
-        collectedAnswers: {},
-      },
+      planningData: createEmptyPlanningData(),
       setPlanningData: (data) => {
         set((state) => ({
           planningData: { ...state.planningData, ...data }
@@ -796,20 +869,7 @@ export const useStore = create<Store>()(
       },
       resetPlanningData: () => {
         set({
-          planningData: {
-            theme: '',
-            targetAudience: '',
-            goals: [],
-            keyMessages: [],
-            visualPreferences: '',
-            additionalNotes: '',
-            isComplete: false,
-            selectedQuestions: [],
-            pageCount: undefined,
-            currentQuestionIndex: 0,
-            answerMode: null,
-            collectedAnswers: {},
-          }
+          planningData: createEmptyPlanningData()
         })
         debouncedSaveProject(() => get().saveCurrentProject())
       },
@@ -881,6 +941,48 @@ export const useStore = create<Store>()(
                   collectedAnswers: {},
                 }
               }))
+            }
+          }
+        }
+        
+        if (version < 6) {
+          console.log('Migrating to version 6: messagesByDocType and planningDataByDocType')
+          if (persistedState) {
+            // Миграция messages в messagesByDocType
+            if (!persistedState.messagesByDocType && persistedState.messages) {
+              persistedState.messagesByDocType = createEmptyMessagesByDocType()
+              persistedState.messagesByDocType[persistedState.docType || 'proposal'] = persistedState.messages
+            }
+            
+            // Миграция planningData в planningDataByDocType
+            if (!persistedState.planningDataByDocType && persistedState.planningData) {
+              persistedState.planningDataByDocType = createEmptyPlanningDataByDocType()
+              persistedState.planningDataByDocType[persistedState.docType || 'proposal'] = persistedState.planningData
+            }
+            
+            // Миграция projects
+            if (persistedState.projects) {
+              persistedState.projects = persistedState.projects.map((p: any) => {
+                const newProject = { ...p }
+                
+                // Миграция messages в messagesByDocType
+                if (!newProject.messagesByDocType) {
+                  newProject.messagesByDocType = createEmptyMessagesByDocType()
+                  if (newProject.messages) {
+                    newProject.messagesByDocType[newProject.docType || 'proposal'] = newProject.messages
+                  }
+                }
+                
+                // Миграция planningData в planningDataByDocType
+                if (!newProject.planningDataByDocType) {
+                  newProject.planningDataByDocType = createEmptyPlanningDataByDocType()
+                  if (newProject.planningData) {
+                    newProject.planningDataByDocType[newProject.docType || 'proposal'] = newProject.planningData
+                  }
+                }
+                
+                return newProject
+              })
             }
           }
         }

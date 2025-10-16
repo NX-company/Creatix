@@ -20,17 +20,18 @@ const examples = [
   'Создай презентацию компании для инвесторов',
   'Сделай коммерческое предложение на услуги',
   'Сгенерируй логотип для технологического стартапа',
-  'Напиши продающее письмо для клиентов',
-  'Создай карточку товара для маркетплейса',
+  'Создай YouTube превью для видео о AI',
+  'Сделай карточку товара для Wildberries',
+  'Создай визитку для дизайнера',
 ]
 
 const tools: Array<{ type: DocType; icon: any; label: string; color: string }> = [
-  { type: 'proposal', icon: FileText, label: 'КП', color: 'from-blue-400 to-cyan-400' },
   { type: 'presentation', icon: Presentation, label: 'Презентация', color: 'from-purple-400 to-pink-400' },
-  { type: 'email', icon: Mail, label: 'Письмо', color: 'from-green-400 to-emerald-400' },
-  { type: 'logo', icon: Image, label: 'Логотип', color: 'from-orange-400 to-red-400' },
-  { type: 'product-card', icon: ShoppingBag, label: 'Карточка', color: 'from-yellow-400 to-orange-400' },
-  { type: 'invoice', icon: Receipt, label: 'Счет', color: 'from-indigo-400 to-purple-400' },
+  { type: 'commercial-proposal', icon: FileText, label: 'КП', color: 'from-blue-400 to-cyan-400' },
+  { type: 'youtube-thumbnail', icon: Image, label: 'YouTube', color: 'from-red-400 to-rose-400' },
+  { type: 'wildberries-card', icon: ShoppingBag, label: 'WB', color: 'from-purple-500 to-fuchsia-400' },
+  { type: 'logo', icon: Sparkles, label: 'Логотип', color: 'from-orange-400 to-amber-400' },
+  { type: 'email-template', icon: Mail, label: 'Email', color: 'from-cyan-400 to-blue-400' },
 ]
 
 export default function WelcomePage() {
@@ -74,14 +75,34 @@ export default function WelcomePage() {
       console.log('✅ Analysis complete:', { docType, analysis })
       
       // Показываем ответ AI
+      const docTypeLabels: Record<string, string> = {
+        'presentation': 'презентацию',
+        'commercial-proposal': 'коммерческое предложение',
+        'invoice': 'счет',
+        'business-card': 'визитку',
+        'youtube-thumbnail': 'YouTube превью',
+        'vk-post': 'VK пост',
+        'telegram-post': 'Telegram пост',
+        'wildberries-card': 'карточку для Wildberries',
+        'ozon-card': 'карточку для Ozon',
+        'yandex-market-card': 'карточку для Яндекс.Маркет',
+        'avito-card': 'объявление для Avito',
+        'infographic': 'инфографику',
+        'logo': 'логотип',
+        'brand-book': 'брендбук',
+        'icon-set': 'набор иконок',
+        'ui-kit': 'UI Kit',
+        'email-template': 'email шаблон',
+        'newsletter': 'email рассылку',
+        'custom-design': 'кастомный дизайн',
+        'proposal': 'коммерческое предложение',
+        'email': 'письмо',
+        'product-card': 'карточку товара'
+      }
+      
       const aiMessage: Message = {
         role: 'assistant',
-        content: `Отлично! Создаю ${docType === 'proposal' ? 'коммерческое предложение' : 
-          docType === 'invoice' ? 'счет' :
-          docType === 'email' ? 'письмо' :
-          docType === 'presentation' ? 'презентацию' :
-          docType === 'logo' ? 'логотип' :
-          'карточку товара'}... ✨`
+        content: `Отлично! Создаю ${docTypeLabels[docType] || 'дизайн'}... ✨`
       }
       setMessages(prev => [...prev, aiMessage])
       
@@ -107,7 +128,8 @@ export default function WelcomePage() {
       sessionStorage.setItem('show_onboarding_tour', 'true')
       sessionStorage.setItem('auto_generate', 'true')
       sessionStorage.setItem('isGuestMode', 'true')
-      sessionStorage.setItem('workMode', 'build') // Persist guest mode
+      sessionStorage.setItem('workMode', 'build')
+      sessionStorage.setItem('first_generation_advanced', 'true') // First gen uses ADVANCED as demo
       
       console.log('🎯 Redirecting to main page...')
       
@@ -198,7 +220,10 @@ export default function WelcomePage() {
               <Logo size="xl" />
             </div>
             <p className="text-xl sm:text-2xl text-white/90 font-light px-4">
-              Создавайте профессиональные документы за минуты
+              Создавайте современные дизайны для любых задач
+            </p>
+            <p className="text-sm sm:text-base text-white/70 mt-2 px-4">
+              Презентации • Бизнес • Соц. сети • Маркетплейсы • Брендинг • Email
             </p>
           </div>
           

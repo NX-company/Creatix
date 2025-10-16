@@ -84,7 +84,7 @@ export const IMAGE_SLOTS_CONFIG: Record<DocType, number> = {
   proposal: 3,
   invoice: 3,
   email: 2,
-  presentation: 3,
+  presentation: 5,
   logo: 3,
   'product-card': 3,
 }
@@ -105,9 +105,11 @@ export const IMAGE_GENERATION_PROMPTS: Record<DocType, string[]> = {
     'business email header image, professional style, modern design',
   ],
   presentation: [
-    'professional company logo for presentation, minimal design',
-    'business presentation background, modern professional style',
-    'corporate teamwork illustration, modern flat design',
+    'modern minimal company logo design, clean geometric shapes, professional, flat design, simple, memorable, vector style, white background',
+    'abstract geometric pattern background, modern professional style, gradient mesh, soft colors, minimalist, business presentation, high quality, subtle texture',
+    'modern flat design icons set, business symbols, minimalist 3D style, professional, clean background, soft shadows, colorful accents, isometric view',
+    'abstract flowing shapes, gradient colors, modern design element, smooth curves, professional, transparent background, decorative accent',
+    'dotted pattern background, modern tech style, subtle grid, clean minimal design, light colors, professional presentation backdrop',
   ],
   logo: [
     'modern minimal company logo design, professional',

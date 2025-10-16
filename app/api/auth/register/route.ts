@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // Set trial period: 3 days from now
     const trialEndsAt = new Date()
     trialEndsAt.setDate(trialEndsAt.getDate() + 3)
 
@@ -46,7 +47,11 @@ export async function POST(req: NextRequest) {
         role: 'USER',
         appMode: 'FREE',
         trialEndsAt,
-        trialGenerations: 0
+        trialGenerations: 0,
+        generationLimit: 30,
+        monthlyGenerations: 0,
+        bonusGenerations: 0,
+        lastResetDate: new Date()
       },
       select: {
         id: true,
