@@ -81,6 +81,18 @@ ${requestedCount ? `• Количество: ${requestedCount}\n` : ''}
     }
   }
   
+  // Специальные требования для типа документа
+  let docSpecificRequirements = ''
+  if (docType === 'logo') {
+    docSpecificRequirements = `
+КРИТИЧЕСКИ ВАЖНО ДЛЯ ЛОГОТИПА:
+- ОБЯЗАТЕЛЬНО спроси про количество вариантов логотипа (сколько разных вариантов создать)
+- Это ОБЯЗАТЕЛЬНЫЙ параметр, без него нельзя переходить к генерации
+- Если пользователь не указал количество - спроси явно: "Сколько вариантов логотипа создать? (1-10)"
+- Сохрани количество в imageCount
+`
+  }
+  
   // Формируем системный промпт
   const systemPrompt = `Ты умный AI-ассистент для планирования ${docLabel}.
 
@@ -98,6 +110,7 @@ ${requestedCount ? `• Количество: ${requestedCount}\n` : ''}
 - Если пользователь говорит "делай/начинай/генерируй" и план готов - подтверди готовность к генерации
 - Если пользователь говорит "заново/сначала" - начни планирование заново
 - Будь дружелюбным и гибким
+${docSpecificRequirements}
 
 РАБОТА С СУЩЕСТВУЮЩИМ ПЛАНОМ:
 ${planContext}
@@ -263,7 +276,13 @@ ${planContext}
 
     // Обрабатываем намерение
     const shouldSwitchToBuild = result.intent === 'ready_to_generate'
-    const isComplete = result.completeness >= 80 || shouldSwitchToBuild
+    let isComplete = result.completeness >= 80 || shouldSwitchToBuild
+    
+    // Для логотипа обязательно должно быть указано количество
+    if (docType === 'logo' && !result.extractedData?.imageCount && !currentPlanningData.imageCount) {
+      isComplete = false
+      console.log('⚠️ Logo type: imageCount required, setting isComplete = false')
+    }
 
     // Подготавливаем обновленные данные
     const updatedData: Partial<PlanningData> = {}
