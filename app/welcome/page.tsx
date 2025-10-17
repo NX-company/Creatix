@@ -42,6 +42,7 @@ export default function WelcomePage() {
   const [selectedTool, setSelectedTool] = useState<DocType | null>(null)
   const [showTools, setShowTools] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [legalMenuOpen, setLegalMenuOpen] = useState(false)
 
   const setDocType = useStore(state => state.setDocType)
   const setWorkMode = useStore(state => state.setWorkMode)
@@ -328,9 +329,56 @@ export default function WelcomePage() {
           </div>
         </div>
         
-        {/* Footer */}
-        <div className="absolute bottom-6 text-white/60 text-sm">
-          Создано с ❤️ для вашего успеха
+        {/* Footer with Legal Menu */}
+        <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setLegalMenuOpen(!legalMenuOpen)}
+              className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-white/70 hover:text-white text-xs hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2"
+            >
+              <span>⚖️</span>
+              <span>Юридическая информация</span>
+              <span className={`transition-transform ${legalMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            
+            {legalMenuOpen && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-slate-900/95 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl overflow-hidden">
+                <div className="p-2 space-y-1">
+                  <a
+                    href="/legal/offer"
+                    target="_blank"
+                    className="block px-4 py-3 text-white hover:bg-purple-600/30 rounded-lg transition-all text-sm"
+                  >
+                    📄 Договор оферты
+                  </a>
+                  <a
+                    href="/legal/privacy"
+                    target="_blank"
+                    className="block px-4 py-3 text-white hover:bg-purple-600/30 rounded-lg transition-all text-sm"
+                  >
+                    🔒 Политика конфиденциальности
+                  </a>
+                </div>
+                <div className="border-t border-white/10 p-3 bg-slate-800/50">
+                  <p className="text-xs text-white/60 mb-2">Контакты для связи:</p>
+                  <a 
+                    href="mailto:useneurox@gmail.com"
+                    className="text-xs text-blue-400 hover:text-blue-300 block"
+                  >
+                    useneurox@gmail.com
+                  </a>
+                  <p className="text-xs text-white/50 mt-2">
+                    ИП Иванова Е.Э.<br/>
+                    ИНН: 505398520600
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="text-white/60 text-sm">
+            Создано с ❤️ для вашего успеха
+          </div>
         </div>
       </div>
       

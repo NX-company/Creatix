@@ -1,171 +1,156 @@
-import Footer from '@/components/Footer'
+'use client'
 
-export default function OfferPage() {
+export default function OfferAgreement() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
-      <div className="max-w-4xl mx-auto p-6 md:p-10">
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 md:p-12">
-          <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Договор публичной оферты
-          </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-8">
+      <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl">
+        <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          Договор публичной оферты
+        </h1>
+        
+        <div className="space-y-6 text-sm leading-relaxed">
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">1. Общие положения</h2>
+            <p className="text-gray-300">
+              Настоящий документ является официальным предложением (публичной офертой) 
+              Индивидуального предпринимателя Ивановой Елены Эдуардовны (далее — «Исполнитель») 
+              для физических и юридических лиц (далее — «Заказчик») заключить договор на оказание 
+              услуг по предоставлению доступа к платформе Creatix AI (далее — «Сервис»).
+            </p>
+          </section>
 
-          <div className="space-y-6 text-gray-300 leading-relaxed">
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">1. Общие положения</h2>
-              <p>
-                Настоящий документ является официальной публичной офертой <strong className="text-white">Индивидуального предпринимателя Ивановой Елены Эдуардовны</strong> (ИНН: 505398520600), далее именуемой «Исполнитель», и содержит все существенные условия предоставления услуг по использованию веб-сервиса для генерации документов с использованием искусственного интеллекта (далее — «Сервис») физическим и юридическим лицам (далее — «Заказчик»).
-              </p>
-              <p className="mt-3">
-                В соответствии с пунктом 2 статьи 437 Гражданского кодекса Российской Федерации (ГК РФ), в случае принятия изложенных ниже условий и оплаты услуг лицом, в отношении которого сделана данная оферта, такое лицо считается заключившим с Исполнителем договор на условиях, изложенных в настоящей оферте.
-              </p>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">2. Предмет договора</h2>
+            <p className="text-gray-300 mb-2">
+              2.1. Исполнитель обязуется предоставить Заказчику доступ к Сервису для создания 
+              документов с использованием технологий искусственного интеллекта, а Заказчик 
+              обязуется оплатить услуги в соответствии с выбранным тарифом.
+            </p>
+            <p className="text-gray-300">
+              2.2. Услуги предоставляются в электронном виде через веб-интерфейс по адресу 
+              <a href="https://aicreatix.ru" className="text-blue-400 hover:text-blue-300 ml-1">
+                aicreatix.ru
+              </a>
+            </p>
+          </section>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">2. Предмет договора</h2>
-              <p>
-                2.1. Исполнитель обязуется предоставить Заказчику доступ к Сервису для автоматизированной генерации документов (презентаций, коммерческих предложений, резюме и других документов) с использованием технологий искусственного интеллекта, а Заказчик обязуется оплатить услуги в порядке и на условиях, предусмотренных настоящим договором.
-              </p>
-              <p className="mt-3">
-                2.2. Сервис предоставляется на основе выбранного Заказчиком тарифного плана:
-              </p>
-              <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                <li><strong className="text-blue-400">FREE</strong> — бесплатный тариф (30 генераций в месяц)</li>
-                <li><strong className="text-purple-400">ADVANCED</strong> — платный тариф (100 генераций в месяц с AI-изображениями)</li>
-              </ul>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">3. Стоимость услуг</h2>
+            <p className="text-gray-300 mb-2">
+              3.1. Стоимость услуг указана на сайте в разделе тарифов и является окончательной.
+            </p>
+            <p className="text-gray-300 mb-2">
+              3.2. Исполнитель вправе изменять стоимость услуг, уведомив об этом Заказчика 
+              не менее чем за 7 дней до вступления изменений в силу.
+            </p>
+            <p className="text-gray-300">
+              3.3. Оплата производится онлайн через платежные системы, доступные на сайте.
+            </p>
+          </section>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">3. Стоимость услуг и порядок оплаты</h2>
-              <p>3.1. Стоимость услуг составляет:</p>
-              <ul className="list-disc list-inside mt-2 ml-4 space-y-2">
-                <li>Тариф <strong className="text-blue-400">FREE</strong>: <strong className="text-white">0₽</strong> (бесплатно)</li>
-                <li>Тариф <strong className="text-purple-400">ADVANCED</strong>: <strong className="text-white">1000₽</strong> в месяц</li>
-                <li>Дополнительный пакет генераций: <strong className="text-white">300₽</strong> за 30 генераций (только для тарифа ADVANCED)</li>
-              </ul>
-              <p className="mt-3">
-                3.2. Оплата производится Заказчиком онлайн на сайте Сервиса через платежную систему. Моментом заключения договора является полная оплата услуг Заказчиком.
-              </p>
-              <p className="mt-3">
-                3.3. Все цены указаны в российских рублях и включают НДС в размере, установленном законодательством РФ (Исполнитель применяет упрощенную систему налогообложения, НДС не облагается).
-              </p>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">4. Порядок оказания услуг</h2>
+            <p className="text-gray-300 mb-2">
+              4.1. Услуги считаются оказанными с момента предоставления Заказчику доступа к 
+              функционалу в соответствии с выбранным тарифом.
+            </p>
+            <p className="text-gray-300">
+              4.2. Исполнитель не несет ответственности за содержание создаваемых Заказчиком 
+              документов и их соответствие законодательству РФ.
+            </p>
+          </section>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">4. Условия предоставления услуг</h2>
-              <p>4.1. Тарифный план действует в течение 30 календарных дней с момента оплаты.</p>
-              <p className="mt-3">
-                4.2. Лимит генераций обновляется 1-го числа каждого месяца для активных подписок.
-              </p>
-              <p className="mt-3">
-                4.3. Неиспользованные генерации не переносятся на следующий месяц.
-              </p>
-              <p className="mt-3">
-                4.4. Исполнитель обязуется обеспечивать доступность Сервиса не менее 95% времени в месяц, за исключением времени технических работ.
-              </p>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">5. Права и обязанности сторон</h2>
+            <p className="text-gray-300 mb-2">
+              5.1. Заказчик обязуется использовать Сервис исключительно в законных целях.
+            </p>
+            <p className="text-gray-300 mb-2">
+              5.2. Исполнитель обязуется обеспечить работоспособность Сервиса 24/7, за исключением 
+              времени технических работ.
+            </p>
+            <p className="text-gray-300">
+              5.3. Исполнитель вправе приостановить доступ к Сервису в случае нарушения Заказчиком 
+              условий настоящего договора.
+            </p>
+          </section>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">5. Права и обязанности сторон</h2>
-              <p className="font-semibold text-white mb-2">5.1. Исполнитель обязуется:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Предоставить доступ к Сервису в течение 24 часов с момента оплаты</li>
-                <li>Обеспечивать работоспособность Сервиса</li>
-                <li>Не разглашать персональные данные Заказчика третьим лицам</li>
-                <li>Оказывать техническую поддержку через email: <a href="mailto:useneurox@gmail.com" className="text-blue-400 hover:underline">useneurox@gmail.com</a></li>
-              </ul>
-              <p className="font-semibold text-white mt-4 mb-2">5.2. Заказчик обязуется:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Своевременно оплачивать услуги Исполнителя</li>
-                <li>Не использовать Сервис для нарушения законодательства РФ</li>
-                <li>Не передавать доступ к своей учетной записи третьим лицам</li>
-                <li>Самостоятельно проверять сгенерированные документы на соответствие требованиям</li>
-              </ul>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">6. Ответственность сторон</h2>
+            <p className="text-gray-300 mb-2">
+              6.1. За неисполнение или ненадлежащее исполнение обязательств по настоящему договору 
+              стороны несут ответственность в соответствии с законодательством РФ.
+            </p>
+            <p className="text-gray-300">
+              6.2. Исполнитель не несет ответственности за убытки, возникшие вследствие неправильного 
+              использования Сервиса Заказчиком.
+            </p>
+          </section>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">6. Возврат средств</h2>
-              <p>
-                6.1. Заказчик вправе отказаться от услуг и потребовать возврат денежных средств в течение <strong className="text-white">7 календарных дней</strong> с момента оплаты при условии использования не более <strong className="text-white">10% от лимита генераций</strong> (10 генераций для тарифа ADVANCED).
-              </p>
-              <p className="mt-3">
-                6.2. Возврат производится на банковскую карту или счет, с которого была произведена оплата, в течение 10 рабочих дней с момента получения письменного заявления на email: <a href="mailto:useneurox@gmail.com" className="text-blue-400 hover:underline">useneurox@gmail.com</a>
-              </p>
-              <p className="mt-3">
-                6.3. При превышении лимита 10% использованных генераций возврат денежных средств не производится.
-              </p>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">7. Возврат средств</h2>
+            <p className="text-gray-300 mb-2">
+              7.1. Возврат средств за неиспользованный период подписки возможен в течение 14 дней 
+              с момента оплаты при условии, что услуги не были использованы.
+            </p>
+            <p className="text-gray-300">
+              7.2. Возврат средств осуществляется на основании письменного заявления Заказчика 
+              на электронную почту поддержки.
+            </p>
+          </section>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">7. Ответственность сторон</h2>
-              <p>
-                7.1. Исполнитель не несет ответственности за качество и корректность содержания документов, сгенерированных с использованием искусственного интеллекта. Заказчик обязан самостоятельно проверять и корректировать результаты работы Сервиса.
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">8. Реквизиты Исполнителя</h2>
+            <div className="bg-slate-800/50 rounded-lg p-4 space-y-2">
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">Наименование:</span>{' '}
+                Индивидуальный предприниматель Иванова Елена Эдуардовна
               </p>
-              <p className="mt-3">
-                7.2. Исполнитель не несет ответственности за убытки, возникшие в результате использования или невозможности использования Сервиса.
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">ИНН:</span> 505398520600
               </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">8. Интеллектуальная собственность</h2>
-              <p>
-                8.1. Все права на Сервис принадлежат Исполнителю.
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">Расчётный счёт:</span> 40802810820000737449
               </p>
-              <p className="mt-3">
-                8.2. Документы, созданные Заказчиком с использованием Сервиса, принадлежат Заказчику.
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">Банк:</span> ООО "Банк Точка"
               </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">9. Изменение и расторжение договора</h2>
-              <p>
-                9.1. Исполнитель вправе в одностороннем порядке изменять условия настоящей оферты, размещая новую редакцию на сайте Сервиса.
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">БИК:</span> 044525104
               </p>
-              <p className="mt-3">
-                9.2. Заказчик вправе в любой момент прекратить использование Сервиса.
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">Корр. счёт:</span> 30101810745374525104
               </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-bold text-white mb-3">10. Реквизиты Исполнителя</h2>
-              <div className="bg-gray-800 rounded-lg p-6 mt-4 border border-gray-700">
-                <p className="font-bold text-white mb-3">Индивидуальный предприниматель Иванова Елена Эдуардовна</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-400">ИНН:</span>
-                    <span className="ml-2 text-white font-mono">505398520600</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Расчётный счёт:</span>
-                    <span className="ml-2 text-white font-mono">40802810820000737449</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Банк:</span>
-                    <span className="ml-2 text-white">ООО &quot;Банк Точка&quot;</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">БИК:</span>
-                    <span className="ml-2 text-white font-mono">044525104</span>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className="text-gray-400">Корр. счёт:</span>
-                    <span className="ml-2 text-white font-mono">30101810745374525104</span>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className="text-gray-400">Email:</span>
-                    <a href="mailto:useneurox@gmail.com" className="ml-2 text-blue-400 hover:underline">useneurox@gmail.com</a>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <div className="mt-8 pt-6 border-t border-gray-700 text-center text-sm text-gray-500">
-              <p>Редакция от 16 октября 2024 года</p>
+              <p className="text-gray-300">
+                <span className="font-semibold text-purple-300">Email поддержки:</span>{' '}
+                <a href="mailto:useneurox@gmail.com" className="text-blue-400 hover:text-blue-300">
+                  useneurox@gmail.com
+                </a>
+              </p>
             </div>
-          </div>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">9. Заключительные положения</h2>
+            <p className="text-gray-300 mb-2">
+              9.1. Настоящий договор вступает в силу с момента акцепта Заказчиком настоящей оферты 
+              (оплаты услуг) и действует до полного исполнения сторонами своих обязательств.
+            </p>
+            <p className="text-gray-300">
+              9.2. Акцептом настоящей оферты является совершение Заказчиком действий по оплате услуг.
+            </p>
+          </section>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-purple-500/30 text-center">
+          <button
+            onClick={() => window.close()}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-purple-500/50"
+          >
+            Закрыть
+          </button>
         </div>
       </div>
-      <Footer />
     </div>
   )
 }
-
