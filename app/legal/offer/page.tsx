@@ -113,7 +113,7 @@ export default function OfferAgreement() {
                 <span className="font-semibold text-purple-300">Расчётный счёт:</span> 40802810820000737449
               </p>
               <p className="text-gray-300">
-                <span className="font-semibold text-purple-300">Банк:</span> ООО "Банк Точка"
+                <span className="font-semibold text-purple-300">Банк:</span> ООО &quot;Банк Точка&quot;
               </p>
               <p className="text-gray-300">
                 <span className="font-semibold text-purple-300">БИК:</span> 044525104
