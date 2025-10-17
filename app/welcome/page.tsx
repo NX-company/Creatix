@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import TypewriterEffect from '@/components/TypewriterEffect'
@@ -43,11 +43,29 @@ export default function WelcomePage() {
   const [showTools, setShowTools] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [legalMenuOpen, setLegalMenuOpen] = useState(false)
+  const legalMenuRef = useRef<HTMLDivElement>(null)
 
   const setDocType = useStore(state => state.setDocType)
   const setWorkMode = useStore(state => state.setWorkMode)
   const createProject = useStore(state => state.createProject)
   const setIsGuestMode = useStore(state => state.setIsGuestMode)
+
+  // Close legal menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (legalMenuRef.current && !legalMenuRef.current.contains(event.target as Node)) {
+        setLegalMenuOpen(false)
+      }
+    }
+
+    if (legalMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [legalMenuOpen])
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
@@ -331,7 +349,7 @@ export default function WelcomePage() {
         
         {/* Footer with Legal Menu */}
         <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3">
-          <div className="relative">
+          <div className="relative" ref={legalMenuRef}>
             <button
               onClick={() => setLegalMenuOpen(!legalMenuOpen)}
               className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-white/70 hover:text-white text-xs hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2"
