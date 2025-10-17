@@ -85,11 +85,22 @@ ${requestedCount ? `• Количество: ${requestedCount}\n` : ''}
   let docSpecificRequirements = ''
   if (docType === 'logo') {
     docSpecificRequirements = `
-КРИТИЧЕСКИ ВАЖНО ДЛЯ ЛОГОТИПА:
-- ОБЯЗАТЕЛЬНО спроси про количество вариантов логотипа (сколько разных вариантов создать)
-- Это ОБЯЗАТЕЛЬНЫЙ параметр, без него нельзя переходить к генерации
-- Если пользователь не указал количество - спроси явно: "Сколько вариантов логотипа создать? (1-10)"
-- Сохрани количество в imageCount
+КРИТИЧЕСКИ ВАЖНО ДЛЯ ЛОГОТИПА (обязательные вопросы):
+1. НАЗВАНИЕ КОМПАНИИ / БРЕНДА (companyName)
+   - ОБЯЗАТЕЛЬНО спроси: "Как называется ваша компания/бренд?"
+   - Это критичный параметр - без названия нельзя создать логотип
+   - Сохрани в extractedData.companyName или theme
+
+2. НУЖЕН ЛИ ТЕКСТ В ЛОГОТИПЕ (hasText)
+   - ОБЯЗАТЕЛЬНО спроси: "Логотип должен включать название компании (текстовый логотип) или только графический символ?"
+   - Варианты: "с текстом", "без текста (только символ)", "оба варианта"
+   - Сохрани в extractedData.hasText
+
+3. КОЛИЧЕСТВО ВАРИАНТОВ (imageCount)
+   - ОБЯЗАТЕЛЬНО спроси: "Сколько вариантов логотипа создать? (1-10)"
+   - Сохрани в extractedData.imageCount
+
+БЕЗ ЭТИХ ТРЕХ ПАРАМЕТРОВ НЕЛЬЗЯ ПЕРЕХОДИТЬ К ГЕНЕРАЦИИ!
 `
   }
   
@@ -144,7 +155,9 @@ ${planContext}
     "visualPreferences": "цвета, стиль" или null,
     "additionalNotes": "доп. заметки" или null,
     "pageCount": число или null,
-    "imageCount": число или null
+    "imageCount": число или null,
+    "companyName": "название компании" или null (для логотипов),
+    "hasText": "с текстом / без текста / оба" или null (для логотипов)
   },
   "completeness": 0-100
 }
@@ -278,10 +291,20 @@ ${planContext}
     const shouldSwitchToBuild = result.intent === 'ready_to_generate'
     let isComplete = result.completeness >= 80 || shouldSwitchToBuild
     
-    // Для логотипа обязательно должно быть указано количество
-    if (docType === 'logo' && !result.extractedData?.imageCount && !currentPlanningData.imageCount) {
-      isComplete = false
-      console.log('⚠️ Logo type: imageCount required, setting isComplete = false')
+    // Для логотипа обязательно должны быть указаны: название компании, текст, количество
+    if (docType === 'logo') {
+      const hasCompanyName = !!(result.extractedData?.companyName || currentPlanningData.theme || result.extractedData?.theme)
+      const hasImageCount = !!(result.extractedData?.imageCount || currentPlanningData.imageCount)
+      const hasTextChoice = !!(result.extractedData?.hasText || currentPlanningData.hasText || result.extractedData?.visualPreferences?.includes('текст'))
+      
+      if (!hasCompanyName || !hasImageCount || !hasTextChoice) {
+        isComplete = false
+        console.log(`⚠️ Logo type missing required fields:`, {
+          hasCompanyName,
+          hasImageCount,
+          hasTextChoice
+        })
+      }
     }
 
     // Подготавливаем обновленные данные
@@ -341,6 +364,16 @@ ${planContext}
       }
       if (extracted.imageCount) {
         updatedData.imageCount = extracted.imageCount
+      }
+      
+      // Для логотипа: сохраняем companyName и hasText
+      if (docType === 'logo') {
+        if (extracted.companyName) {
+          updatedData.companyName = extracted.companyName
+        }
+        if (extracted.hasText) {
+          updatedData.hasText = extracted.hasText
+        }
       }
       
       updatedData.isComplete = isComplete
@@ -454,7 +487,17 @@ ${planningData.keyMessages.length > 0 ? planningData.keyMessages.map((m, i) => `
   }
 
   if (planningData.imageCount) {
-    plan += `\n🖼️ КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: ${planningData.imageCount}\n`
+    plan += `\n📄 КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: ${planningData.imageCount}\n`
+  }
+  
+  // Для логотипа добавляем специфичную информацию
+  if (docType === 'logo') {
+    if (planningData.companyName) {
+      plan += `\n🏢 НАЗВАНИЕ КОМПАНИИ: ${planningData.companyName}\n`
+    }
+    if (planningData.hasText) {
+      plan += `\n✍️ ТЕКСТ В ЛОГОТИПЕ: ${planningData.hasText}\n`
+    }
   }
 
   plan += `\n⚠️ ВАЖНО: Следуй ЭТОМУ плану при генерации документа!`

@@ -57,6 +57,8 @@ export type PlanningData = {
   selectedQuestions: string[]
   pageCount?: number
   imageCount?: number
+  companyName?: string
+  hasText?: string
   currentQuestionIndex: number
   answerMode: 'batch' | 'sequential' | null
   collectedAnswers: Record<string, string>

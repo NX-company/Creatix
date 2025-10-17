@@ -59,8 +59,8 @@ class UnifiedRequestManager {
             baseURL: 'https://openrouter.ai/api/v1',
             apiKey: apiKey,
             defaultHeaders: {
-              'HTTP-Referer': process.env.NEXTAUTH_URL || 'https://neurodiz.app',
-              'X-Title': 'Neurodiz AI Agent',
+              'HTTP-Referer': process.env.NEXTAUTH_URL || 'http://localhost:3000',
+              'X-Title': 'Creatix AI',
             },
           })
 
