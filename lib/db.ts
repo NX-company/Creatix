@@ -19,19 +19,32 @@ export async function logApiUsage(params: {
   cost?: number
 }) {
   try {
-    await prisma.apiUsage.create({
-      data: {
-        userId: params.userId,
-        provider: params.provider,
-        model: params.model,
-        endpoint: params.endpoint,
-        tokensUsed: params.tokensUsed || 0,
-        cost: params.cost || 0
-      }
-    })
-    console.log(`📊 API Usage logged: ${params.provider}/${params.model} - ${params.tokensUsed} tokens ($${params.cost?.toFixed(4)})`)
+    const tokensUsed = params.tokensUsed || 0
+    const cost = params.cost || 0
+
+    await prisma.$transaction([
+      prisma.apiUsage.create({
+        data: {
+          userId: params.userId,
+          provider: params.provider,
+          model: params.model,
+          endpoint: params.endpoint,
+          tokensUsed: tokensUsed,
+          cost: cost
+        }
+      }),
+      prisma.user.update({
+        where: { id: params.userId },
+        data: {
+          totalTokensUsed: { increment: tokensUsed },
+          totalApiCost: { increment: cost },
+        },
+      }),
+    ])
+
+    console.log(`📊 API Usage logged: ${params.provider}/${params.model} - ${tokensUsed} tokens ($${cost.toFixed(4)}) for user ${params.userId}`)
   } catch (error) {
-    console.error('Failed to log API usage:', error)
+    console.error('❌ Failed to log API usage:', error)
   }
 }
 

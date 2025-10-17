@@ -26,6 +26,10 @@ model User {
   lastResetDate              DateTime?
   subscriptionEndsAt         DateTime?
 
+  // Token Usage Tracking
+  totalTokensUsed Int @default(0) // Общий расход токенов пользователем
+  totalApiCost    Float @default(0) // Общая стоимость API вызовов
+
   // S3 Storage Limits
   projectsCount Int @default(0) // Текущее количество проектов
   projectsLimit Int @default(5) // Лимит: 5 проектов
