@@ -7,12 +7,30 @@ export const GENERATION_LIMITS = {
   GUEST: 1,
 } as const
 
-export const SUBSCRIPTION_PRICES = {
+// Тестовые цены для разработки (все по 10₽)
+const TEST_PRICES = {
+  ADVANCED: 10,
+  PRO: 10,
+  BONUS_PACK: 10,
+}
+
+// Реальные цены для продакшена
+const PRODUCTION_PRICES = {
   ADVANCED: 1000,
-  PRO: 2500,
+  PRO: 1000, // Изменено с 2500 на 1000 по запросу
+  BONUS_PACK: 300,
+}
+
+// Определяем режим работы (тестовый или продакшен)
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_PAYMENT_TEST_MODE === 'true'
+
+// Экспортируем актуальные цены
+export const SUBSCRIPTION_PRICES = {
+  ADVANCED: IS_TEST_MODE ? TEST_PRICES.ADVANCED : PRODUCTION_PRICES.ADVANCED,
+  PRO: IS_TEST_MODE ? TEST_PRICES.PRO : PRODUCTION_PRICES.PRO,
 } as const
 
-export const BONUS_PACK_PRICE = 300
+export const BONUS_PACK_PRICE = IS_TEST_MODE ? TEST_PRICES.BONUS_PACK : PRODUCTION_PRICES.BONUS_PACK
 export const BONUS_PACK_GENERATIONS = 30
 
 export const IMAGES_PER_GENERATION = 10

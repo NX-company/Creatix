@@ -24,42 +24,42 @@ export default function UpgradeModal({ isOpen, onClose, currentMode = 'FREE' }: 
   if (!isOpen || typeof window === 'undefined') return null
 
   const handleUpgrade = async (targetMode: 'ADVANCED' | 'PRO') => {
+    // Проверка согласия с условиями
+    if (!agreedToTerms || !agreedToData) {
+      setError('Необходимо согласиться с условиями оферты и обработкой персональных данных')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/user/upgrade-mode', {
+      // Создание платёжной ссылки
+      const response = await fetch('/api/payments/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetMode }),
+        body: JSON.stringify({
+          paymentType: 'subscription',
+          targetMode,
+        }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Upgrade failed')
+        throw new Error(data.error || 'Failed to create payment')
       }
 
-      // Успешно апгрейдили
-      const modeText = targetMode === 'ADVANCED' ? 'Продвинутый' : 'PRO'
-      
-      console.log('✅ Upgrade successful, updating session...')
-      
-      // Обновляем NextAuth session с сервера
-      await updateSession()
-      
-      console.log('✅ Session updated, reloading page...')
-      
+      console.log('✅ Payment link created:', data.paymentUrl)
+
       // Закрыть модалку
       onClose()
-      
-      // Показать уведомление
-      alert(`✅ Тариф "${modeText}" активирован!\n\n🎉 Теперь у вас ${data.newLimit} генераций в месяц!\n\n💰 Тестовый режим - оплата не требуется`)
-      
-      // Перезагрузить страницу для применения всех изменений
-      window.location.reload()
+
+      // Редирект на страницу оплаты Точка Банка
+      window.location.href = data.paymentUrl
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка апгрейда')
+      setError(err instanceof Error ? err.message : 'Ошибка создания платежа')
     } finally {
       setIsLoading(false)
     }
@@ -280,8 +280,8 @@ export default function UpgradeModal({ isOpen, onClose, currentMode = 'FREE' }: 
             <p className="text-sm text-gray-400">
               💡 Генерации обновляются 1-го числа каждого месяца
             </p>
-            <p className="text-xs text-green-400 mt-2">
-              ✅ Тестовый режим: оплата не требуется, тариф активируется сразу
+            <p className="text-xs text-blue-400 mt-2">
+              ✅ Подписка действует ровно 1 месяц с момента оплаты
             </p>
           </div>
         </div>

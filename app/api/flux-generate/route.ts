@@ -15,11 +15,93 @@ const FLUX_MODEL_COSTS: Record<string, number> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, width = 1024, height = 1024, model = 'black-forest-labs/flux-schnell' } = await request.json()
+    const { prompt, width = 1024, height = 1024, model = 'black-forest-labs/flux-schnell', isRegeneration = false } = await request.json()
 
     if (!prompt) {
       console.error('❌ No prompt provided')
       return NextResponse.json({ error: 'Prompt required' }, { status: 400 })
+    }
+
+    // Если это регенерация изображения - проверяем и списываем 0.1 генерации
+    if (isRegeneration) {
+      const session = await getServerSession(authOptions)
+
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: {
+          id: true,
+          appMode: true,
+          monthlyGenerations: true,
+          generationLimit: true,
+          bonusGenerations: true,
+          freeMonthlyGenerations: true,
+          advancedMonthlyGenerations: true,
+        },
+      })
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      }
+
+      const currentMode = user.appMode.toLowerCase()
+      const isFreeMode = currentMode === 'free'
+      const isAdvancedMode = currentMode === 'advanced'
+
+      let currentMonthlyGenerations = isFreeMode
+        ? user.freeMonthlyGenerations
+        : isAdvancedMode
+          ? user.advancedMonthlyGenerations
+          : user.monthlyGenerations
+
+      let currentBonusGenerations = user.bonusGenerations
+
+      // Проверяем, хватает ли 0.1 генерации
+      const availableFromMonthly = user.generationLimit - currentMonthlyGenerations
+      const totalAvailable = availableFromMonthly + currentBonusGenerations
+      const REGENERATION_COST = 0.1
+
+      if (totalAvailable < REGENERATION_COST) {
+        return NextResponse.json(
+          { error: 'Insufficient generations. Need 0.1 generation for image replacement.' },
+          { status: 403 }
+        )
+      }
+
+      // Списываем 0.1 генерации
+      let newMonthlyGenerations = currentMonthlyGenerations
+      let newBonusGenerations = currentBonusGenerations
+
+      if (availableFromMonthly >= REGENERATION_COST) {
+        newMonthlyGenerations += REGENERATION_COST
+      } else {
+        const fromMonthly = availableFromMonthly
+        const fromBonus = REGENERATION_COST - fromMonthly
+        newMonthlyGenerations = user.generationLimit
+        newBonusGenerations -= fromBonus
+      }
+
+      const updateData: any = {
+        bonusGenerations: newBonusGenerations,
+      }
+
+      if (isFreeMode) {
+        updateData.freeMonthlyGenerations = newMonthlyGenerations
+      } else if (isAdvancedMode) {
+        updateData.advancedMonthlyGenerations = newMonthlyGenerations
+      } else {
+        updateData.monthlyGenerations = newMonthlyGenerations
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+      })
+
+      console.log(`💰 Regeneration: Consumed 0.1 generation. Remaining: ${user.generationLimit - newMonthlyGenerations + newBonusGenerations}`)
     }
 
     const apiToken = process.env.REPLICATE_API_TOKEN?.trim()

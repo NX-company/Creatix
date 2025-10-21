@@ -27,27 +27,41 @@ export default function BuyGenerationsModal({
   if (!isOpen || typeof window === 'undefined') return null
 
   const handlePurchase = async () => {
+    // Проверка согласия с условиями
+    if (!agreedToTerms || !agreedToData) {
+      setError('Необходимо согласиться с условиями оферты и обработкой персональных данных')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/user/buy-generations', {
+      // Создание платёжной ссылки
+      const response = await fetch('/api/payments/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentType: 'bonus_pack',
+        }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Purchase failed')
+        throw new Error(data.error || 'Failed to create payment')
       }
 
-      if (onSuccess) {
-        onSuccess()
-      }
+      console.log('✅ Payment link created:', data.paymentUrl)
+
+      // Закрыть модалку
       onClose()
+
+      // Редирект на страницу оплаты Точка Банка
+      window.location.href = data.paymentUrl
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Purchase failed')
+      setError(err instanceof Error ? err.message : 'Ошибка создания платежа')
     } finally {
       setIsLoading(false)
     }

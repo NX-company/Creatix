@@ -37,10 +37,11 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': NEXT_PUBLIC_APP_URL,
-        'X-Title': 'Creatix - Intent Analysis',
+        'X-Title': 'Creatix AI',
+        'X-Organization': 'Creatix',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'mistralai/mistral-7b-instruct',
         messages: [
           {
             role: 'system',
@@ -68,18 +69,22 @@ export async function POST(request: NextRequest) {
             content: prompt
           }
         ],
-        temperature: 0.3,
-        max_tokens: 200,
+        temperature: 0.1,
+        max_tokens: 150,
+        top_p: 1,
         response_format: { type: 'json_object' }
       })
     })
     
     if (!response.ok) {
       console.error('❌ OpenRouter error:', response.status)
-      throw new Error(`OpenRouter API error: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      console.error('Error details:', errorData)
+      throw new Error(`OpenRouter API error: ${response.status} - ${JSON.stringify(errorData)}`)
     }
     
     const data = await response.json()
+    console.log('OpenRouter response:', data)
     const content = data.choices?.[0]?.message?.content
     
     if (!content) {

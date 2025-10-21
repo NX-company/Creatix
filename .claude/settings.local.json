@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma generate)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(timeout /t 3)",
+      "Bash(node test-tochka-api.js:*)",
+      "Bash(node test-tochka-oauth.js:*)",
+      "Bash(node test-correct-path.js:*)",
+      "Bash(node test-auth-headers.js:*)",
+      "Bash(node test-token-debug.js:*)",
+      "Bash(node:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

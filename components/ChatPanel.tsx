@@ -9,6 +9,7 @@ import { generateContent, generateHTML, getPromptForAction } from '@/lib/api'
 import { parseAIResponse, convertToPriceItems } from '@/lib/jsonParser'
 import type { ParsedProposalData, ParsedInvoiceData } from '@/lib/jsonParser'
 import { applyAIEdit, isEditCommand } from '@/lib/aiEditor'
+import { countNewImagePlaceholders } from '@/lib/imageRegeneration'
 import { generateDocumentWithMode } from '@/lib/agents/orchestrator'
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { processPlanningMode, processSmartDialogMode, formatPlanForGeneration } from '@/lib/agents/planningAgent'
@@ -530,6 +531,50 @@ export default function ChatPanel() {
             }
           }
           
+          // 💰 ПРОВЕРКА НОВЫХ ИЗОБРАЖЕНИЙ И СПИСАНИЕ ГЕНЕРАЦИЙ
+          const newImageCount = countNewImagePlaceholders(htmlPreview, finalHtml)
+
+          if (newImageCount > 0 && session && !isGuest && !isTrial) {
+            const generationCost = newImageCount * 0.1
+            console.log(`💰 New images detected: ${newImageCount}, cost: ${generationCost} generations`)
+
+            try {
+              const consumeResponse = await fetch('/api/user/consume-generation-fractional', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  amount: generationCost,
+                  reason: `Image regeneration (${newImageCount} images)`
+                })
+              })
+
+              if (!consumeResponse.ok) {
+                const error = await consumeResponse.json()
+                addMessage({
+                  role: 'assistant',
+                  content: `❌ Недостаточно генераций для добавления ${newImageCount} изображений. Требуется ${generationCost} генерации.`
+                })
+                setIsGenerating(false)
+                return
+              }
+
+              const consumeData = await consumeResponse.json()
+              console.log(`✅ Consumed ${consumeData.consumed} generations, remaining: ${consumeData.remainingGenerations}`)
+              addMessage({
+                role: 'assistant',
+                content: `💰 Списано ${generationCost} генерации за ${newImageCount} ${newImageCount === 1 ? 'изображение' : 'изображений'}`
+              })
+            } catch (error) {
+              console.error('❌ Failed to consume generations:', error)
+              addMessage({
+                role: 'assistant',
+                content: `❌ Ошибка списания генераций. Попробуйте позже.`
+              })
+              setIsGenerating(false)
+              return
+            }
+          }
+
           // Проверяем, нужно ли сгенерировать изображение
           if (finalHtml.includes('IMAGE_PLACEHOLDER')) {
             console.log('🖼️ Detected IMAGE_PLACEHOLDER, checking for uploaded images...')

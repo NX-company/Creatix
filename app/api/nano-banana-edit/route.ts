@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Replicate from 'replicate'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+import { prisma } from '@/lib/db'
+import { canUserGenerate } from '@/lib/generationLimits'
 
 export const maxDuration = 60
 
