@@ -151,17 +151,21 @@ export class TochkaClient {
   private apiVersion: string
   private accessToken: string | null = null
 
-  constructor(apiVersion: string = 'v1.0') {
+  constructor(apiVersion: string = 'v1') {
     this.baseUrl = process.env.TOCHKA_API_URL || 'https://enter.tochka.com'
     this.jwtToken = process.env.TOCHKA_JWT_TOKEN || ''
-    this.clientId = process.env.TOCHKA_CLIENT_ID || ''
-    this.clientSecret = process.env.TOCHKA_CLIENT_SECRET || ''
+    this.clientId = process.env.TOCHKA_OAUTH_CLIENT_ID || process.env.TOCHKA_CLIENT_ID || ''
+    this.clientSecret = process.env.TOCHKA_OAUTH_CLIENT_SECRET || process.env.TOCHKA_CLIENT_SECRET || ''
     this.redirectUrl = process.env.TOCHKA_REDIRECT_URL || ''
     this.customerCode = process.env.TOCHKA_CUSTOMER_CODE || ''
     this.apiVersion = apiVersion
+    // Использовать готовый access token если есть
+    this.accessToken = process.env.TOCHKA_OAUTH_ACCESS_TOKEN || null
 
     if (!this.clientId || !this.clientSecret) {
       console.warn('⚠️  Tochka Bank OAuth credentials not configured')
+    } else {
+      console.log('✅ Tochka Bank OAuth credentials configured')
     }
   }
 
@@ -646,9 +650,9 @@ export class TochkaClient {
 
 /**
  * Создать экземпляр клиента Точка Банка
- * @param apiVersion - версия API (v1 или v2), по умолчанию v1
+ * @param apiVersion - версия API (v1.0 или v2), по умолчанию v1.0
  */
-export function createTochkaClient(apiVersion: string = 'v1'): TochkaClient {
+export function createTochkaClient(apiVersion: string = 'v1.0'): TochkaClient {
   return new TochkaClient(apiVersion)
 }
 
