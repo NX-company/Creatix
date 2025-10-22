@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
     console.log('📥 Tochka payment info:', paymentInfo)
 
     // Проверяем статус оплаты
-    const tochkaStatus = paymentInfo?.Data?.status || paymentInfo?.status
+    const paymentData = (paymentInfo as any)?.Data || paymentInfo
+    const tochkaStatus = paymentData?.status
     if (tochkaStatus !== 'AUTHORIZED' && tochkaStatus !== 'CONFIRMED') {
       console.log(`⏳ Payment not yet completed. Status: ${tochkaStatus}`)
       return NextResponse.json(
