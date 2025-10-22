@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const results = {
+  const results: Record<string, any> = {
     openRouter: null,
     openAI: null,
     replicate: null,
