@@ -24,7 +24,7 @@ export async function GET() {
       data: await openRouterRes.json().catch(() => null)
     }
   } catch (e) {
-    results.openRouter = { error: e.message }
+    results.openRouter = { error: e instanceof Error ? e.message : 'Unknown error' }
   }
 
   try {
@@ -40,7 +40,7 @@ export async function GET() {
       data: await openAIRes.json().catch(() => null)
     }
   } catch (e) {
-    results.openAI = { error: e.message }
+    results.openAI = { error: e instanceof Error ? e.message : 'Unknown error' }
   }
 
   try {
@@ -56,7 +56,7 @@ export async function GET() {
       data: await replicateRes.json().catch(() => null)
     }
   } catch (e) {
-    results.replicate = { error: e.message }
+    results.replicate = { error: e instanceof Error ? e.message : 'Unknown error' }
   }
 
   try {
@@ -73,7 +73,7 @@ export async function GET() {
       data: await resendRes.json().catch(() => null)
     }
   } catch (e) {
-    results.resend = { error: e.message }
+    results.resend = { error: e instanceof Error ? e.message : 'Unknown error' }
   }
 
   try {
@@ -87,10 +87,10 @@ export async function GET() {
       message: 'Successfully connected to database'
     }
   } catch (e) {
-    results.database = { 
+    results.database = {
       status: 500,
       valid: false,
-      error: e.message 
+      error: e instanceof Error ? e.message : 'Unknown error'
     }
   }
 
