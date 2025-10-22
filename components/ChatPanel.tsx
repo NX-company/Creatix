@@ -554,7 +554,7 @@ export default function ChatPanel() {
                   role: 'assistant',
                   content: `❌ Недостаточно генераций для добавления ${newImageCount} изображений. Требуется ${generationCost} генерации.`
                 })
-                setIsGenerating(false)
+                isGeneratingRef.current = false
                 return
               }
 
@@ -570,7 +570,7 @@ export default function ChatPanel() {
                 role: 'assistant',
                 content: `❌ Ошибка списания генераций. Попробуйте позже.`
               })
-              setIsGenerating(false)
+              isGeneratingRef.current = false
               return
             }
           }
