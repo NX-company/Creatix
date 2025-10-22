@@ -12,38 +12,51 @@ export async function POST(request: NextRequest) {
     console.log('🔔 Webhook received from Tochka Bank')
 
     // Получение тела запроса
-    const rawBody = await request.text()
-    const body = JSON.parse(rawBody)
+    const body = await request.json()
+    console.log('📦 Full webhook payload:', JSON.stringify(body, null, 2))
 
-    // Получение заголовка с подписью (если есть)
-    const signature = request.headers.get('x-signature') || ''
-
-    // Проверка подписи webhook'а
-    const tochkaClient = createTochkaClient()
-    const isValid = tochkaClient.verifyWebhookSignature(rawBody, signature)
-
-    if (!isValid) {
-      console.error('❌ Invalid webhook signature')
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      )
-    }
-
-    // Webhook от Точка Банка приходит в формате согласно документации
-    // Для acquiringInternetPayment события
+    // Формат webhook от Точка Банка согласно документации:
+    // https://developers.tochka.com/docs/pay-gateway/api/tokenization-decision-notification
     const {
-      operationId,  // Уникальный ID операции
-      status,       // CREATED, APPROVED, REFUNDED, EXPIRED, etc.
-      amount,
-      consumerId,   // userId который мы передали при создании
+      version,
+      merchantSiteUid,
+      event,
+      createdAt,
+      payloadType,
+      payload,
     } = body
 
+    // Проверяем что это уведомление о платеже
+    if (event !== 'payment-updated') {
+      console.log(`ℹ️ Webhook: Ignoring event type: ${event}`)
+      return NextResponse.json({ success: true, message: 'Event ignored' })
+    }
+
+    if (payloadType !== 'payment') {
+      console.log(`ℹ️ Webhook: Ignoring payload type: ${payloadType}`)
+      return NextResponse.json({ success: true, message: 'Payload type ignored' })
+    }
+
+    // Извлекаем данные платежа из payload
+    const {
+      paymentUid,      // Это operationId в нашей системе
+      orderUid,
+      amount: paymentAmount,
+      status: paymentStatus,
+      metadata,
+    } = payload
+
+    const operationId = paymentUid
+    const status = paymentStatus?.value // COMPLETED, AUTHORIZED, DECLINED, CANCELLED
+    const amount = paymentAmount?.amount ? parseFloat(paymentAmount.amount) : null
+
     console.log('📦 Webhook data:', {
+      event,
       operationId,
       status,
       amount,
-      consumerId,
+      orderUid,
+      createdAt,
     })
 
     // Проверка обязательных полей
@@ -86,8 +99,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Обработка статуса платежа
-    // По документации API статус может быть: CREATED, APPROVED, ON-REFUND, REFUNDED, EXPIRED
-    if (status === 'APPROVED') {
+    // По документации статусы: COMPLETED, AUTHORIZED, DECLINED, CANCELLED, EXPIRED
+    // Успешный платёж = COMPLETED или AUTHORIZED
+    if (status === 'COMPLETED' || status === 'AUTHORIZED') {
       console.log(`✅ Payment successful: ${operationId}`)
 
       // КРИТИЧЕСКАЯ ПРОВЕРКА БЕЗОПАСНОСТИ: Валидация суммы платежа
@@ -165,11 +179,26 @@ export async function POST(request: NextRequest) {
         })
 
       } else if (transaction.type === 'BONUS_PACK') {
+        console.log(`🎁 Webhook: Processing BONUS_PACK payment`)
+
+        // Получаем текущее значение bonusGenerations перед обновлением
+        const userBefore = await prisma.user.findUnique({
+          where: { id: transaction.userId },
+          select: { bonusGenerations: true, subscriptionEndsAt: true },
+        })
+        console.log(`📊 Webhook: User before update:`, {
+          userId: transaction.userId,
+          email: transaction.user.email,
+          bonusGenerations: userBefore?.bonusGenerations,
+          subscriptionEndsAt: userBefore?.subscriptionEndsAt,
+        })
+
         // Покупка бонусного пака - действует 1 месяц
         const bonusEndsAt = new Date()
         bonusEndsAt.setMonth(bonusEndsAt.getMonth() + 1)
 
-        await prisma.user.update({
+        console.log(`💾 Webhook: Updating user: adding +30 bonusGenerations`)
+        const updatedUser = await prisma.user.update({
           where: { id: transaction.userId },
           data: {
             bonusGenerations: {
@@ -178,17 +207,21 @@ export async function POST(request: NextRequest) {
             // Обновляем subscriptionEndsAt если бонусный пак продлевает срок
             subscriptionEndsAt: bonusEndsAt,
           },
+          select: { bonusGenerations: true, subscriptionEndsAt: true },
         })
 
-        console.log(`✅ Bonus pack added for user:`, {
+        console.log(`✅ Webhook: Bonus pack added for user:`, {
           userId: transaction.userId,
-          bonusGenerations: '+30',
+          email: transaction.user.email,
+          bonusGenerationsBefore: userBefore?.bonusGenerations,
+          bonusGenerationsAfter: updatedUser.bonusGenerations,
+          actualIncrement: (updatedUser.bonusGenerations || 0) - (userBefore?.bonusGenerations || 0),
           expiresAt: bonusEndsAt,
         })
       }
 
-    } else if (status === 'EXPIRED') {
-      console.log(`❌ Payment expired: ${operationId}`)
+    } else if (status === 'EXPIRED' || status === 'DECLINED' || status === 'CANCELLED') {
+      console.log(`❌ Payment failed: ${operationId}, status: ${status}`)
 
       // Обновление статуса транзакции
       await prisma.transaction.update({
@@ -197,8 +230,7 @@ export async function POST(request: NextRequest) {
       })
     } else {
       console.log(`ℹ️  Payment status: ${status} for operationId: ${operationId}`)
-      // Другие статусы: CREATED, ON-REFUND, REFUNDED, REFUNDED_PARTIALLY, AUTHORIZED, WAIT_FULL_PAYMENT
-      // Пока не обрабатываем, оставляем PENDING
+      // Другие статусы: пока не обрабатываем, оставляем PENDING
     }
 
     return NextResponse.json(

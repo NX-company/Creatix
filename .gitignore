@@ -26,3 +26,16 @@ vercel-env.txt
 keys.env.local
 
 .vercel
+
+# Test scripts and documentation
+test-*.js
+setup-ssh-key.sh
+start-dev.sh
+WEBHOOK_SETUP*.md
+ACTIVATE_PAYMENT.md
+START_HERE.md
+DEVELOPMENT_QUICK_START.md
+
+# Deploy archives
+*.tar.gz
+nul
