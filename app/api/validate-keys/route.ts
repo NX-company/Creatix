@@ -15,7 +15,7 @@ export async function GET() {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': process.env.NEXTAUTH_URL
+        'HTTP-Referer': process.env.NEXTAUTH_URL || ''
       }
     })
     results.openRouter = {
