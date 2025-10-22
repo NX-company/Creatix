@@ -15,10 +15,6 @@ echo "✅ PostgreSQL is ready!"
 echo "🔄 Running Prisma migrations..."
 npx prisma migrate deploy
 
-# Generate Prisma Client (in case it's not generated)
-echo "🔧 Generating Prisma Client..."
-npx prisma generate
-
 echo "✅ Database setup complete!"
 echo "🌟 Starting Next.js application..."
 
