@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
           where: { id: transaction.userId },
           data: {
             appMode: targetMode,
-            generationLimit: GENERATION_LIMITS[targetMode],
+            generationLimit: GENERATION_LIMITS[targetMode as keyof typeof GENERATION_LIMITS],
             subscriptionEndsAt,
             monthlyGenerations: 0,
             bonusGenerations: 0,
