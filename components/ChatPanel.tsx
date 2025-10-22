@@ -534,7 +534,7 @@ export default function ChatPanel() {
           // 💰 ПРОВЕРКА НОВЫХ ИЗОБРАЖЕНИЙ И СПИСАНИЕ ГЕНЕРАЦИЙ
           const newImageCount = countNewImagePlaceholders(htmlPreview, finalHtml)
 
-          if (newImageCount > 0 && session && !isGuest && !isTrial) {
+          if (newImageCount > 0 && session && !isGuestMode && !currentUser?.isInTrial) {
             const generationCost = newImageCount * 0.1
             console.log(`💰 New images detected: ${newImageCount}, cost: ${generationCost} generations`)
 
