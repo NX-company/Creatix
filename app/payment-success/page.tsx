@@ -32,12 +32,57 @@ function PaymentSuccessContent() {
 
   console.log('🆔 Extracted operationId:', operationId)
 
+  // Fallback функция: активирует последнюю PENDING транзакцию пользователя
+  const activateLatestPendingPayment = async () => {
+    try {
+      console.log('🔄 Trying to activate latest pending payment for user...')
+
+      const response = await fetch('/api/payments/activate-latest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+      console.log('📥 Response from activate-latest:', data)
+
+      if (response.ok && data.success) {
+        console.log('✅ Latest payment activated successfully:', data)
+        setActivationStatus('success')
+
+        if (data.type === 'BONUS_PACK') {
+          setActivationMessage('+30 генераций добавлено на ваш аккаунт!')
+        } else {
+          setActivationMessage(`Подписка ${data.targetMode} успешно активирована!`)
+        }
+
+        // Обновляем NextAuth сессию
+        try {
+          await updateSession()
+          console.log('✅ Session updated')
+        } catch (sessionError) {
+          console.error('⚠️ Failed to update session:', sessionError)
+        }
+      } else {
+        console.log('⚠️ No pending payment found or activation failed')
+        setActivationStatus('error')
+        setActivationMessage('Платёж обрабатывается. Генерации будут добавлены автоматически.')
+      }
+    } catch (error) {
+      console.error('❌ Failed to activate latest payment:', error)
+      setActivationStatus('error')
+      setActivationMessage('Платёж обрабатывается. Генерации будут добавлены автоматически.')
+    }
+  }
+
   // Автоматическая активация при загрузке страницы
   useEffect(() => {
     if (!operationId) {
       console.log('⚠️ No operationId found in URL parameters')
-      setActivationStatus('error')
-      setActivationMessage('Платёж обрабатывается. Генерации будут добавлены автоматически.')
+      console.log('🔄 Will try to activate latest pending transaction for user')
+      // Fallback: активируем последнюю pending транзакцию пользователя
+      activateLatestPendingPayment()
       return
     }
 
