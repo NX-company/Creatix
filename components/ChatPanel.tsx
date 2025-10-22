@@ -92,34 +92,47 @@ export default function ChatPanel() {
   const shownProgressMessages = useRef<Set<string>>(new Set())
   const hasTriggeredAutoGen = useRef(false)
 
-  // Initialize currentUser from NextAuth session
+  // Initialize currentUser from server API (not session token - it has stale data!)
   useEffect(() => {
-    if (session?.user && !isGuestMode) {
-      const trialEndsAt = session.user.trialEndsAt ? new Date(session.user.trialEndsAt) : null
-      const isInTrial = trialEndsAt ? trialEndsAt > new Date() : false
-      const trialGenerations = session.user.trialGenerations || 0
-      const trialGenerationsLeft = Math.max(0, 30 - trialGenerations)
-      const trialDaysLeft = trialEndsAt 
-        ? Math.max(0, Math.ceil((trialEndsAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
-        : 0
-      
-      setCurrentUser({
-        isInTrial,
-        trialDaysLeft,
-        trialGenerationsLeft,
-        trialGenerations,
-        appMode: session.user.appMode
-      })
-      
-      console.log('👤 Current user initialized:', {
-        isInTrial,
-        trialGenerations,
-        trialGenerationsLeft,
-        trialDaysLeft
-      })
-    } else {
-      setCurrentUser(null)
+    const fetchUserData = async () => {
+      if (isGuestMode || !session?.user) {
+        setCurrentUser(null)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const data = await response.json()
+          const user = data.user
+
+          setCurrentUser({
+            isInTrial: user.isInTrial || false,
+            trialDaysLeft: user.trialDaysLeft || 0,
+            trialGenerationsLeft: user.trialGenerationsLeft || 0,
+            trialGenerations: user.trialGenerations || 0,
+            appMode: user.appMode
+          })
+
+          console.log('👤 Current user initialized from server:', {
+            isInTrial: user.isInTrial,
+            trialGenerations: user.trialGenerations,
+            trialGenerationsLeft: user.trialGenerationsLeft,
+            trialDaysLeft: user.trialDaysLeft,
+            appMode: user.appMode,
+            hasActiveSubscription: user.hasActiveSubscription
+          })
+        } else {
+          console.error('Failed to fetch user data:', response.status)
+          setCurrentUser(null)
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+        setCurrentUser(null)
+      }
     }
+
+    fetchUserData()
   }, [session, isGuestMode])
 
   useEffect(() => {

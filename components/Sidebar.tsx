@@ -11,6 +11,7 @@ import Logo from './Logo'
 import { DOC_CATEGORIES, migrateOldDocType } from '@/lib/docTypesConfig'
 import BuyGenerationsModal from './BuyGenerationsModal'
 import UpgradeModal from './UpgradeModal'
+import { BONUS_PACK_PRICE } from '@/lib/generationLimits'
 
 interface GenerationsInfo {
   appMode: string
@@ -47,13 +48,32 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
   const [generationsInfo, setGenerationsInfo] = useState<GenerationsInfo | null>(null)
   const [isLoadingGenerations, setIsLoadingGenerations] = useState(false)
 
-  const currentUser = isGuestMode ? { 
-    username: 'Гость', 
-    role: 'GUEST' 
+  const currentUser = isGuestMode ? {
+    username: 'Гость',
+    role: 'GUEST'
   } : session?.user ? {
     username: session.user.name || session.user.email || 'Пользователь',
     role: session.user.role || 'USER',
-    isInTrial: session.user.trialEndsAt ? new Date(session.user.trialEndsAt) > new Date() : false,
+    // ИСПРАВЛЕНО: Пользователь в пробном периоде только если:
+    // 1. НЕТ активной подписки (проверяем generationsInfo)
+    // 2. appMode = FREE
+    // 3. trialEndsAt не истек
+    isInTrial: (() => {
+      // Проверяем активную подписку из generationsInfo
+      const hasActiveSubscription = generationsInfo?.subscriptionEndsAt &&
+        new Date(generationsInfo.subscriptionEndsAt) > new Date()
+
+      // Если есть подписка - НЕ в триале
+      if (hasActiveSubscription) return false
+
+      // Если appMode не FREE - НЕ в триале
+      if (session.user.appMode !== 'FREE') return false
+
+      // Проверяем trialEndsAt
+      return session.user.trialEndsAt
+        ? new Date(session.user.trialEndsAt) > new Date()
+        : false
+    })(),
     trialGenerations: session.user.trialGenerations || 0,
     trialGenerationsLeft: Math.max(0, 30 - (session.user.trialGenerations || 0)),
     trialDaysLeft: session.user.trialEndsAt ? Math.max(0, Math.ceil((new Date(session.user.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0,
@@ -76,9 +96,14 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
   }
 
   const fetchGenerationsInfo = async () => {
-    // Don't fetch for guests or trial users
-    if (isGuestMode || !session?.user || currentUser?.isInTrial) return
-    
+    // Загружаем данные только для зарегистрированных пользователей
+    // Для пробного периода (FREE) показываем упрощенный счетчик, поэтому не загружаем
+    // Для платных режимов (ADVANCED/PRO) всегда загружаем детальную информацию
+    if (isGuestMode || !session?.user) return
+
+    // Если пользователь в пробном периоде (FREE + активный trial), не загружаем данные
+    if (currentUser?.isInTrial) return
+
     setIsLoadingGenerations(true)
     try {
       const response = await fetch('/api/user/generations')
@@ -470,7 +495,7 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
                   className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-1.5 px-2 rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
                 >
                   <Package className="w-3 h-3" />
-                  <span>Купить +30 за 300₽</span>
+                  <span>Купить +30 за {BONUS_PACK_PRICE}₽</span>
                 </button>
               )}
             </div>
