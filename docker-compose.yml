@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: creatix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: creatix_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./creatix_db_backup.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: creatix-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production
+    environment:
+      # Override DATABASE_URL to use Docker network
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/creatix_db
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount only necessary files for hot-reload (optional, for development)
+      - ./public:/app/public:ro
+
+volumes:
+  postgres_data:
+    name: creatix_postgres_data
