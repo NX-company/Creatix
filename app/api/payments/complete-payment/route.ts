@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getUserFromRequest } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { createTochkaClient } from '@/lib/tochka'
 import { GENERATION_LIMITS } from '@/lib/generationLimits'
@@ -15,8 +14,8 @@ import { GENERATION_LIMITS } from '@/lib/generationLimits'
 export async function POST(request: NextRequest) {
   try {
     // Проверка аутентификации
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    const user = await getUserFromRequest(request)
+    if (!user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🔍 Checking payment status for operationId: ${operationId}`)
-    console.log(`📧 User email: ${session.user.email}`)
+    console.log(`📧 User email: ${user.email}`)
 
     // Поиск транзакции
     console.log(`🔎 Searching for transaction with operationId in metadata...`)
@@ -70,8 +69,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Проверка, что транзакция принадлежит текущему пользователю
-    if (transaction.user.email !== session.user.email) {
-      console.error(`❌ Transaction does not belong to user: ${session.user.email}`)
+    if (transaction.user.email !== user.email) {
+      console.error(`❌ Transaction does not belong to user: ${user.email}`)
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
