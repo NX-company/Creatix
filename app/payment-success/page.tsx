@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams()
   const router = useRouter()

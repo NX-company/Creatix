@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { XCircle, RefreshCw, Home } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default function PaymentFailurePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
