@@ -102,12 +102,15 @@ export async function POST(request: NextRequest) {
     const tochkaClient = createTochkaClient()
 
     // Определение URL для редиректа
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // ВАЖНО: Точка банк требует HTTPS даже для localhost!
+    // Поэтому всегда используем production URL
+    // После оплаты редирект будет на production сайт, где сработает автоактивация
+    const baseUrl = 'https://aicreatix.ru'
     const successUrl = `${baseUrl}/payment-success?type=${paymentType}&mode=${targetMode || 'bonus'}`
     const failUrl = `${baseUrl}/payment-failure?type=${paymentType}`
 
-    // Создание платежной ссылки с чеком
-    const paymentResult = await tochkaClient.createPaymentWithReceipt({
+    // Создание платежной ссылки (без чека, т.к. payments_with_receipt возвращает 501)
+    const paymentResult = await tochkaClient.createPayment({
       amount,
       customerCode: process.env.TOCHKA_CUSTOMER_CODE || '',
       purpose,
@@ -116,16 +119,6 @@ export async function POST(request: NextRequest) {
       failRedirectUrl: failUrl,
       consumerId: user.id,
       ttl: 60, // Ссылка действительна 60 минут
-      client: {
-        email: user.email,
-      },
-      items: [
-        {
-          name: paymentDescription,
-          amount,
-          quantity: 1,
-        },
-      ],
     })
 
     // API возвращает { Data: { operationId, paymentLink, status, ... }, Links, Meta }
