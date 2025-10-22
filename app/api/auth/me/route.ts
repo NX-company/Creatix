@@ -13,11 +13,25 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date()
-    const isInTrial = user.trialEndsAt ? now < user.trialEndsAt : false
-    const trialDaysLeft = user.trialEndsAt 
+
+    // Проверяем активна ли подписка
+    const hasActiveSubscription = user.subscriptionEndsAt ? now < user.subscriptionEndsAt : false
+
+    // В trial только если:
+    // 1. Trial не закончился
+    // 2. И НЕТ активной подписки
+    // 3. И режим FREE (не ADVANCED/PRO)
+    const isInTrial = !hasActiveSubscription &&
+                      user.trialEndsAt &&
+                      now < user.trialEndsAt &&
+                      user.appMode === 'FREE'
+
+    const trialDaysLeft = user.trialEndsAt && isInTrial
       ? Math.max(0, Math.ceil((user.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
       : 0
-    const trialGenerationsLeft = Math.max(0, 3 - (user.trialGenerations || 0))
+    const trialGenerationsLeft = isInTrial
+      ? Math.max(0, 30 - (user.trialGenerations || 0))
+      : 0
 
     return NextResponse.json({
       user: {
@@ -27,6 +41,11 @@ export async function GET(req: NextRequest) {
         role: user.role,
         appMode: user.appMode,
         isActive: user.isActive,
+        generationLimit: user.generationLimit,
+        monthlyGenerations: user.monthlyGenerations || 0,
+        bonusGenerations: user.bonusGenerations || 0,
+        subscriptionEndsAt: user.subscriptionEndsAt,
+        hasActiveSubscription,
         trialEndsAt: user.trialEndsAt,
         trialGenerations: user.trialGenerations || 0,
         isInTrial,
