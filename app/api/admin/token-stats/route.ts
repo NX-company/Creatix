@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'your_super_secret_jwt_key_mi
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('admin_token')?.value
+    const token = request.cookies.get('auth-token')?.value
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

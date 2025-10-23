@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Send, Loader2, Globe, Target } from 'lucide-react'
+import { Send, Loader2, Globe, Target, X } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { motion } from 'framer-motion'
 import { generateContent, generateHTML, getPromptForAction } from '@/lib/api'
@@ -89,6 +89,8 @@ export default function ChatPanel() {
   } | null>(null)
   const isGeneratingRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const shownProgressMessages = useRef<Set<string>>(new Set())
   const hasTriggeredAutoGen = useRef(false)
 
@@ -324,18 +326,49 @@ export default function ChatPanel() {
     setPendingWebsiteData(null)
   }
 
+  const handleStop = () => {
+    console.log('🛑 Stop button clicked')
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      console.log('✅ Generation aborted')
+    }
+
+    setLoading(false)
+    isGeneratingRef.current = false
+
+    addMessage({
+      role: 'assistant',
+      content: '⛔ Генерация остановлена пользователем.'
+    })
+
+    // Возвращаем фокус на поле ввода
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
+  }
+
   const handleRun = async () => {
     console.log('🔵 handleRun called')
     console.log('  📝 input:', input)
     console.log('  ⏳ loading:', loading)
     console.log('  🔒 isGeneratingRef:', isGeneratingRef.current)
     console.log('  🛠️ workMode:', workMode)
-    
+
     if (!input.trim() || loading) {
       console.log('❌ handleRun blocked:', {
         noInput: !input.trim(),
         loading
       })
+      return
+    }
+
+    // Проверка команды "стой" для остановки текущей генерации
+    const stopCommands = ['стой', 'stop', 'остановись', 'останови', 'прекрати']
+    if (stopCommands.some(cmd => input.trim().toLowerCase() === cmd)) {
+      console.log('🛑 Stop command detected:', input.trim())
+      setInput('')
+      handleStop()
       return
     }
     
@@ -345,6 +378,10 @@ export default function ChatPanel() {
       return
     }
     isGeneratingRef.current = true
+
+    // Создаём новый AbortController для возможности прерывания
+    abortControllerRef.current = new AbortController()
+    console.log('✅ AbortController created')
     
     // Check generation limits
     const intent = recognizeIntent(input.trim(), docType)
@@ -428,6 +465,11 @@ export default function ChatPanel() {
     setInput('')
     setLoading(true)
 
+    // Возвращаем фокус на поле ввода после небольшой задержки
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
+
     try {
       console.log('🔄 Checking workMode:', workMode)
       if (workMode === 'plan') {
@@ -464,6 +506,12 @@ export default function ChatPanel() {
         
         setLoading(false)
         isGeneratingRef.current = false
+
+        // Возвращаем фокус на поле ввода после планирования
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+
         return
       }
       
@@ -1157,13 +1205,26 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
       
     } catch (error) {
       console.error('Generation error:', error)
-      addMessage({ 
-        role: 'assistant', 
-        content: `❌ Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}` 
-      })
+
+      // Проверяем, была ли генерация прервана пользователем
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('⛔ Generation was aborted by user')
+        // Сообщение уже добавлено в handleStop()
+      } else {
+        addMessage({
+          role: 'assistant',
+          content: `❌ Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`
+        })
+      }
     } finally {
       setLoading(false)
       isGeneratingRef.current = false
+      abortControllerRef.current = null
+
+      // Возвращаем фокус на поле ввода после завершения генерации
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
     }
   }
 
@@ -1292,18 +1353,20 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           </div>
           
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleRun()}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleRun()}
             data-tour="chat-input"
             placeholder={
               workMode === 'plan'
                 ? '💬 Опишите что хотите...'
+                : loading
+                ? '⚠️ Напишите "стой" для остановки...'
                 : '🚀 Опишите задачу...'
             }
             className="flex-1 min-h-[40px] sm:min-h-[44px] lg:min-h-[48px] px-2 sm:px-3 lg:px-4 py-2 text-xs sm:text-sm lg:text-base bg-background text-foreground border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
-            disabled={loading}
           />
           
           {/* Кнопка выбора области */}
@@ -1337,12 +1400,17 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           </button>
           
           <button
-            onClick={handleRun}
-            disabled={loading || !input.trim()}
+            onClick={loading ? handleStop : handleRun}
+            disabled={!loading && !input.trim()}
             data-auto-run="true"
-            className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] px-2.5 sm:px-3 lg:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center"
+            title={loading ? 'Остановить генерацию' : 'Отправить сообщение'}
+            className={`min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] px-2.5 sm:px-3 lg:px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center ${
+              loading
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-primary text-primary-foreground'
+            }`}
           >
-            {loading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
+            {loading ? <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
           </button>
         </div>
       </div>
