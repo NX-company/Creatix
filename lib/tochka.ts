@@ -159,8 +159,9 @@ export class TochkaClient {
     this.redirectUrl = process.env.TOCHKA_REDIRECT_URL || ''
     this.customerCode = process.env.TOCHKA_CUSTOMER_CODE || ''
     this.apiVersion = apiVersion
-    // Использовать готовый access token если есть
-    this.accessToken = process.env.TOCHKA_OAUTH_ACCESS_TOKEN || null
+    // Использовать готовый access token если есть и он валидный (не пустой)
+    const accessTokenFromEnv = process.env.TOCHKA_OAUTH_ACCESS_TOKEN?.trim()
+    this.accessToken = accessTokenFromEnv && accessTokenFromEnv.length > 0 ? accessTokenFromEnv : null
 
     if (!this.clientId || !this.clientSecret) {
       console.warn('⚠️  Tochka Bank OAuth credentials not configured')
@@ -264,9 +265,10 @@ export class TochkaClient {
       const errorText = await response.text()
       console.error(`❌ Tochka API Error [${response.status}]:`, errorText)
 
-      // Если ошибка 401 и у нас был OAuth токен, сбросим его и попробуем получить новый
-      if (response.status === 401 && this.accessToken) {
-        console.log('🔄 Access token expired, refreshing...')
+      // Если ошибка 401 (Unauthorized) или 403 (Forbidden) - токен невалидный
+      // Сбросим его и попробуем получить новый OAuth токен
+      if ((response.status === 401 || response.status === 403) && token) {
+        console.log('🔄 Token invalid or expired, getting new OAuth token...')
         this.accessToken = null
         // Рекурсивно повторить запрос с новым токеном
         return this.request<T>(endpoint, options)
