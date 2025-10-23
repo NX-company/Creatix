@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (user.appMode !== 'ADVANCED' && user.appMode !== 'PRO') {
+    if (user.appMode !== 'ADVANCED') {
       return NextResponse.json(
-        { error: 'Only ADVANCED and PRO users can buy generation packs' },
+        { error: 'Only ADVANCED users can buy generation packs' },
         { status: 403 }
       )
     }
