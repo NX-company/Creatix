@@ -96,14 +96,15 @@ export async function POST(request: NextRequest) {
       data: updateData,
     })
 
-    const remaining = user.generationLimit - newMonthlyGenerations + newBonusGenerations
+    const availableMonthly = user.generationLimit - newMonthlyGenerations
+    const totalRemaining = availableMonthly + newBonusGenerations
 
-    console.log(`💰 Consumed ${amount} generations: ${reason || 'N/A'}. Remaining: ${remaining}`)
+    console.log(`💰 Consumed ${amount} generations: ${reason || 'N/A'}. Remaining: ${totalRemaining}`)
 
     return NextResponse.json({
       success: true,
       consumed: amount,
-      remainingGenerations: remaining,
+      remainingGenerations: totalRemaining,
       fromMonthly: Math.min(amount, availableFromMonthly),
       fromBonus: Math.max(0, amount - availableFromMonthly),
     })

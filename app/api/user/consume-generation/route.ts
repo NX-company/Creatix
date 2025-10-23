@@ -105,12 +105,15 @@ export async function POST(request: NextRequest) {
 
     const costInfo = calculateGenerationCost(imageCount)
 
+    const availableMonthly = user.generationLimit - newMonthlyGenerations
+    const totalRemaining = availableMonthly + newBonusGenerations
+
     return NextResponse.json({
       success: true,
       consumedGenerations: neededGenerations,
       generationsFromMonthly,
       generationsFromBonus,
-      remainingGenerations: user.generationLimit - newMonthlyGenerations + newBonusGenerations,
+      remainingGenerations: totalRemaining,
       costInfo,
     })
   } catch (error) {
