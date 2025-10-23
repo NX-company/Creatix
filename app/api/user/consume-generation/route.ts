@@ -76,11 +76,11 @@ export async function POST(request: NextRequest) {
     const availableFromMonthly = user.generationLimit - currentMonthlyGenerations
     if (availableFromMonthly >= neededGenerations) {
       generationsFromMonthly = neededGenerations
-      newMonthlyGenerations += neededGenerations
+      newMonthlyGenerations -= neededGenerations
     } else {
       generationsFromMonthly = availableFromMonthly
       generationsFromBonus = neededGenerations - availableFromMonthly
-      newMonthlyGenerations = user.generationLimit
+      newMonthlyGenerations -= generationsFromMonthly
       newBonusGenerations -= generationsFromBonus
     }
 

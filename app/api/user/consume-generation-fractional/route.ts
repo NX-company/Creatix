@@ -71,11 +71,11 @@ export async function POST(request: NextRequest) {
     let newBonusGenerations = currentBonusGenerations
 
     if (availableFromMonthly >= amount) {
-      newMonthlyGenerations += amount
+      newMonthlyGenerations -= amount
     } else {
       const fromMonthly = availableFromMonthly
       const fromBonus = amount - fromMonthly
-      newMonthlyGenerations = user.generationLimit
+      newMonthlyGenerations -= fromMonthly
       newBonusGenerations -= fromBonus
     }
 
