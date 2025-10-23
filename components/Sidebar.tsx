@@ -428,8 +428,8 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
               </span>
               <span className="text-[9px] text-muted-foreground">
                 / {appMode.toLowerCase() === 'free' ? '10' : '80'}
-                {appMode.toLowerCase() !== 'free' && generationsInfo.purchasedGenerations > 0 && (
-                  <span className="text-green-500 ml-1">+{Math.floor(generationsInfo.purchasedGenerations)}</span>
+                {appMode.toLowerCase() !== 'free' && (generationsInfo.purchasedGenerations || 0) > 0 && (
+                  <span className="text-green-500 ml-1">+{Math.floor(generationsInfo.purchasedGenerations || 0)}</span>
                 )}
               </span>
             </div>
