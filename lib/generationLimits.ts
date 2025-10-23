@@ -1,8 +1,8 @@
 import { AppMode } from '@prisma/client'
 
 export const GENERATION_LIMITS = {
-  FREE: 10,
-  ADVANCED: 80,
+  FREE: 30,
+  ADVANCED: 100,
   PRO: 300,
   GUEST: 1,
 } as const
