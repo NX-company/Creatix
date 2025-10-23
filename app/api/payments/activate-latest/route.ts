@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1)
 
     if (transaction.type === 'SUBSCRIPTION') {
-      const targetMode = metadata.targetMode as 'ADVANCED' | 'PRO'
+      const targetMode = metadata.targetMode as 'ADVANCED'
 
       await prisma.$transaction([
         // Обновляем транзакцию
