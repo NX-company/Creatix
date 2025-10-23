@@ -29,7 +29,7 @@ async function main() {
       username: 'admin',
       password: adminPassword,
       role: 'ADMIN',
-      appMode: 'PRO',
+      appMode: 'ADVANCED',
       isActive: true,
       name: 'Administrator'
     },
@@ -38,7 +38,7 @@ async function main() {
       username: 'admin',
       password: adminPassword,
       role: 'ADMIN',
-      appMode: 'PRO',
+      appMode: 'ADVANCED',
       isActive: true,
       name: 'Administrator'
     }
