@@ -16,15 +16,29 @@ model User {
   role                       Role      @default(USER)
   appMode                    AppMode   @default(FREE)
   isActive                   Boolean   @default(true)
+
+  // Подписка и баланс
+  balance                    Float     @default(0)          // Баланс в рублях
+  autoRenewEnabled           Boolean   @default(false)      // Автопродление подписки
+  subscriptionEndsAt         DateTime?                      // Когда заканчивается ADVANCED подписка
+  subscriptionStartedAt      DateTime?                      // Когда купили ADVANCED
+
+  // Счетчики генераций (сколько ИСПОЛЬЗОВАНО)
+  freeMonthlyGenerations     Int       @default(0)          // 0→10 (FREE режим)
+  advancedMonthlyGenerations Int       @default(0)          // 0→80 (ADVANCED из подписки)
+  purchasedGenerations       Float     @default(0)          // Купленные доп. генерации (бессрочные)
+
+  // Лимиты
+  generationLimit            Int       @default(10)         // 10 для FREE, 80 для ADVANCED
+
+  // Даты сброса
+  lastResetDate              DateTime?                      // Последний сброс FREE режима
+
+  // DEPRECATED (для обратной совместимости, удалим позже)
   trialEndsAt                DateTime?
   trialGenerations           Int       @default(0)
   monthlyGenerations         Int       @default(0)
-  generationLimit            Int       @default(30)
   bonusGenerations           Int       @default(0)
-  freeMonthlyGenerations     Int       @default(0)
-  advancedMonthlyGenerations Int       @default(0)
-  lastResetDate              DateTime?
-  subscriptionEndsAt         DateTime?
 
   // Token Usage Tracking
   totalTokensUsed Int @default(0) // Общий расход токенов пользователем
@@ -56,7 +70,6 @@ enum Role {
 enum AppMode {
   FREE
   ADVANCED
-  PRO
 }
 
 model Account {

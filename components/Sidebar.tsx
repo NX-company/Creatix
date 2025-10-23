@@ -411,40 +411,38 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
               <span className="text-base font-bold text-blue-600">
                 {(() => {
                   const currentMode = appMode.toLowerCase()
-                  const limit = currentMode === 'free' ? 30 : currentMode === 'advanced' ? 100 : 300
-                  const used = currentMode === 'free' 
+                  // Новая модель: FREE=10, ADVANCED=80
+                  const limit = currentMode === 'free' ? 10 : 80
+                  const used = currentMode === 'free'
                     ? (generationsInfo.freeMonthlyGenerations || 0)
-                    : currentMode === 'advanced'
-                      ? (generationsInfo.advancedMonthlyGenerations || 0)
-                      : (generationsInfo.monthlyGenerations || 0)
-                  // Бонусы работают ТОЛЬКО для платных режимов (ADVANCED/PRO), НЕ для FREE
-                  const bonus = currentMode === 'free' ? 0 : (generationsInfo.bonusGenerations || 0)
-                  return Math.max(0, limit - used + bonus)
+                    : (generationsInfo.advancedMonthlyGenerations || 0)
+                  // Купленные генерации (только для ADVANCED)
+                  const purchased = currentMode === 'free' ? 0 : (generationsInfo.purchasedGenerations || 0)
+                  const availableFromSubscription = Math.max(0, limit - used)
+                  return availableFromSubscription + purchased
                 })()}
               </span>
               <span className="text-[9px] text-muted-foreground">
-                / {appMode.toLowerCase() === 'free' ? 30 : appMode.toLowerCase() === 'advanced' ? 100 : 300}
-                {appMode.toLowerCase() !== 'free' && generationsInfo.bonusGenerations > 0 && (
-                  <span className="text-green-500 ml-1">+{generationsInfo.bonusGenerations}</span>
+                / {appMode.toLowerCase() === 'free' ? '10' : '80'}
+                {appMode.toLowerCase() !== 'free' && generationsInfo.purchasedGenerations > 0 && (
+                  <span className="text-green-500 ml-1">+{Math.floor(generationsInfo.purchasedGenerations)}</span>
                 )}
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-1 overflow-hidden mb-1.5">
               <div 
                 className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-500 rounded-full"
-                style={{ 
+                style={{
                   width: `${(() => {
                     const currentMode = appMode.toLowerCase()
-                    const limit = currentMode === 'free' ? 30 : currentMode === 'advanced' ? 100 : 300
-                    const used = currentMode === 'free' 
+                    const limit = currentMode === 'free' ? 10 : 80
+                    const used = currentMode === 'free'
                       ? (generationsInfo.freeMonthlyGenerations || 0)
-                      : currentMode === 'advanced'
-                        ? (generationsInfo.advancedMonthlyGenerations || 0)
-                        : (generationsInfo.monthlyGenerations || 0)
-                    // Бонусы только для платных режимов
-                    const bonus = currentMode === 'free' ? 0 : (generationsInfo.bonusGenerations || 0)
-                    const available = Math.max(0, limit - used + bonus)
-                    return Math.min(100, (available / limit) * 100)
+                      : (generationsInfo.advancedMonthlyGenerations || 0)
+                    const purchased = currentMode === 'free' ? 0 : (generationsInfo.purchasedGenerations || 0)
+                    const availableFromSubscription = Math.max(0, limit - used)
+                    const totalAvailable = availableFromSubscription + purchased
+                    return Math.min(100, (totalAvailable / limit) * 100)
                   })()}%` 
                 }}
               />
@@ -470,10 +468,10 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
                       </button>
                       {(() => {
                         const used = generationsInfo.freeMonthlyGenerations || 0
-                        const available = Math.max(0, 30 - used)
-                        return available <= 5 && (
+                        const available = Math.max(0, 10 - used)
+                        return available <= 3 && (
                           <p className="text-[10px] text-center text-orange-600 font-medium">
-                            🔥 Осталось мало генераций!
+                            🔥 Осталось {available} генераций!
                           </p>
                         )
                       })()}

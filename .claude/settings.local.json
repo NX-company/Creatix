@@ -1,17 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx prisma generate)",
-      "Bash(npx prisma db push:*)",
-      "Bash(npm run dev:*)",
-      "Bash(curl:*)",
-      "Bash(timeout /t 3)",
-      "Bash(node test-tochka-api.js:*)",
-      "Bash(node test-tochka-oauth.js:*)",
-      "Bash(node test-correct-path.js:*)",
-      "Bash(node test-auth-headers.js:*)",
-      "Bash(node test-token-debug.js:*)",
-      "Bash(node:*)"
+      "Bash(\"C:\\Program Files\\PuTTY\\pscp.exe\" -pw \"pzaNtMznbq@hw3\" \"c:\\Projects\\Creatix\\app\\api\\user\\consume-generation\\route.ts\" root@45.129.128.121:/root/Creatix/app/api/user/consume-generation/route.ts)",
+      "Bash(\"C:\\Program Files\\PuTTY\\pscp.exe\" -pw \"pzaNtMznbq@hw3\" \"c:\\Projects\\Creatix\\app\\api\\admin\\init\\route.ts\" root@45.129.128.121:/root/Creatix/app/api/admin/init/route.ts)",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && find app -name ''*.ts'' -o -name ''*.tsx'' | xargs sed -i \"\"s/''PRO''/''ADVANCED''/g\"\"\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && find app -name ''*.ts'' -o -name ''*.tsx'' | xargs sed -i ''s/\"\"PRO\"\"/\"\"ADVANCED\"\"/g''\")"
     ],
     "deny": [],
     "ask": []

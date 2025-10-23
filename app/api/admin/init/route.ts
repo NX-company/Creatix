@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         username: 'admin',
         password: adminPassword,
         role: 'ADMIN',
-        appMode: 'PRO',
+        appMode: 'ADVANCED',
         isActive: true,
         name: 'Administrator'
       }

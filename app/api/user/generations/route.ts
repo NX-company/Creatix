@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/db'
-import { shouldResetGenerations, getNextResetDate, getGenerationLimit } from '@/lib/generationLimits'
+import { shouldResetGenerations, getNextResetDate } from '@/lib/generationLimits'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,13 +17,15 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         appMode: true,
-        monthlyGenerations: true,
-        generationLimit: true,
-        bonusGenerations: true,
         freeMonthlyGenerations: true,
         advancedMonthlyGenerations: true,
-        lastResetDate: true,
+        purchasedGenerations: true,
+        generationLimit: true,
+        balance: true,
+        autoRenewEnabled: true,
         subscriptionEndsAt: true,
+        subscriptionStartedAt: true,
+        lastResetDate: true,
       },
     })
 
@@ -31,82 +33,77 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Определяем текущий режим и выбираем соответствующий счетчик
-    const currentMode = user.appMode.toLowerCase()
-    const isFreeMode = currentMode === 'free'
-    const isAdvancedMode = currentMode === 'advanced'
-    
-    // Initialize fields for users who don't have them yet
-    if (user.generationLimit === null || user.generationLimit === undefined) {
-      const defaultLimit = getGenerationLimit(user.appMode)
+    const isFreeMode = user.appMode === 'FREE'
+    const isAdvancedMode = user.appMode === 'ADVANCED'
+
+    // Сброс FREE генераций если прошел месяц
+    if (isFreeMode && user.lastResetDate && shouldResetGenerations(user.lastResetDate)) {
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          generationLimit: defaultLimit,
-          monthlyGenerations: 0,
-          bonusGenerations: 0,
           freeMonthlyGenerations: 0,
-          advancedMonthlyGenerations: 0,
           lastResetDate: new Date(),
         },
       })
-
-      user.generationLimit = defaultLimit
-      user.monthlyGenerations = 0
-      user.bonusGenerations = 0
       user.freeMonthlyGenerations = 0
-      user.advancedMonthlyGenerations = 0
-      user.lastResetDate = new Date()
     }
 
-    // Reset monthly generations if needed
-    if (user.lastResetDate && shouldResetGenerations(user.lastResetDate)) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          monthlyGenerations: 0,
-          bonusGenerations: 0,
-          freeMonthlyGenerations: 0,
-          advancedMonthlyGenerations: 0,
-          lastResetDate: new Date(),
-        },
+    // === FREE РЕЖИМ ===
+    if (isFreeMode) {
+      const availableGenerations = 10 - user.freeMonthlyGenerations
+      const nextResetDate = getNextResetDate()
+
+      console.log(
+        `📊 [FREE] Mode check: used=${user.freeMonthlyGenerations}/10, available=${availableGenerations}`
+      )
+
+      return NextResponse.json({
+        appMode: 'FREE',
+        freeMonthlyGenerations: user.freeMonthlyGenerations,
+        generationLimit: 10,
+        availableGenerations,
+        balance: user.balance,
+        nextResetDate,
+        subscriptionActive: false,
       })
-
-      user.monthlyGenerations = 0
-      user.bonusGenerations = 0
-      user.freeMonthlyGenerations = 0
-      user.advancedMonthlyGenerations = 0
     }
 
-    // Выбираем счетчик в зависимости от текущего режима
-    const currentMonthlyGenerations = isFreeMode 
-      ? user.freeMonthlyGenerations 
-      : isAdvancedMode 
-        ? user.advancedMonthlyGenerations 
-        : user.monthlyGenerations
+    // === ADVANCED РЕЖИМ ===
+    if (isAdvancedMode) {
+      const now = new Date()
+      const subscriptionActive = user.subscriptionEndsAt ? user.subscriptionEndsAt > now : false
 
-    const availableGenerations =
-      (user.generationLimit || 0) - (currentMonthlyGenerations || 0) + (user.bonusGenerations || 0)
+      const usedFromSubscription = user.advancedMonthlyGenerations
+      const availableFromSubscription = 80 - usedFromSubscription
+      const availablePurchased = user.purchasedGenerations
+      const totalAvailable = subscriptionActive
+        ? availableFromSubscription + availablePurchased
+        : 0 // Если подписка неактивна, генерации недоступны
 
-    const nextResetDate = getNextResetDate()
+      console.log(
+        `📊 [ADVANCED] Mode check: subscription=${usedFromSubscription}/80, purchased=${availablePurchased.toFixed(1)}, available=${totalAvailable.toFixed(1)}, active=${subscriptionActive}`
+      )
 
-    return NextResponse.json({
-      appMode: user.appMode,
-      monthlyGenerations: currentMonthlyGenerations,
-      generationLimit: user.generationLimit,
-      bonusGenerations: user.bonusGenerations,
-      availableGenerations,
-      nextResetDate,
-      subscriptionEndsAt: user.subscriptionEndsAt,
-      freeMonthlyGenerations: user.freeMonthlyGenerations,
-      advancedMonthlyGenerations: user.advancedMonthlyGenerations,
-    })
+      return NextResponse.json({
+        appMode: 'ADVANCED',
+        advancedMonthlyGenerations: usedFromSubscription,
+        purchasedGenerations: availablePurchased,
+        generationLimit: 80,
+        availableGenerations: totalAvailable,
+        availableFromSubscription,
+        availablePurchased,
+        balance: user.balance,
+        autoRenewEnabled: user.autoRenewEnabled,
+        subscriptionActive,
+        subscriptionEndsAt: user.subscriptionEndsAt,
+        subscriptionStartedAt: user.subscriptionStartedAt,
+      })
+    }
+
+    // Fallback
+    return NextResponse.json({ error: 'Invalid app mode' }, { status: 400 })
   } catch (error) {
     console.error('Get generations error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

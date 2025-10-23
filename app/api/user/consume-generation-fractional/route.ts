@@ -27,11 +27,11 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         appMode: true,
-        monthlyGenerations: true,
-        generationLimit: true,
-        bonusGenerations: true,
         freeMonthlyGenerations: true,
         advancedMonthlyGenerations: true,
+        purchasedGenerations: true,
+        generationLimit: true,
+        subscriptionEndsAt: true,
       },
     })
 
@@ -39,80 +39,101 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const currentMode = user.appMode.toLowerCase()
-    const isFreeMode = currentMode === 'free'
-    const isAdvancedMode = currentMode === 'advanced'
+    const now = new Date()
+    const isFreeMode = user.appMode === 'FREE'
+    const isAdvancedMode = user.appMode === 'ADVANCED'
 
-    let currentMonthlyGenerations = isFreeMode
-      ? user.freeMonthlyGenerations
-      : isAdvancedMode
-        ? user.advancedMonthlyGenerations
-        : user.monthlyGenerations
-
-    let currentBonusGenerations = user.bonusGenerations
-
-    // Проверяем, хватает ли генераций
-    const availableFromMonthly = user.generationLimit - currentMonthlyGenerations
-    const totalAvailable = availableFromMonthly + currentBonusGenerations
-
-    if (totalAvailable < amount) {
+    // === FREE РЕЖИМ ===
+    if (isFreeMode) {
+      // В FREE режиме замена изображений НЕ поддерживается (нет изображений вообще)
       return NextResponse.json(
         {
-          error: 'Insufficient generations',
-          needed: amount,
-          available: totalAvailable,
+          error: 'Замена изображений недоступна в FREE режиме',
+          message: 'Купите подписку ADVANCED для работы с изображениями',
         },
         { status: 403 }
       )
     }
 
-    // Списываем генерации (сначала из месячных, потом из бонусных)
-    let newMonthlyGenerations = currentMonthlyGenerations
-    let newBonusGenerations = currentBonusGenerations
+    // === ADVANCED РЕЖИМ ===
+    if (isAdvancedMode) {
+      // Проверка активности подписки
+      if (!user.subscriptionEndsAt || user.subscriptionEndsAt < now) {
+        return NextResponse.json(
+          {
+            error: 'Подписка ADVANCED истекла',
+            message: 'Продлите подписку для продолжения работы',
+            subscriptionExpired: true,
+          },
+          { status: 403 }
+        )
+      }
 
-    if (availableFromMonthly >= amount) {
-      newMonthlyGenerations -= amount
-    } else {
-      const fromMonthly = availableFromMonthly
-      const fromBonus = amount - fromMonthly
-      newMonthlyGenerations -= fromMonthly
-      newBonusGenerations -= fromBonus
+      // Проверка доступных генераций
+      const usedFromSubscription = user.advancedMonthlyGenerations
+      const availableFromSubscription = 80 - usedFromSubscription
+      const availablePurchased = user.purchasedGenerations
+
+      const totalAvailable = availableFromSubscription + availablePurchased
+
+      if (totalAvailable < amount) {
+        return NextResponse.json(
+          {
+            error: 'Недостаточно генераций',
+            needed: amount,
+            available: totalAvailable,
+            message: `Требуется ${amount.toFixed(1)} генераций, доступно ${totalAvailable.toFixed(1)}`,
+          },
+          { status: 403 }
+        )
+      }
+
+      // Списание (сначала из подписки, потом из купленных)
+      let newAdvancedMonthlyGenerations = usedFromSubscription
+      let newPurchasedGenerations = availablePurchased
+      let fromSubscription = 0
+      let fromPurchased = 0
+
+      if (availableFromSubscription >= amount) {
+        // Тратим полностью из подписки
+        newAdvancedMonthlyGenerations += amount
+        fromSubscription = amount
+      } else {
+        // Тратим частично из подписки, остальное из купленных
+        fromSubscription = availableFromSubscription
+        fromPurchased = amount - availableFromSubscription
+        newAdvancedMonthlyGenerations += fromSubscription
+        newPurchasedGenerations -= fromPurchased
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          advancedMonthlyGenerations: newAdvancedMonthlyGenerations,
+          purchasedGenerations: newPurchasedGenerations,
+        },
+      })
+
+      const newAvailableFromSubscription = 80 - newAdvancedMonthlyGenerations
+      const totalRemaining = newAvailableFromSubscription + newPurchasedGenerations
+
+      console.log(
+        `💰 [ADVANCED] Consumed ${amount.toFixed(1)}: ${reason || 'N/A'}, subscription=${newAdvancedMonthlyGenerations.toFixed(1)}/80, purchased=${newPurchasedGenerations.toFixed(1)}, remaining=${totalRemaining.toFixed(1)}`
+      )
+
+      return NextResponse.json({
+        success: true,
+        consumed: amount,
+        remainingGenerations: totalRemaining,
+        fromSubscription,
+        fromPurchased,
+      })
     }
 
-    const updateData: any = {
-      bonusGenerations: newBonusGenerations,
-    }
-
-    if (isFreeMode) {
-      updateData.freeMonthlyGenerations = newMonthlyGenerations
-    } else if (isAdvancedMode) {
-      updateData.advancedMonthlyGenerations = newMonthlyGenerations
-    } else {
-      updateData.monthlyGenerations = newMonthlyGenerations
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: updateData,
-    })
-
-    const availableMonthly = user.generationLimit - newMonthlyGenerations
-    const totalRemaining = availableMonthly + newBonusGenerations
-
-    console.log(`💰 Consumed ${amount} generations: ${reason || 'N/A'}. Remaining: ${totalRemaining}`)
-
-    return NextResponse.json({
-      success: true,
-      consumed: amount,
-      remainingGenerations: totalRemaining,
-      fromMonthly: Math.min(amount, availableFromMonthly),
-      fromBonus: Math.max(0, amount - availableFromMonthly),
-    })
+    // Fallback
+    return NextResponse.json({ error: 'Invalid app mode' }, { status: 400 })
   } catch (error) {
     console.error('Consume fractional generation error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
