@@ -222,7 +222,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        user.appMode === 'PRO' ? 'bg-purple-500/10 text-purple-600' :
+                        user.appMode === 'ADVANCED' ? 'bg-purple-500/10 text-purple-600' :
                         user.appMode === 'ADVANCED' ? 'bg-blue-500/10 text-blue-600' :
                         'bg-gray-500/10 text-gray-600'
                       }`}>
@@ -346,7 +346,7 @@ export default function AdminUsersPage() {
                 >
                   <option value="FREE">FREE</option>
                   <option value="ADVANCED">ADVANCED</option>
-                  <option value="PRO">PRO</option>
+                  <option value="ADVANCED">PRO</option>
                 </select>
               </div>
               <div className="flex gap-3">

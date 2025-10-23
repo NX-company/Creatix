@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const { mode } = await request.json()
 
-    if (!mode || !['FREE', 'ADVANCED', 'PRO'].includes(mode.toUpperCase())) {
+    if (!mode || !['FREE', 'ADVANCED'].includes(mode.toUpperCase())) {
       return NextResponse.json({ error: 'Invalid mode' }, { status: 400 })
     }
 
@@ -33,14 +33,6 @@ export async function POST(request: NextRequest) {
     const targetMode = mode.toUpperCase()
     const now = new Date()
     const hasActiveSubscription = user.subscriptionEndsAt && new Date(user.subscriptionEndsAt) > now
-
-    // PRO режим удален (только FREE и ADVANCED)
-    if (targetMode === 'PRO') {
-      return NextResponse.json({
-        error: 'PRO mode removed',
-        message: 'PRO режим был удален. Доступны FREE и ADVANCED'
-      }, { status: 403 })
-    }
 
     // НОВАЯ МОДЕЛЬ:
     // - FREE → FREE: всегда разрешено

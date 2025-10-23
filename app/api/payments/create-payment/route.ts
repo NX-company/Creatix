@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       paymentType, // 'subscription' или 'bonus_pack'
-      targetMode,  // 'ADVANCED' или 'PRO' (для subscription)
+      targetMode,  // 'ADVANCED' или 'ADVANCED' (для subscription)
     } = body
 
     // Проверка обязательных полей
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     let paymentDescription: string
 
     if (paymentType === 'subscription') {
-      if (!targetMode || (targetMode !== 'ADVANCED' && targetMode !== 'PRO')) {
+      if (!targetMode || (targetMode !== 'ADVANCED' && targetMode !== 'ADVANCED')) {
         return NextResponse.json(
           { error: 'Invalid targetMode for subscription' },
           { status: 400 }
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
 
       // КРИТИЧЕСКИ ВАЖНО: Цена определяется ТОЛЬКО на сервере из констант
       // Игнорируем любые параметры amount из запроса клиента
-      amount = SUBSCRIPTION_PRICES[targetMode as 'ADVANCED' | 'PRO']
-      const modeText = targetMode === 'ADVANCED' ? 'ADVANCED' : 'PRO'
+      amount = SUBSCRIPTION_PRICES[targetMode as 'ADVANCED' | 'ADVANCED']
+      const modeText = targetMode === 'ADVANCED' ? 'ADVANCED' : 'ADVANCED'
       purpose = `Подписка Creatix ${modeText}`
       paymentDescription = `Оплата подписки на тариф ${modeText}`
 

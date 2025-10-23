@@ -224,7 +224,7 @@ export default function AdminTokensPage() {
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 text-xs rounded-full ${
                               user.appMode === 'ADVANCED' ? 'bg-purple-500/20 text-purple-300' :
-                              user.appMode === 'PRO' ? 'bg-blue-500/20 text-blue-300' :
+                              user.appMode === 'ADVANCED' ? 'bg-blue-500/20 text-blue-300' :
                               'bg-slate-500/20 text-slate-300'
                             }`}>
                               {user.appMode}

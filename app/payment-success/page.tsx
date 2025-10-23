@@ -108,7 +108,7 @@ function PaymentSuccessContent() {
           // Формируем понятное сообщение
           let message = ''
           if (paymentType === 'subscription') {
-            const modeText = mode === 'ADVANCED' ? 'ADVANCED' : mode === 'PRO' ? 'PRO' : mode
+            const modeText = mode === 'ADVANCED' ? 'ADVANCED' : mode === 'ADVANCED' ? 'ADVANCED' : mode
             message = `Подписка ${modeText} успешно активирована!`
           } else if (paymentType === 'bonus_pack') {
             message = '+30 генераций добавлено на ваш аккаунт!'
@@ -162,7 +162,7 @@ function PaymentSuccessContent() {
           // Формируем сообщение
           let message = ''
           if (paymentType === 'subscription') {
-            const modeText = mode === 'ADVANCED' ? 'ADVANCED' : mode === 'PRO' ? 'PRO' : mode
+            const modeText = mode === 'ADVANCED' ? 'ADVANCED' : mode === 'ADVANCED' ? 'ADVANCED' : mode
             message = `Подписка ${modeText} успешно активирована!`
           } else if (paymentType === 'bonus_pack') {
             message = '+30 генераций добавлено на ваш аккаунт!'

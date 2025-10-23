@@ -223,10 +223,10 @@ export const testScenarios: TestScenario[] = [
       try {
         await page.goto(baseUrl)
         
-        const modeButtons = await page.locator('button:has-text("Free"), button:has-text("Advanced"), button:has-text("PRO")').count()
+        const modeButtons = await page.locator('button:has-text("Free"), button:has-text("Advanced"), button:has-text("ADVANCED")').count()
         
         if (modeButtons >= 2) {
-          await page.locator('button:has-text("Advanced"), button:has-text("PRO")').first().click()
+          await page.locator('button:has-text("Advanced"), button:has-text("ADVANCED")').first().click()
           await page.waitForTimeout(1000)
         }
         

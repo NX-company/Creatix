@@ -45,7 +45,7 @@ export const MODE_CONFIG = {
     },
   },
   pro: {
-    name: 'PRO',
+    name: 'ADVANCED',
     icon: '💎',
     description: 'HD качество + видео',
     features: {

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const { targetMode } = await request.json()
 
-    if (targetMode !== 'ADVANCED' && targetMode !== 'PRO') {
+    if (targetMode !== 'ADVANCED' && targetMode !== 'ADVANCED') {
       return NextResponse.json({ error: 'Invalid target mode' }, { status: 400 })
     }
 

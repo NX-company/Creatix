@@ -30,7 +30,7 @@ async function fixAdminRole() {
         role: 'ADMIN',
         username: 'admin',
         password: hashedPassword,
-        appMode: 'PRO',
+        appMode: 'ADVANCED',
         isActive: true
       }
     })

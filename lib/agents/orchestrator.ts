@@ -56,7 +56,7 @@ export async function generateDocumentWithMode(params: {
   const modeNames = {
     free: 'бесплатном',
     advanced: 'продвинутом',
-    pro: 'PRO'
+    pro: 'ADVANCED'
   }
   
   notify(`🚀 Начинаю создание документа в ${modeNames[mode]} режиме`)

@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         // Апгрейд подписки
         const targetMode = metadata?.targetMode
 
-        if (!targetMode || (targetMode !== 'ADVANCED' && targetMode !== 'PRO')) {
+        if (!targetMode || (targetMode !== 'ADVANCED' && targetMode !== 'ADVANCED')) {
           console.error('❌ Invalid targetMode in transaction metadata')
           return NextResponse.json(
             { error: 'Invalid targetMode' },

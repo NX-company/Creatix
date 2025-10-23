@@ -44,7 +44,7 @@ export default function GenerationLimitModal({
     month: 'long',
   })
 
-  const isAdvancedUser = appMode === 'ADVANCED' || appMode === 'PRO'
+  const isAdvancedUser = appMode === 'ADVANCED' || appMode === 'ADVANCED'
 
   return (
     <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 9999 }}>

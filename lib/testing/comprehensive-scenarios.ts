@@ -744,7 +744,7 @@ export const comprehensiveScenarios: TestScenario[] = [
         await page.goto(baseUrl)
         await page.waitForLoadState('networkidle')
         
-        const modeButtons = await page.locator('button:has-text("Free"), button:has-text("Advanced"), button:has-text("PRO"), button:has-text("Бесплатный")').count()
+        const modeButtons = await page.locator('button:has-text("Free"), button:has-text("Advanced"), button:has-text("ADVANCED"), button:has-text("Бесплатный")').count()
         
         const screenshot = await page.screenshot({ fullPage: true })
         return {

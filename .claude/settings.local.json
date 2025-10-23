@@ -4,7 +4,10 @@
       "Bash(\"C:\\Program Files\\PuTTY\\pscp.exe\" -pw \"pzaNtMznbq@hw3\" \"c:\\Projects\\Creatix\\app\\api\\user\\consume-generation\\route.ts\" root@45.129.128.121:/root/Creatix/app/api/user/consume-generation/route.ts)",
       "Bash(\"C:\\Program Files\\PuTTY\\pscp.exe\" -pw \"pzaNtMznbq@hw3\" \"c:\\Projects\\Creatix\\app\\api\\admin\\init\\route.ts\" root@45.129.128.121:/root/Creatix/app/api/admin/init/route.ts)",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && find app -name ''*.ts'' -o -name ''*.tsx'' | xargs sed -i \"\"s/''PRO''/''ADVANCED''/g\"\"\")",
-      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && find app -name ''*.ts'' -o -name ''*.tsx'' | xargs sed -i ''s/\"\"PRO\"\"/\"\"ADVANCED\"\"/g''\")"
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && find app -name ''*.ts'' -o -name ''*.tsx'' | xargs sed -i ''s/\"\"PRO\"\"/\"\"ADVANCED\"\"/g''\")",
+      "Bash(git commit:*)",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && docker compose down app && docker rmi creatix-app && docker compose build --no-cache app && docker compose up -d app\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && git pull origin main && docker compose build app && docker compose up -d app\")"
     ],
     "deny": [],
     "ask": []

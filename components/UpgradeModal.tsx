@@ -23,7 +23,7 @@ export default function UpgradeModal({ isOpen, onClose, currentMode = 'FREE' }: 
   // Проверка для SSR
   if (!isOpen || typeof window === 'undefined') return null
 
-  const handleUpgrade = async (targetMode: 'ADVANCED' | 'PRO') => {
+  const handleUpgrade = async (targetMode: 'ADVANCED' | 'ADVANCED') => {
     // Проверка согласия с условиями
     if (!agreedToTerms || !agreedToData) {
       setError('Необходимо согласиться с условиями оферты и обработкой персональных данных')
