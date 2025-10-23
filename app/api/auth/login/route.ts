@@ -5,17 +5,23 @@ import { generateToken } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const { username, password } = await req.json()
+    const { username, email, password } = await req.json()
+    const login = username || email
 
-    if (!username || !password) {
+    if (!login || !password) {
       return NextResponse.json(
         { error: 'Логин и пароль обязательны' },
         { status: 400 }
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username }
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: login },
+          { email: login }
+        ]
+      }
     })
 
     if (!user || !user.isActive) {

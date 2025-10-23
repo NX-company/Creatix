@@ -44,11 +44,10 @@ export async function POST(req: NextRequest) {
         role: 'USER',
         appMode: 'FREE',
         generationLimit: 10,
+        monthlyGenerations: 0,
         freeMonthlyGenerations: 0,
         advancedMonthlyGenerations: 0,
-        purchasedGenerations: 0,
-        balance: 0,
-        autoRenewEnabled: false,
+        bonusGenerations: 0,
         lastResetDate: new Date()
       },
       select: {
@@ -58,6 +57,7 @@ export async function POST(req: NextRequest) {
         role: true,
         appMode: true,
         generationLimit: true,
+        monthlyGenerations: true,
         freeMonthlyGenerations: true,
         createdAt: true
       }
