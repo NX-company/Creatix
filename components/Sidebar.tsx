@@ -22,7 +22,11 @@ interface GenerationsInfo {
   nextResetDate: string
   freeMonthlyGenerations?: number
   advancedMonthlyGenerations?: number
+  purchasedGenerations?: number
+  balance?: number
+  autoRenewEnabled?: boolean
   subscriptionEndsAt?: Date | null
+  subscriptionStartedAt?: Date | null
 }
 
 interface SidebarProps {
