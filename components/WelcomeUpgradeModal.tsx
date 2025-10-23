@@ -86,19 +86,19 @@ export default function WelcomeUpgradeModal({ isOpen, onClose }: WelcomeUpgradeM
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-2 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <span>30 генераций/месяц</span>
+                  <span>10 генераций/месяц</span>
+                </li>
+                <li className="flex items-start gap-2 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                  <span>Модель Flux Schnell Lite</span>
                 </li>
                 <li className="flex items-start gap-2 text-gray-300">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
                   <span>Сохранение проектов</span>
                 </li>
-                <li className="flex items-start gap-2 text-gray-300">
-                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <span>История документов</span>
-                </li>
                 <li className="flex items-start gap-2 text-gray-400 line-through">
                   <span className="w-5 h-5 flex-shrink-0"></span>
-                  <span>AI изображения</span>
+                  <span>AI изображения (без картинок)</span>
                 </li>
               </ul>
 
@@ -129,7 +129,7 @@ export default function WelcomeUpgradeModal({ isOpen, onClose }: WelcomeUpgradeM
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-2 text-white">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <span>100 генераций с AI изображениями</span>
+                  <span>80 генераций с AI изображениями</span>
                 </li>
                 <li className="flex items-start gap-2 text-white">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -137,11 +137,11 @@ export default function WelcomeUpgradeModal({ isOpen, onClose }: WelcomeUpgradeM
                 </li>
                 <li className="flex items-start gap-2 text-white">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <span>Парсинг сайтов</span>
+                  <span>+15₽ за доп. генерацию при необходимости</span>
                 </li>
                 <li className="flex items-start gap-2 text-white">
                   <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                  <span>Приоритетная обработка</span>
+                  <span>Парсинг сайтов и загрузка изображений</span>
                 </li>
               </ul>
 

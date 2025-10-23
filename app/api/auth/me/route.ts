@@ -17,21 +17,9 @@ export async function GET(req: NextRequest) {
     // Проверяем активна ли подписка
     const hasActiveSubscription = user.subscriptionEndsAt ? now < user.subscriptionEndsAt : false
 
-    // В trial только если:
-    // 1. Trial не закончился
-    // 2. И НЕТ активной подписки
-    // 3. И режим FREE (не ADVANCED/PRO)
-    const isInTrial = !hasActiveSubscription &&
-                      user.trialEndsAt &&
-                      now < user.trialEndsAt &&
-                      user.appMode === 'FREE'
-
-    const trialDaysLeft = user.trialEndsAt && isInTrial
-      ? Math.max(0, Math.ceil((user.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-      : 0
-    const trialGenerationsLeft = isInTrial
-      ? Math.max(0, 30 - (user.trialGenerations || 0))
-      : 0
+    // НОВАЯ МОДЕЛЬ: Trial больше НЕ используется
+    // FREE: 10 генераций/месяц (freeMonthlyGenerations)
+    // ADVANCED: 80 генераций/месяц + купленные (advancedMonthlyGenerations + purchasedGenerations)
 
     return NextResponse.json({
       user: {
@@ -42,15 +30,18 @@ export async function GET(req: NextRequest) {
         appMode: user.appMode,
         isActive: user.isActive,
         generationLimit: user.generationLimit,
-        monthlyGenerations: user.monthlyGenerations || 0,
-        bonusGenerations: user.bonusGenerations || 0,
+        freeMonthlyGenerations: user.freeMonthlyGenerations || 0,
+        advancedMonthlyGenerations: user.advancedMonthlyGenerations || 0,
+        purchasedGenerations: user.purchasedGenerations || 0,
+        balance: user.balance || 0,
+        autoRenewEnabled: user.autoRenewEnabled || false,
         subscriptionEndsAt: user.subscriptionEndsAt,
+        subscriptionStartedAt: user.subscriptionStartedAt,
         hasActiveSubscription,
-        trialEndsAt: user.trialEndsAt,
-        trialGenerations: user.trialGenerations || 0,
-        isInTrial,
-        trialDaysLeft,
-        trialGenerationsLeft
+        // DEPRECATED: trial не используется
+        isInTrial: false,
+        trialDaysLeft: 0,
+        trialGenerationsLeft: 0
       }
     })
   } catch (error) {

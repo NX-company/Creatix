@@ -428,21 +428,7 @@ export default function ChatPanel() {
       }
     }
     
-    // Trial limit check for registered users
-    if (!isGuestMode && currentUser?.isInTrial && isCreationRequest) {
-      const trialGenerationsLeft = currentUser.trialGenerationsLeft || 0
-      const trialDaysLeft = currentUser.trialDaysLeft || 0
-      
-      if (trialGenerationsLeft <= 0 || trialDaysLeft <= 0) {
-        console.log('🚫 Trial limit reached')
-        addMessage({
-          role: 'assistant',
-          content: `⚠️ Ваш пробный период завершен!\n\n📊 Вы использовали ${currentUser.trialGenerations || 0} генераций за ${3 - trialDaysLeft} дней.\n\nСвяжитесь с нами для продолжения работы!`
-        })
-        setShowTrialExpiredModal(true)
-        return
-      }
-    }
+    // НОВАЯ МОДЕЛЬ: Trial не используется - удален
     
     console.log('✅ handleRun proceeding with generation')
     
@@ -595,7 +581,7 @@ export default function ChatPanel() {
           // 💰 ПРОВЕРКА НОВЫХ ИЗОБРАЖЕНИЙ И СПИСАНИЕ ГЕНЕРАЦИЙ
           const newImageCount = countNewImagePlaceholders(htmlPreview, finalHtml)
 
-          if (newImageCount > 0 && session && !isGuestMode && !currentUser?.isInTrial) {
+          if (newImageCount > 0 && session && !isGuestMode) {
             const generationCost = newImageCount * 0.1
             console.log(`💰 New images detected: ${newImageCount}, cost: ${generationCost} generations`)
 
@@ -940,9 +926,9 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         ? `${contentPrompt}${websiteContext}${contextInfo}${planContext}${historyContext}${documentContext}${imagesContext}${selectedElementContext}\n\n📝 ТЕКУЩИЙ ЗАПРОС ПОЛЬЗОВАТЕЛЯ: ${userMsg}`
         : `${userMsg}${websiteContext}${contextInfo}${planContext}${historyContext}${documentContext}${imagesContext}${selectedElementContext}`
       
-      // Check generation limits ONLY for authenticated users (non-guest, non-trial)
-      // Guests and trial users have their own separate limit systems
-      const shouldCheckGenerationLimits = !isGuestMode && !currentUser?.isInTrial
+      // Check generation limits ONLY for authenticated users (non-guest)
+      // Guests have their own separate limit system
+      const shouldCheckGenerationLimits = !isGuestMode
       
       if (shouldCheckGenerationLimits) {
         console.log('🔍 Checking generation limits for authenticated user')
@@ -1048,13 +1034,12 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
       // Debug: Check which flow will be executed
       console.log('🔍 Generation flow check:', {
         isGuestMode,
-        isInTrial: currentUser?.isInTrial,
         isCreationRequest,
         shouldCheckGenerationLimits,
-        userState: currentUser ? 'trial/paid' : 'guest/unknown'
+        userState: currentUser ? 'authenticated' : 'guest/unknown'
       })
-      
-      // Consume generation ONLY for authenticated users (non-guest, non-trial)
+
+      // Consume generation ONLY for authenticated users (non-guest)
       if (shouldCheckGenerationLimits) {
         try {
           const imageCount = result.generatedImages.length || planningData.imageCount || 10
@@ -1133,60 +1118,8 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
             setTimeout(() => setShowWelcomeUpgradeModal(true), 2000)
           }
         }
-      } else if (!isGuestMode && currentUser?.isInTrial && isCreationRequest) {
-        console.log('🎯 Trial user detected, incrementing generation counter:', {
-          isGuestMode,
-          isInTrial: currentUser?.isInTrial,
-          isCreationRequest,
-          trialGenerations: currentUser?.trialGenerations,
-          trialGenerationsLeft: currentUser?.trialGenerationsLeft
-        })
-        
-        try {
-          const response = await fetch('/api/user/increment-trial-generation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            const remaining = data.trialGenerationsLeft
-            const limit = data.trialLimit || 30
-            
-            console.log(`✅ Trial generation counted. Remaining: ${remaining}/${limit}`)
-            
-            setCurrentUser(prev => prev ? {
-              ...prev,
-              trialGenerations: data.trialGenerations,
-              trialGenerationsLeft: remaining
-            } : null)
-            
-            // Trigger UI update in Sidebar
-            window.dispatchEvent(new CustomEvent('trialGenerationConsumed', {
-              detail: { 
-                trialGenerations: data.trialGenerations,
-                trialGenerationsLeft: remaining,
-                trialLimit: limit
-              }
-            }))
-            
-            if (remaining === 0) {
-              addMessage({
-                role: 'assistant',
-                content: '⚡ Это была ваша последняя пробная генерация! Свяжитесь с нами для продолжения работы.'
-              })
-              setTimeout(() => setShowTrialExpiredModal(true), 2000)
-            } else if (remaining <= 5) {
-              addMessage({
-                role: 'assistant',
-                content: `⚡ У вас осталось ${remaining} пробных генераций. Используйте их с умом!`
-              })
-            }
-          }
-        } catch (error) {
-          console.error('Error incrementing trial generation:', error)
-        }
       }
+      // НОВАЯ МОДЕЛЬ: Trial consumption удален - используется только consumeGeneration() выше
       
       // Сохраняем выделение для возможности дальнейшего редактирования
       
