@@ -25,7 +25,11 @@
       "Bash(npm run build:*)",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"curl -X POST http://localhost:3000/api/admin/init -H ''Content-Type: application/json'' -d ''{}''\")",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && source .env.production && npx tsx scripts/check-payment-status.ts 0c6ce5c1-bbca-4601-a314-e30458029d53\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && rm -f scripts/check-payment-status.ts && git pull origin main && docker compose build app && docker compose up -d app\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"curl -X GET https://aicreatix.ru/api/payments/webhook-test\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"sleep 5 && docker logs creatix-app --tail 20\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"docker logs creatix-app --tail 100\")"
     ],
     "deny": [],
     "ask": []

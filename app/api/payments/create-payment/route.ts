@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
     const tochkaClient = createTochkaClient()
 
     // Создание платежной ссылки (без чека, т.к. payments_with_receipt возвращает 501)
-    // Редирект на главную страницу после успешной оплаты (подписка активируется через webhook)
-    const successUrl = 'https://aicreatix.ru/'
-    const failUrl = 'https://aicreatix.ru/?payment=failed'
+    // Редирект на payment-success где автоматически активируется подписка
+    const successUrl = `https://aicreatix.ru/payment-success?type=subscription&mode=${targetMode}`
+    const failUrl = 'https://aicreatix.ru/payment-failure'
 
     const paymentResult = await tochkaClient.createPayment({
       amount,
