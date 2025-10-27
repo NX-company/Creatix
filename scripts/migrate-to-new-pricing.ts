@@ -14,7 +14,12 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import { PACKAGE_CODES } from '../pricing_new/config'
+
+// Константы для пакетов
+const PACKAGE_CODES = {
+  FREE_TRIAL_30: 'FREE_TRIAL_30',
+  ADVANCED_100: 'ADVANCED_100'
+}
 
 const prisma = new PrismaClient()
 

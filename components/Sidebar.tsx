@@ -199,7 +199,7 @@ export default function Sidebar({ onCollapseChange, onPurchaseClick }: SidebarPr
       {!isCollapsed && <GenerationsCounter />}
 
       {/* Purchase Subscription Button */}
-      {!isCollapsed && !isGuestMode && session?.user && onPurchaseClick && appMode !== 'ADVANCED' && (
+      {!isCollapsed && !isGuestMode && session?.user && onPurchaseClick && appMode !== 'advanced' && (
         <div className="px-3 pb-3">
           <button
             onClick={onPurchaseClick}
