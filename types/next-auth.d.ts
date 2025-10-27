@@ -9,6 +9,7 @@ declare module "next-auth" {
       appMode: AppMode
       freeGenerationsRemaining: number
       freeGenerationsUsed: number
+      subscriptionStatus: string | null
     } & DefaultSession["user"]
   }
 
@@ -17,6 +18,7 @@ declare module "next-auth" {
     appMode: AppMode
     freeGenerationsRemaining: number
     freeGenerationsUsed: number
+    subscriptionStatus: string | null
   }
 }
 
@@ -27,6 +29,7 @@ declare module "next-auth/jwt" {
     appMode: AppMode
     freeGenerationsRemaining: number
     freeGenerationsUsed: number
+    subscriptionStatus: string | null
   }
 }
 

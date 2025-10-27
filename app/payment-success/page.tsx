@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react'
+import { useStore } from '@/lib/store'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,7 @@ function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { update: updateSession } = useSession()
+  const setAppMode = useStore((state) => state.setAppMode)
   const [countdown, setCountdown] = useState(5) // Увеличено до 5 секунд для комфортного чтения
   const [activationStatus, setActivationStatus] = useState<'pending' | 'success' | 'error'>('pending')
   const [activationMessage, setActivationMessage] = useState('')
@@ -51,6 +53,10 @@ function PaymentSuccessContent() {
       if (response.ok && data.success) {
         console.log('✅ Latest payment activated successfully:', data)
         setActivationStatus('success')
+
+        // Switch to ADVANCED mode immediately
+        setAppMode('advanced')
+        console.log('🎯 Switched to ADVANCED mode')
 
         setActivationMessage(`Подписка ${data.targetMode || 'ADVANCED'} успешно активирована!`)
 
@@ -102,6 +108,10 @@ function PaymentSuccessContent() {
           console.log('✅ Payment activated successfully via client-side:', data)
           setActivationStatus('success')
 
+          // Switch to ADVANCED mode immediately
+          setAppMode('advanced')
+          console.log('🎯 Switched to ADVANCED mode')
+
           // Формируем понятное сообщение
           let message = 'Подписка ADVANCED успешно активирована!'
           if (paymentType === 'package') {
@@ -150,6 +160,10 @@ function PaymentSuccessContent() {
         if (data.found && data.transaction.status === 'COMPLETED') {
           console.log('✅ Payment activated successfully via webhook!')
           setActivationStatus('success')
+
+          // Switch to ADVANCED mode immediately
+          setAppMode('advanced')
+          console.log('🎯 Switched to ADVANCED mode')
 
           // Формируем сообщение
           let message = 'Подписка ADVANCED успешно активирована!'

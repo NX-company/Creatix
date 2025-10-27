@@ -53,7 +53,8 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           appMode: user.appMode,
           freeGenerationsRemaining: user.freeGenerationsRemaining,
-          freeGenerationsUsed: user.freeGenerationsUsed
+          freeGenerationsUsed: user.freeGenerationsUsed,
+          subscriptionStatus: user.subscriptionStatus
         }
       }
     })
@@ -66,6 +67,7 @@ export const authOptions: NextAuthOptions = {
         token.appMode = (user.appMode || 'FREE') as any
         token.freeGenerationsRemaining = user.freeGenerationsRemaining || 0
         token.freeGenerationsUsed = user.freeGenerationsUsed || 0
+        token.subscriptionStatus = user.subscriptionStatus || null
       }
 
       if (trigger === 'update' && token.id) {
@@ -78,6 +80,7 @@ export const authOptions: NextAuthOptions = {
               appMode: true,
               freeGenerationsRemaining: true,
               freeGenerationsUsed: true,
+              subscriptionStatus: true,
             }
           })
 
@@ -86,6 +89,7 @@ export const authOptions: NextAuthOptions = {
             token.appMode = dbUser.appMode as any
             token.freeGenerationsRemaining = dbUser.freeGenerationsRemaining
             token.freeGenerationsUsed = dbUser.freeGenerationsUsed
+            token.subscriptionStatus = dbUser.subscriptionStatus
             console.log(`🔄 Token updated for user ${dbUser.id}: appMode=${dbUser.appMode}, freeGens=${dbUser.freeGenerationsRemaining}`)
           }
         } catch (error) {
@@ -102,6 +106,7 @@ export const authOptions: NextAuthOptions = {
         session.user.appMode = (token.appMode || user?.appMode || 'FREE') as any
         session.user.freeGenerationsRemaining = (token.freeGenerationsRemaining || user?.freeGenerationsRemaining || 0) as number
         session.user.freeGenerationsUsed = (token.freeGenerationsUsed || user?.freeGenerationsUsed || 0) as number
+        session.user.subscriptionStatus = (token.subscriptionStatus || user?.subscriptionStatus || null) as string | null
       }
       return session
     },

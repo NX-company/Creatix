@@ -199,7 +199,7 @@ export default function Sidebar({ onCollapseChange, onPurchaseClick }: SidebarPr
       {!isCollapsed && <GenerationsCounter />}
 
       {/* Purchase Subscription Button */}
-      {!isCollapsed && !isGuestMode && session?.user && onPurchaseClick && appMode !== 'advanced' && (
+      {!isCollapsed && !isGuestMode && session?.user && onPurchaseClick && (session.user as any).subscriptionStatus !== 'active' && (
         <div className="px-3 pb-3">
           <button
             onClick={onPurchaseClick}
@@ -208,7 +208,7 @@ export default function Sidebar({ onCollapseChange, onPurchaseClick }: SidebarPr
             <span>💎 Купить подписку ADVANCED</span>
           </button>
           <p className="text-[9px] text-muted-foreground text-center mt-1">
-            100 генераций на 30 дней — 10₽
+            100 генераций на 30 дней — 1000₽
           </p>
         </div>
       )}
