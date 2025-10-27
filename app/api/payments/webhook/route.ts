@@ -16,6 +16,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📦 Full webhook payload:', JSON.stringify(body, null, 2))
 
+    // КРИТИЧЕСКИ ВАЖНО: Логируем ВСЕ ключи объекта для отладки
+    console.log('🔍 Webhook body keys:', Object.keys(body))
+    console.log('🔍 Webhook body structure:', {
+      hasEvent: 'event' in body,
+      hasPayloadType: 'payloadType' in body,
+      hasPayload: 'payload' in body,
+      hasStatus: 'status' in body,
+      hasOperationId: 'operationId' in body,
+      hasPaymentId: 'paymentId' in body,
+    })
+
     // Формат webhook от Точка Банка согласно документации:
     // https://developers.tochka.com/docs/pay-gateway/api/tokenization-decision-notification
     const {
@@ -28,7 +39,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Проверяем что это уведомление о платеже
-    if (event !== 'payment-updated') {
+    if (event && event !== 'payment-updated') {
       console.log(`ℹ️ Webhook: Ignoring event type: ${event}`)
       return NextResponse.json({ success: true, message: 'Event ignored' })
     }
