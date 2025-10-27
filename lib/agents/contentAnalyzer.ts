@@ -24,7 +24,7 @@ export async function analyzeContentForImages(
   generatedContent: string,
   docType: DocType,
   previousFeedback?: string,
-  usePRO: boolean = false,
+  useAdvanced: boolean = false,
   uploadedImagesCount: number = 0,
   userRequestedCount?: number
 ): Promise<ContentAnalysisResult> {
@@ -130,8 +130,8 @@ Return ONLY valid JSON:
 }`
 
   try {
-    if (usePRO) {
-      // PRO режим: используем OpenRouter GPT-4o вместо прямого OpenAI API (чтобы избежать квоты)
+    if (useAdvanced) {
+      // ADVANCED режим: используем OpenRouter GPT-4o вместо прямого OpenAI API (чтобы избежать квоты)
       const response = await fetch('/api/openrouter-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Trash2, UserPlus, Loader2, Ban, Check, Plus, TrendingUp, Calendar, DollarSign } from 'lucide-react'
+import { ArrowLeft, Trash2, UserPlus, Loader2, Ban, Check, TrendingUp, Calendar } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 type User = {
@@ -13,10 +13,8 @@ type User = {
   role: string
   appMode: string
   isActive: boolean
-  trialGenerations: number
-  monthlyGenerations: number
-  bonusGenerations: number
-  generationLimit: number
+  balance: number
+  subscriptionEndsAt: string | null
   createdAt: string
   _count: {
     projects: number
@@ -34,11 +32,9 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showCreditsModal, setShowCreditsModal] = useState(false)
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userStats, setUserStats] = useState<UserStats | null>(null)
-  const [creditsAmount, setCreditsAmount] = useState(0)
   const [newUser, setNewUser] = useState({ email: '', username: '', password: '', appMode: 'FREE' })
 
   useEffect(() => {
@@ -124,44 +120,10 @@ export default function AdminUsersPage() {
     }
   }
 
-  const handleAddCredits = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedUser) return
-
-    try {
-      const response = await fetch('/api/admin/add-credits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          credits: creditsAmount
-        })
-      })
-
-      if (response.ok) {
-        setShowCreditsModal(false)
-        setCreditsAmount(0)
-        setSelectedUser(null)
-        fetchUsers()
-      }
-    } catch (error) {
-      console.error('Failed to add credits:', error)
-    }
-  }
-
-  const openCreditsModal = (user: User) => {
-    setSelectedUser(user)
-    setShowCreditsModal(true)
-  }
-
   const openStatsModal = async (user: User) => {
     setSelectedUser(user)
     setShowStatsModal(true)
     await fetchUserStats(user.id)
-  }
-
-  const getTotalGenerations = (user: User) => {
-    return user.trialGenerations + user.monthlyGenerations + user.bonusGenerations
   }
 
   if (loading) {
@@ -204,8 +166,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-medium">Пользователь</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Режим</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium">Генерации</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium">Лимит</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium">Баланс</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Проекты</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Статус</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Действия</th>
@@ -230,35 +191,13 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Бесплатные:</span>
-                            <span className="text-sm font-medium">{user.trialGenerations}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Месячные:</span>
-                            <span className="text-sm font-medium">{user.monthlyGenerations}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Бонусные:</span>
-                            <span className="text-sm font-medium">{user.bonusGenerations}</span>
-                          </div>
-                          <div className="flex items-center gap-2 pt-1 border-t border-border/50">
-                            <span className="text-xs text-muted-foreground font-semibold">Всего:</span>
-                            <span className="text-sm font-bold text-primary">{getTotalGenerations(user)}</span>
-                          </div>
+                      <div className="text-sm font-medium">{user.balance.toFixed(2)} ₽</div>
+                      {user.subscriptionEndsAt && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          До: {new Date(user.subscriptionEndsAt).toLocaleDateString('ru-RU')}
                         </div>
-                        <button
-                          onClick={() => openCreditsModal(user)}
-                          className="p-1 hover:bg-primary/10 rounded transition"
-                          title="Начислить генерации"
-                        >
-                          <Plus className="w-3 h-3 text-primary" />
-                        </button>
-                      </div>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-sm">{user.generationLimit}</td>
                     <td className="px-6 py-4 text-sm">{user._count.projects}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -346,7 +285,6 @@ export default function AdminUsersPage() {
                 >
                   <option value="FREE">FREE</option>
                   <option value="ADVANCED">ADVANCED</option>
-                  <option value="ADVANCED">PRO</option>
                 </select>
               </div>
               <div className="flex gap-3">
@@ -362,61 +300,6 @@ export default function AdminUsersPage() {
                   className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition"
                 >
                   Добавить
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Credits Modal */}
-      {showCreditsModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold mb-4">Начислить генерации</h2>
-            <div className="mb-4 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Пользователь</p>
-              <p className="font-medium">{selectedUser.username}</p>
-              <p className="text-sm mt-2 text-muted-foreground">Текущий баланс</p>
-              <p className="font-bold text-lg">{getTotalGenerations(selectedUser)} генераций</p>
-            </div>
-            <form onSubmit={handleAddCredits} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Количество генераций</label>
-                <input
-                  type="number"
-                  value={creditsAmount}
-                  onChange={(e) => setCreditsAmount(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                  min="1"
-                  placeholder="Введите количество"
-                />
-              </div>
-              {creditsAmount > 0 && (
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <p className="text-sm text-primary">
-                    Новый баланс: <span className="font-bold">{getTotalGenerations(selectedUser) + creditsAmount}</span> генераций
-                  </p>
-                </div>
-              )}
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreditsModal(false)
-                    setCreditsAmount(0)
-                    setSelectedUser(null)
-                  }}
-                  className="flex-1 px-4 py-2 bg-muted rounded-lg hover:bg-muted/80 transition"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition"
-                >
-                  Начислить
                 </button>
               </div>
             </form>

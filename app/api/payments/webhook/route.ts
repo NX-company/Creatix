@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { createTochkaClient } from '@/lib/tochka'
-import { GENERATION_LIMITS } from '@/lib/generationLimits'
 
 /**
  * POST /api/payments/webhook
  * Webhook для обработки уведомлений от Точка Банка
+ *
+ * РОУТЕР: Определяет систему (старая/новая) и делегирует обработку
  */
 export async function POST(request: NextRequest) {
   try {
@@ -89,6 +90,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('🔄 Processing payment webhook')
+
     // Проверка, что транзакция ещё не обработана
     if (transaction.status === 'COMPLETED') {
       console.log(`⚠️  Transaction already processed: ${operationId}`)
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
         // Апгрейд подписки
         const targetMode = metadata?.targetMode
 
-        if (!targetMode || (targetMode !== 'ADVANCED' && targetMode !== 'ADVANCED')) {
+        if (!targetMode || targetMode !== 'ADVANCED') {
           console.error('❌ Invalid targetMode in transaction metadata')
           return NextResponse.json(
             { error: 'Invalid targetMode' },
@@ -157,67 +160,35 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Обновление пользователя - подписка действует ровно 1 месяц
-        const subscriptionEndsAt = new Date()
-        subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1)
+        // Обновление пользователя - подписка действует ровно 30 дней
+        const now = new Date()
+        const subscriptionEndsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // +30 дней
 
         await prisma.user.update({
           where: { id: transaction.userId },
           data: {
             appMode: targetMode,
-            generationLimit: GENERATION_LIMITS[targetMode as keyof typeof GENERATION_LIMITS],
-            subscriptionEndsAt,
-            monthlyGenerations: 0,
-            bonusGenerations: 0,
-            trialEndsAt: null,
+            subscriptionStatus: 'active',
+            subscriptionStartedAt: now,
+            subscriptionEndsAt: subscriptionEndsAt,
+            advancedGenerationsTotal: { increment: 100 },
+            advancedGenerationsRemaining: { increment: 100 },
           },
         })
 
         console.log(`✅ User upgraded to ${targetMode}:`, {
           userId: transaction.userId,
+          email: transaction.user.email,
+          subscriptionStartedAt: now,
           subscriptionEndsAt,
+          advancedGenerationsAdded: 100,
         })
-
-      } else if (transaction.type === 'BONUS_PACK') {
-        console.log(`🎁 Webhook: Processing BONUS_PACK payment`)
-
-        // Получаем текущее значение bonusGenerations перед обновлением
-        const userBefore = await prisma.user.findUnique({
-          where: { id: transaction.userId },
-          select: { bonusGenerations: true, subscriptionEndsAt: true },
-        })
-        console.log(`📊 Webhook: User before update:`, {
-          userId: transaction.userId,
-          email: transaction.user.email,
-          bonusGenerations: userBefore?.bonusGenerations,
-          subscriptionEndsAt: userBefore?.subscriptionEndsAt,
-        })
-
-        // Покупка бонусного пака - действует 1 месяц
-        const bonusEndsAt = new Date()
-        bonusEndsAt.setMonth(bonusEndsAt.getMonth() + 1)
-
-        console.log(`💾 Webhook: Updating user: adding +30 bonusGenerations`)
-        const updatedUser = await prisma.user.update({
-          where: { id: transaction.userId },
-          data: {
-            bonusGenerations: {
-              increment: 30,
-            },
-            // Обновляем subscriptionEndsAt если бонусный пак продлевает срок
-            subscriptionEndsAt: bonusEndsAt,
-          },
-          select: { bonusGenerations: true, subscriptionEndsAt: true },
-        })
-
-        console.log(`✅ Webhook: Bonus pack added for user:`, {
-          userId: transaction.userId,
-          email: transaction.user.email,
-          bonusGenerationsBefore: userBefore?.bonusGenerations,
-          bonusGenerationsAfter: updatedUser.bonusGenerations,
-          actualIncrement: (updatedUser.bonusGenerations || 0) - (userBefore?.bonusGenerations || 0),
-          expiresAt: bonusEndsAt,
-        })
+      } else {
+        console.error('❌ Invalid transaction type:', transaction.type)
+        return NextResponse.json(
+          { error: 'Invalid transaction type' },
+          { status: 400 }
+        )
       }
 
     } else if (status === 'EXPIRED' || status === 'DECLINED' || status === 'CANCELLED') {

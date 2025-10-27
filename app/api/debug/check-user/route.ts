@@ -19,12 +19,8 @@ export async function GET(req: NextRequest) {
         username: true,
         role: true,
         appMode: true,
-        trialEndsAt: true,
-        trialGenerations: true,
-        monthlyGenerations: true,
-        generationLimit: true,
-        bonusGenerations: true,
-        lastResetDate: true,
+        freeGenerationsRemaining: true,
+        freeGenerationsUsed: true,
         createdAt: true
       }
     })
@@ -33,19 +29,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const now = new Date()
-    const isInTrial = user.trialEndsAt ? user.trialEndsAt > now : false
-    const trialDaysLeft = user.trialEndsAt
-      ? Math.max(0, Math.ceil((user.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-      : 0
-
     return NextResponse.json({
       user,
       calculated: {
-        isInTrial,
-        trialDaysLeft,
-        trialGenerationsLeft: Math.max(0, 30 - user.trialGenerations),
-        availableMonthlyGenerations: Math.max(0, user.generationLimit - user.monthlyGenerations + user.bonusGenerations)
+        freeGenerationsTotal: (user.freeGenerationsRemaining || 0) + (user.freeGenerationsUsed || 0),
       }
     })
   } catch (error) {

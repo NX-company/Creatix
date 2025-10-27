@@ -17,6 +17,8 @@ function PaymentFailureContent() {
       return 'К сожалению, оплата подписки не прошла.'
     } else if (paymentType === 'bonus_pack') {
       return 'К сожалению, оплата бонусного пакета не прошла.'
+    } else if (paymentType === 'package') {
+      return 'К сожалению, оплата пакета ADVANCED не прошла.'
     }
     return 'К сожалению, оплата не прошла.'
   }

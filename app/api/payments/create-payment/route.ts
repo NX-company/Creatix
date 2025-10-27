@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { createTochkaClient } from '@/lib/tochka'
-import { SUBSCRIPTION_PRICES, BONUS_PACK_PRICE } from '@/lib/generationLimits'
 import { prisma } from '@/lib/db'
+
+// Subscription price (moved from generationLimits)
+const ADVANCED_SUBSCRIPTION_PRICE = 1000 // 10 rubles in kopecks (для теста, потом будет 100000 для 1000₽)
 
 /**
  * POST /api/payments/create-payment
@@ -23,14 +25,14 @@ export async function POST(request: NextRequest) {
     // Получение данных запроса
     const body = await request.json()
     const {
-      paymentType, // 'subscription' или 'bonus_pack'
-      targetMode,  // 'ADVANCED' или 'ADVANCED' (для subscription)
+      paymentType, // 'subscription' only
+      targetMode,  // 'ADVANCED' (для subscription)
     } = body
 
     // Проверка обязательных полей
-    if (!paymentType) {
+    if (!paymentType || paymentType !== 'subscription') {
       return NextResponse.json(
-        { error: 'Missing paymentType' },
+        { error: 'Invalid paymentType. Only subscription is supported.' },
         { status: 400 }
       )
     }
@@ -47,74 +49,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Определение суммы и описания платежа
-    let amount: number
-    let purpose: string
-    let paymentDescription: string
-
-    if (paymentType === 'subscription') {
-      if (!targetMode || (targetMode !== 'ADVANCED' && targetMode !== 'ADVANCED')) {
-        return NextResponse.json(
-          { error: 'Invalid targetMode for subscription' },
-          { status: 400 }
-        )
-      }
-
-      // КРИТИЧЕСКИ ВАЖНО: Цена определяется ТОЛЬКО на сервере из констант
-      // Игнорируем любые параметры amount из запроса клиента
-      amount = SUBSCRIPTION_PRICES[targetMode as 'ADVANCED' | 'ADVANCED']
-      const modeText = targetMode === 'ADVANCED' ? 'ADVANCED' : 'ADVANCED'
-      purpose = `Подписка Creatix ${modeText}`
-      paymentDescription = `Оплата подписки на тариф ${modeText}`
-
-      // Проверка безопасности: Нельзя апгрейдиться до того же режима
-      if (user.appMode === targetMode) {
-        return NextResponse.json(
-          { error: `You already have ${targetMode} subscription` },
-          { status: 400 }
-        )
-      }
-
-      console.log(`💳 Creating subscription payment for ${modeText}: ${amount}₽`)
-    } else if (paymentType === 'bonus_pack') {
-      // КРИТИЧЕСКИ ВАЖНО: Цена определяется ТОЛЬКО на сервере из констант
-      amount = BONUS_PACK_PRICE
-      purpose = 'Бонусный пакет генераций Creatix (+30 генераций)'
-      paymentDescription = 'Покупка дополнительных генераций'
-
-      console.log(`💳 Creating bonus pack payment: ${amount}₽`)
-
-      // Проверка безопасности: Бонусные паки только для платных подписок
-      if (user.appMode === 'FREE') {
-        return NextResponse.json(
-          { error: 'Bonus packs are only available for ADVANCED and PRO users' },
-          { status: 403 }
-        )
-      }
-    } else {
+    // Определение суммы и описания платежа для подписки
+    if (!targetMode || targetMode !== 'ADVANCED') {
       return NextResponse.json(
-        { error: 'Invalid paymentType' },
+        { error: 'Invalid targetMode for subscription' },
         { status: 400 }
       )
     }
+
+    // Проверка безопасности: Нельзя апгрейдиться до того же режима
+    if (user.appMode === targetMode) {
+      return NextResponse.json(
+        { error: `You already have ${targetMode} subscription` },
+        { status: 400 }
+      )
+    }
+
+    // КРИТИЧЕСКИ ВАЖНО: Цена определяется ТОЛЬКО на сервере из констант
+    // Игнорируем любые параметры amount из запроса клиента
+    const amount = ADVANCED_SUBSCRIPTION_PRICE
+    const purpose = 'Подписка Creatix ADVANCED'
+    const paymentDescription = 'Оплата подписки на тариф ADVANCED'
+
+    console.log(`💳 Creating subscription payment for ADVANCED: ${amount}₽`)
 
     // Создание клиента Точка Банка
     const tochkaClient = createTochkaClient()
 
     // Создание платежной ссылки (без чека, т.к. payments_with_receipt возвращает 501)
-    // ВАЖНО: Сначала создаем платеж без redirect URL, потом получаем operationId
-    const baseUrl = 'https://aicreatix.ru'
-
-    // Временные URL без operationId (Точка банк не поддерживает плейсхолдеры)
-    const tempSuccessUrl = `${baseUrl}/payment-success?type=${paymentType}&mode=${targetMode || 'bonus'}`
-    const failUrl = `${baseUrl}/payment-failure?type=${paymentType}`
+    // Редирект на главную страницу после успешной оплаты (подписка активируется через webhook)
+    const successUrl = 'https://aicreatix.ru/'
+    const failUrl = 'https://aicreatix.ru/?payment=failed'
 
     const paymentResult = await tochkaClient.createPayment({
       amount,
       customerCode: process.env.TOCHKA_CUSTOMER_CODE || '',
       purpose,
       paymentMode: ['card', 'sbp'], // Оплата картой или по СБП
-      redirectUrl: tempSuccessUrl,
+      redirectUrl: successUrl,
       failRedirectUrl: failUrl,
       consumerId: user.id,
       ttl: 60, // Ссылка действительна 60 минут
@@ -133,12 +105,12 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         amount,
-        type: paymentType === 'subscription' ? 'SUBSCRIPTION' : 'BONUS_PACK',
+        type: 'SUBSCRIPTION',
         status: 'PENDING',
         metadata: {
           operationId: paymentData.operationId, // operationId, НЕ paymentId
-          targetMode: targetMode || null,
-          paymentType,
+          targetMode: targetMode,
+          paymentType: 'subscription',
         } as any,
       },
     })
@@ -151,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      paymentUrl: paymentData.paymentLink, // paymentLink, НЕ paymentUrl
+      paymentLink: paymentData.paymentLink, // Правильное имя поля для фронтенда
       operationId: paymentData.operationId,
       amount,
       status: paymentData.status,

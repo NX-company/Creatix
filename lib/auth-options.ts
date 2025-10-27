@@ -52,8 +52,8 @@ export const authOptions: NextAuthOptions = {
           username: user.username,
           role: user.role,
           appMode: user.appMode,
-          trialEndsAt: user.trialEndsAt,
-          trialGenerations: user.trialGenerations
+          freeGenerationsRemaining: user.freeGenerationsRemaining,
+          freeGenerationsUsed: user.freeGenerationsUsed
         }
       }
     })
@@ -64,10 +64,10 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.role = user.role || 'USER'
         token.appMode = (user.appMode || 'FREE') as any
-        token.trialEndsAt = user.trialEndsAt || null
-        token.trialGenerations = user.trialGenerations || 0
+        token.freeGenerationsRemaining = user.freeGenerationsRemaining || 0
+        token.freeGenerationsUsed = user.freeGenerationsUsed || 0
       }
-      
+
       if (trigger === 'update' && token.id) {
         try {
           const dbUser = await prisma.user.findUnique({
@@ -76,23 +76,23 @@ export const authOptions: NextAuthOptions = {
               id: true,
               role: true,
               appMode: true,
-              trialEndsAt: true,
-              trialGenerations: true,
+              freeGenerationsRemaining: true,
+              freeGenerationsUsed: true,
             }
           })
-          
+
           if (dbUser) {
             token.role = dbUser.role
             token.appMode = dbUser.appMode as any
-            token.trialEndsAt = dbUser.trialEndsAt
-            token.trialGenerations = dbUser.trialGenerations
-            console.log(`🔄 Token updated for user ${dbUser.id}: appMode=${dbUser.appMode}, trialGenerations=${dbUser.trialGenerations}, trialEndsAt=${dbUser.trialEndsAt}`)
+            token.freeGenerationsRemaining = dbUser.freeGenerationsRemaining
+            token.freeGenerationsUsed = dbUser.freeGenerationsUsed
+            console.log(`🔄 Token updated for user ${dbUser.id}: appMode=${dbUser.appMode}, freeGens=${dbUser.freeGenerationsRemaining}`)
           }
         } catch (error) {
           console.error('Error refreshing token from DB:', error)
         }
       }
-      
+
       return token
     },
     async session({ session, token, user }) {
@@ -100,8 +100,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = (token.id || user?.id) as string
         session.user.role = (token.role || user?.role || 'USER') as any
         session.user.appMode = (token.appMode || user?.appMode || 'FREE') as any
-        session.user.trialEndsAt = (token.trialEndsAt || user?.trialEndsAt || null) as Date | null
-        session.user.trialGenerations = (token.trialGenerations || user?.trialGenerations || 0) as number
+        session.user.freeGenerationsRemaining = (token.freeGenerationsRemaining || user?.freeGenerationsRemaining || 0) as number
+        session.user.freeGenerationsUsed = (token.freeGenerationsUsed || user?.freeGenerationsUsed || 0) as number
       }
       return session
     },
@@ -111,34 +111,32 @@ export const authOptions: NextAuthOptions = {
         email: user.email,
         name: user.name
       })
-      
+
       if (account?.provider === "google" && user.email) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email }
           })
-          
+
           console.log('👤 Found user in DB:', dbUser ? 'Yes' : 'No')
-          
-          if (dbUser && !dbUser.trialEndsAt) {
-            const trialEndsAt = new Date()
-            trialEndsAt.setDate(trialEndsAt.getDate() + 3)
-            
+
+          // Set up new Google users with FREE mode and 20 generations
+          if (dbUser && dbUser.freeGenerationsRemaining === null) {
             await prisma.user.update({
               where: { id: dbUser.id },
               data: {
-                trialEndsAt,
-                trialGenerations: 0,
+                freeGenerationsRemaining: 20,
+                freeGenerationsUsed: 0,
                 role: 'USER',
                 appMode: 'FREE',
                 username: dbUser.username || user.email.split('@')[0]
               }
             })
-            
-            console.log('✅ Trial set for user:', user.email)
+
+            console.log('✅ Free generations set for Google user:', user.email)
           }
         } catch (error) {
-          console.error('❌ Error setting trial for Google user:', error)
+          console.error('❌ Error setting up Google user:', error)
         }
       }
       return true

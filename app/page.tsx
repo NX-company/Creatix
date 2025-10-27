@@ -8,6 +8,7 @@ import ChatPanel from '@/components/ChatPanel'
 import RightPanel from '@/components/RightPanel'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import OnboardingTour from '@/components/OnboardingTour'
+import SubscriptionPurchaseModal from '@/components/SubscriptionPurchaseModal'
 import { useStore } from '@/lib/store'
 import { STORAGE_KEYS, MAX_RELOAD_ATTEMPTS, STORAGE_VERSION } from '@/lib/constants'
 import { getWelcomeMessage } from '@/lib/welcomeMessages'
@@ -19,6 +20,7 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const projects = useStore((state) => state.projects)
   const createProject = useStore((state) => state.createProject)
   const loadHTMLFromIndexedDB = useStore((state) => state.loadHTMLFromIndexedDB)
@@ -28,31 +30,14 @@ export default function Home() {
   const setDocType = useStore((state) => state.setDocType)
   const appMode = useStore((state) => state.appMode)
   const setAppMode = useStore((state) => state.setAppMode)
+  const isGuestMode = useStore((state) => state.isGuestMode)
   const setIsGuestMode = useStore((state) => state.setIsGuestMode)
   const setWorkMode = useStore((state) => state.setWorkMode)
-  const guestGenerationsUsed = useStore((state) => state.guestGenerationsUsed)
+  const setFreeGenerations = useStore((state) => state.setFreeGenerations)
 
   useEffect(() => {
     setMounted(true)
   }, [])
-  
-  // Restore guest generation counter from localStorage
-  useEffect(() => {
-    if (!mounted || typeof window === 'undefined') return
-    
-    try {
-      const stored = localStorage.getItem('creatix_guest_generations')
-      if (stored) {
-        const used = parseInt(stored, 10)
-        if (!isNaN(used) && used !== guestGenerationsUsed) {
-          useStore.setState({ guestGenerationsUsed: used })
-          console.log(`📊 Restored guest generations: ${used}/3`)
-        }
-      }
-    } catch (error) {
-      console.error('Error restoring guest generations:', error)
-    }
-  }, [mounted])
 
   // Check authentication and set guest mode
   useEffect(() => {
@@ -91,39 +76,55 @@ export default function Home() {
     }
   }, [mounted, session, status, setIsGuestMode, setWorkMode])
 
-  // Sync appMode with user session (ONLY for trial/free users, NOT for paid)
+  // Sync appMode with user session (but not in guest mode)
   useEffect(() => {
     if (!mounted || status === 'loading') return
-    
+
+    // Don't sync appMode if user is in guest mode
+    if (isGuestMode) {
+      if (appMode !== 'guest') {
+        console.log('🎭 Setting appMode to guest')
+        setAppMode('guest')
+      }
+      return
+    }
+
     if (session?.user) {
       const userAppMode = ((session.user as any).appMode || 'free').toLowerCase()
-      const userSubscription = (session.user as any).subscriptionEndsAt
-      const hasPaidSubscription = userSubscription && new Date(userSubscription) > new Date()
-      
-      // Платные пользователи могут свободно переключать режимы - НЕ синхронизируем!
-      if (hasPaidSubscription) {
-        console.log(`💎 Paid user - free mode switching enabled (base: ${userAppMode})`)
-        return // Выходим, не меняем appMode
-      }
-      
-      // Для trial/free пользователей синхронизируем с session
+
+      // Sync appMode from session
       if (appMode !== userAppMode) {
-        console.log(`🔄 Syncing appMode from session: ${userAppMode} (trial/free user)`)
+        console.log(`🔄 Syncing appMode from session: ${userAppMode}`)
         setAppMode(userAppMode)
       }
-    } else {
-      // Guest mode - check if it's first generation from welcome (should be ADVANCED as demo)
-      const isFirstGeneration = sessionStorage.getItem('first_generation_advanced') === 'true'
-      
-      if (isFirstGeneration) {
-        console.log('🎁 First generation - using ADVANCED mode as demo')
-        setAppMode('advanced')
-      } else if (appMode !== 'free') {
-        console.log('🔄 Resetting to FREE mode for guest')
-        setAppMode('free')
+    }
+  }, [mounted, session, status, setAppMode, appMode, isGuestMode])
+
+  // Sync free generations data from backend
+  useEffect(() => {
+    if (!mounted || status === 'loading') return
+    if (!session?.user) return
+
+    const syncGenerations = async () => {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user?.freeGenerationsRemaining !== undefined) {
+            setFreeGenerations(
+              data.user.freeGenerationsRemaining || 0,
+              data.user.freeGenerationsUsed || 0
+            )
+            console.log(`🎁 Synced free generations: ${data.user.freeGenerationsRemaining}/20`)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync free generations:', error)
       }
     }
-  }, [mounted, session, status, setAppMode])
+
+    syncGenerations()
+  }, [mounted, session, status, setFreeGenerations])
 
   useEffect(() => {
     if (!mounted) return
@@ -250,7 +251,10 @@ export default function Home() {
 
         {/* Sidebar - Hidden on mobile, dynamic width on desktop */}
         <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-40 transition-all duration-300 h-full flex-shrink-0 ${sidebarCollapsed ? 'w-16' : 'w-72'}`}>
-          <Sidebar onCollapseChange={setSidebarCollapsed} />
+          <Sidebar
+            onCollapseChange={setSidebarCollapsed}
+            onPurchaseClick={() => setShowPurchaseModal(true)}
+          />
         </div>
 
         {/* Overlay for mobile sidebar */}
@@ -307,6 +311,10 @@ export default function Home() {
         </div>
       </div>
       <OnboardingTour />
+      <SubscriptionPurchaseModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+      />
     </ErrorBoundary>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Send, Loader2, Globe, Target, X } from 'lucide-react'
 import { useStore } from '@/lib/store'
@@ -16,29 +17,25 @@ import { processPlanningMode, processSmartDialogMode, formatPlanForGeneration } 
 import { processConversationalPlanning, formatConversationalPlan } from '@/lib/agents/conversationalPlanner'
 import { saveHTMLPreview } from '@/lib/storage/indexedDB'
 import { recognizeIntent, extractQuantity } from '@/lib/intentRecognition'
-import { getBrowserFingerprint } from '@/lib/browserFingerprint'
-import { consumeGeneration, checkGenerationAvailability } from '@/lib/consumeGeneration'
-import { calculateGenerationCost } from '@/lib/generationLimits'
 import ProjectSelector from './ProjectSelector'
 import FileUploader from './FileUploader'
 import WebsiteModal from './WebsiteModal'
 import WebsiteActionModal from './WebsiteActionModal'
 import ModeSwitcher from './ModeSwitcher'
 import InlinePlanningCard from './InlinePlanningCard'
-import GenerationLimitModal from './GenerationLimitModal'
-import TrialExpiredModal from './TrialExpiredModal'
-import BuyGenerationsModal from './BuyGenerationsModal'
-import WelcomeUpgradeModal from './WelcomeUpgradeModal'
+import FreeGenerationsLimitModal from './FreeGenerationsLimitModal'
+import GuestDemoCompleteModal from './GuestDemoCompleteModal'
 
 export default function ChatPanel() {
+  const router = useRouter()
   const { data: session } = useSession()
-  const { 
-    messages, 
-    addMessage, 
+  const {
+    messages,
+    addMessage,
     setHtmlPreview,
     htmlPreview,
-    docType, 
-    styleConfig, 
+    docType,
+    styleConfig,
     priceItems,
     addGeneratedFile,
     setActiveTab,
@@ -62,11 +59,8 @@ export default function ChatPanel() {
     resetPlanningData,
     getCurrentProject,
     isGuestMode,
-    guestGenerationsUsed,
-    guestGenerationsLimit,
-    incrementGuestGenerations,
-    getRemainingGenerations,
-    hasRemainingGenerations
+    freeGenerationsRemaining,
+    consumeFreeGeneration
   } = useStore()
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -76,66 +70,15 @@ export default function ChatPanel() {
   const [pendingWebsiteUrl, setPendingWebsiteUrl] = useState('')
   const [pendingWebsiteData, setPendingWebsiteData] = useState<any>(null)
   const [showLimitModal, setShowLimitModal] = useState(false)
-  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false)
-  const [showBuyGenerationsModal, setShowBuyGenerationsModal] = useState(false)
-  const [showWelcomeUpgradeModal, setShowWelcomeUpgradeModal] = useState(false)
-  const [availableGenerations, setAvailableGenerations] = useState(0)
-  const [currentUser, setCurrentUser] = useState<{
-    isInTrial?: boolean
-    trialDaysLeft?: number
-    trialGenerationsLeft?: number
-    trialGenerations?: number
-    appMode?: string
-  } | null>(null)
+  const [showGuestDemoModal, setShowGuestDemoModal] = useState(false)
   const isGeneratingRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const shownProgressMessages = useRef<Set<string>>(new Set())
   const hasTriggeredAutoGen = useRef(false)
-
-  // Initialize currentUser from server API (not session token - it has stale data!)
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (isGuestMode || !session?.user) {
-        setCurrentUser(null)
-        return
-      }
-
-      try {
-        const response = await fetch('/api/auth/me')
-        if (response.ok) {
-          const data = await response.json()
-          const user = data.user
-
-          setCurrentUser({
-            isInTrial: user.isInTrial || false,
-            trialDaysLeft: user.trialDaysLeft || 0,
-            trialGenerationsLeft: user.trialGenerationsLeft || 0,
-            trialGenerations: user.trialGenerations || 0,
-            appMode: user.appMode
-          })
-
-          console.log('👤 Current user initialized from server:', {
-            isInTrial: user.isInTrial,
-            trialGenerations: user.trialGenerations,
-            trialGenerationsLeft: user.trialGenerationsLeft,
-            trialDaysLeft: user.trialDaysLeft,
-            appMode: user.appMode,
-            hasActiveSubscription: user.hasActiveSubscription
-          })
-        } else {
-          console.error('Failed to fetch user data:', response.status)
-          setCurrentUser(null)
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error)
-        setCurrentUser(null)
-      }
-    }
-
-    fetchUserData()
-  }, [session, isGuestMode])
+  const lastAutoGenTimestamp = useRef<number>(0)
+  const guestGenerationCompleted = useRef(false)
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -144,69 +87,119 @@ export default function ChatPanel() {
   }, [messages])
   
   // Auto-generation function (called from welcome page)
-  const triggerGeneration = async (userMsg: string) => {
+  const triggerGeneration = useCallback(async (userMsg: string) => {
+    // DOUBLE-CHECK: Prevent triggering if already in progress
     if (isGeneratingRef.current || loading) {
-      console.warn('⚠️ Generation already in progress')
+      console.warn('⚠️ Generation already in progress, ignoring trigger')
       return
     }
-    
+
     console.log('⚡ Triggering generation with:', userMsg)
-    
+
     // Set input and trigger Run button click after state update
     setInput(userMsg)
-    
+
     // Small delay to ensure state updates
     setTimeout(() => {
+      // CRITICAL: Check again before clicking - prevent race condition
+      if (isGeneratingRef.current || loading) {
+        console.warn('⚠️ Generation started during delay, skipping button click')
+        return
+      }
+
       const runButton = document.querySelector('[data-auto-run="true"]') as HTMLButtonElement
       if (runButton) {
+        // FINAL CHECK: Only click if button would call handleRun, not handleStop
+        const buttonWouldStop = runButton.textContent?.includes('Стоп') || runButton.textContent?.includes('Stop')
+        if (buttonWouldStop) {
+          console.warn('⚠️ Button would stop generation, skipping click')
+          return
+        }
+
         console.log('🎯 Programmatically clicking Run button')
         runButton.click()
       } else {
         console.error('❌ Run button not found!')
       }
     }, 150)
-  }
+  }, [loading])
   
   // Listen for auto-generation trigger from welcome page
   useEffect(() => {
     const handleAutoGeneration = (event: Event) => {
-      // Use ref to prevent double trigger across component re-renders
-      if (hasTriggeredAutoGen.current) {
-        console.log('⏭️ Auto-generation already triggered, ignoring duplicate event')
+      // ULTRA-CRITICAL: Use timestamp to prevent ANY race condition
+      const now = Date.now()
+      const timeSinceLastTrigger = now - lastAutoGenTimestamp.current
+
+      // Ignore if triggered within 2 seconds (definitely a duplicate)
+      if (timeSinceLastTrigger < 2000) {
+        console.log(`⏭️ Auto-generation recently triggered (${timeSinceLastTrigger}ms ago), ignoring duplicate`)
         return
       }
-      
+
+      // ATOMIC: Check and set flag in one operation
+      if (hasTriggeredAutoGen.current === true) {
+        console.log('⏭️ Auto-generation already triggered (flag check), ignoring')
+        return
+      }
+
+      // IMMEDIATELY set both flag and timestamp
+      hasTriggeredAutoGen.current = true
+      lastAutoGenTimestamp.current = now
+
       const customEvent = event as CustomEvent
       const prompt = customEvent.detail?.prompt
-      
+
       console.log('🎯 Auto-generation event received!', {
         prompt,
         isGenerating: isGeneratingRef.current,
         loading,
-        hasTriggered: hasTriggeredAutoGen.current
+        timeSinceLastTrigger
       })
-      
-      if (prompt && !isGeneratingRef.current && !loading && !hasTriggeredAutoGen.current) {
-        hasTriggeredAutoGen.current = true
-        console.log('🚀 Auto-generating from welcome page...')
-        console.log('📝 Prompt:', prompt)
-        
-        // Small delay to ensure everything is loaded
-        setTimeout(() => {
-          triggerGeneration(prompt.trim())
-        }, 100)
-      } else {
+
+      if (!prompt || isGeneratingRef.current || loading) {
         console.log('⚠️ Cannot auto-generate:', {
           hasPrompt: !!prompt,
           isGenerating: isGeneratingRef.current,
-          loading,
-          hasTriggered: hasTriggeredAutoGen.current
+          loading
         })
+        // Reset flag if we can't proceed
+        hasTriggeredAutoGen.current = false
+        return
       }
+
+      console.log('🚀 Auto-generating from welcome page...')
+      console.log('📝 Prompt:', prompt)
+
+      // Delay for UI stability
+      setTimeout(() => {
+        // Final check before triggering
+        if (!isGeneratingRef.current && !loading) {
+          triggerGeneration(prompt.trim())
+        } else {
+          console.warn('⚠️ Generation state changed, skipping auto-trigger')
+        }
+      }, 500)
     }
-    
-    window.addEventListener('trigger-auto-generation', handleAutoGeneration)
-    return () => window.removeEventListener('trigger-auto-generation', handleAutoGeneration)
+
+    // CRITICAL: Check if listener already exists to prevent duplicates
+    const listenerExists = (window as any).__autoGenerationListenerAdded
+    if (listenerExists) {
+      console.log('🔒 Auto-generation listener already exists, skipping duplicate')
+      return
+    }
+
+    // Mark that we've added the listener
+    (window as any).__autoGenerationListenerAdded = true
+
+    // Use { once: true } for automatic removal after first trigger
+    window.addEventListener('trigger-auto-generation', handleAutoGeneration, { once: true })
+
+    return () => {
+      window.removeEventListener('trigger-auto-generation', handleAutoGeneration)
+      // Clean up the marker
+      delete (window as any).__autoGenerationListenerAdded
+    }
   }, [loading, triggerGeneration])
 
   const handlePlanningCardSubmit = (selectedQuestions: string[], pageCount?: number, imageCount?: number, mode?: 'batch' | 'sequential') => {
@@ -337,10 +330,7 @@ export default function ChatPanel() {
     setLoading(false)
     isGeneratingRef.current = false
 
-    addMessage({
-      role: 'assistant',
-      content: '⛔ Генерация остановлена пользователем.'
-    })
+    // Don't add stop message to chat - user can see generation stopped
 
     // Возвращаем фокус на поле ввода
     setTimeout(() => {
@@ -371,7 +361,31 @@ export default function ChatPanel() {
       handleStop()
       return
     }
-    
+
+    // 🔒 GUEST MODE RESTRICTION: Block new prompts after first generation
+    // Check if guest has already generated a document (htmlPreview exists)
+    const hasGeneratedDocument = htmlPreview && htmlPreview.trim().length > 0
+    if (isGuestMode && hasGeneratedDocument) {
+      console.log('🔒 Guest mode: blocking new prompt after first generation')
+      addMessage({
+        role: 'assistant',
+        content: '🔒 Демо-режим завершен!\n\n👉 Зарегистрируйтесь, чтобы продолжить создание и редактирование документов.'
+      })
+      setInput('')
+      isGeneratingRef.current = false
+      return
+    }
+
+    // 🎁 FREE MODE RESTRICTION: Check free generations limit
+    if (!isGuestMode && appMode === 'free') {
+      if (freeGenerationsRemaining <= 0) {
+        console.log('🔒 Free mode: no generations remaining')
+        setShowLimitModal(true)
+        setInput('')
+        return
+      }
+    }
+
     // Set generating flag IMMEDIATELY to prevent race conditions
     if (isGeneratingRef.current) {
       console.log('❌ handleRun blocked: generation already in progress')
@@ -386,49 +400,9 @@ export default function ChatPanel() {
     // Check generation limits
     const intent = recognizeIntent(input.trim(), docType)
     const isCreationRequest = intent.action === 'create'
-    
-    // Guest limit check
-    if (isGuestMode && isCreationRequest) {
-      // Check if it's the first ADVANCED demo generation
-      const wasFirstGeneration = sessionStorage.getItem('first_generation_advanced') === 'true'
-      
-      if (!wasFirstGeneration) {
-        // Not first generation - check limits
-        const fingerprint = getBrowserFingerprint()
-        
-        try {
-          const checkResponse = await fetch('/api/check-generation-limit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fingerprint })
-          })
-          
-          const checkData = await checkResponse.json()
-          
-          if (!checkData.allowed) {
-            console.log(`🚫 Backend limit reached: ${checkData.reason}`)
-            addMessage({
-              role: 'assistant',
-              content: `⚠️ ${checkData.message}\n\nЗарегистрируйтесь, чтобы получить неограниченный доступ!`
-            })
-            setShowLimitModal(true)
-            return
-          }
-        } catch (error) {
-          console.error('Error checking backend limit:', error)
-        }
-        
-        if (!hasRemainingGenerations()) {
-          console.log('🚫 Local guest limit reached')
-          setShowLimitModal(true)
-          return
-        }
-      } else {
-        console.log('🎁 First ADVANCED demo generation - skipping limit check')
-      }
-    }
-    
-    // НОВАЯ МОДЕЛЬ: Trial не используется - удален
+
+    // GUEST MODE: Allow ONE demo generation with images
+    // The check for existing htmlPreview is already done above (line 326)
     
     console.log('✅ handleRun proceeding with generation')
     
@@ -548,7 +522,9 @@ export default function ChatPanel() {
         addMessage({ role: 'assistant', content: editMessage + '...' })
         
         try {
-          const editResult = await applyAIEdit(htmlPreview, userMsg, selectedElement, appMode)
+          // Map guest mode to advanced for editing capabilities
+          const editMode: 'free' | 'advanced' | 'pro' = appMode === 'guest' ? 'advanced' : (appMode as 'free' | 'advanced' | 'pro')
+          const editResult = await applyAIEdit(htmlPreview, userMsg, selectedElement, editMode)
           console.log('✅ AI edit successful, HTML length:', editResult.html.length)
           console.log(`🔧 Contextual edit: ${editResult.isContextual}, selector: ${editResult.selector || 'N/A'}`)
           
@@ -660,9 +636,9 @@ export default function ChatPanel() {
               
               if (!modeConfig.features.aiImageGeneration) {
                 // В бесплатном режиме генерация недоступна
-                addMessage({ 
-                  role: 'assistant', 
-                  content: '⚠️ Изменения применены, но генерация изображений доступна только в Продвинутом и PRO режимах. Переключитесь на другой режим для генерации изображений.' 
+                addMessage({
+                  role: 'assistant',
+                  content: '⚠️ Изменения применены, но генерация изображений доступна только в Продвинутом (ADVANCED) режиме. Переключитесь на другой режим для генерации изображений.'
                 })
                 // Оставляем placeholder для пользователя
               } else {
@@ -672,7 +648,7 @@ export default function ChatPanel() {
                 })
               
               try {
-                // Генерируем изображение на основе контекста (Flux 1.1 Pro для PRO, Flux Schnell для остальных)
+                // Генерируем изображение на основе контекста (Flux 1.1 Pro для ADVANCED, Flux Schnell для FREE)
                 const { generateImagesFromPlan } = await import('@/lib/agents/imageAgent')
                 
                 // Определяем тип изображения из контекста
@@ -751,9 +727,9 @@ Output ONLY the English prompt, nothing else. No quotes, no explanations.`
                 let generatedImages
                 
                 // Выбираем модель в зависимости от режима
-                const imageModel = appMode === 'pro'
-                  ? 'black-forest-labs/flux-1.1-pro'  // PRO: Flux 1.1 Pro (лучшее качество)
-                  : 'black-forest-labs/flux-schnell'   // Free/Advanced: Flux Schnell (быстро и бесплатно)
+                const imageModel = appMode === 'advanced'
+                  ? 'black-forest-labs/flux-1.1-pro'  // ADVANCED: Flux 1.1 Pro (лучшее качество)
+                  : 'black-forest-labs/flux-schnell'   // FREE: Flux Schnell (быстро и бесплатно)
                 
                 // Таймаут для генерации изображения (60 секунд)
                 const imagePromise = generateImagesFromPlan(imagePlan, undefined, imageModel)
@@ -922,44 +898,41 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         })
       }
       
-      const fullPrompt = contentPrompt 
-        ? `${contentPrompt}${websiteContext}${contextInfo}${planContext}${historyContext}${documentContext}${imagesContext}${selectedElementContext}\n\n📝 ТЕКУЩИЙ ЗАПРОС ПОЛЬЗОВАТЕЛЯ: ${userMsg}`
-        : `${userMsg}${websiteContext}${contextInfo}${planContext}${historyContext}${documentContext}${imagesContext}${selectedElementContext}`
-      
-      // Check generation limits ONLY for authenticated users (non-guest)
-      // Guests have their own separate limit system
-      const shouldCheckGenerationLimits = !isGuestMode
-      
-      if (shouldCheckGenerationLimits) {
-        console.log('🔍 Checking generation limits for authenticated user')
-        const imageCount = planningData.imageCount || 10
-        
+      // ============================================
+      // PRE-GENERATION CHECK: Verify sufficient generations
+      // ============================================
+      if (!isGuestMode && session?.user) {
         try {
-          const availability = await checkGenerationAvailability(imageCount)
-          
-          if (!availability.canGenerate) {
-            console.log('🚫 Generation limit reached for authenticated user')
-            const costInfo = calculateGenerationCost(imageCount)
-            
-            addMessage({
-              role: 'assistant',
-              content: `⚠️ Недостаточно генераций!\n\nДля создания документа с ${imageCount} AI изображениями требуется ${costInfo.generationsNeeded} ${costInfo.generationsNeeded === 1 ? 'генерация' : costInfo.generationsNeeded < 5 ? 'генерации' : 'генераций'}.\n\nДоступно: ${availability.availableGenerations || 0}`
-            })
-            
-            setAvailableGenerations(availability.availableGenerations || 0)
-            setShowLimitModal(true)
-            setLoading(false)
-            isGeneratingRef.current = false
-            return
+          const statusResponse = await fetch('/api/user/subscription-status')
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json()
+
+            // Calculate estimated cost (we don't know exact image count yet, so estimate max)
+            const estimatedImageCount = appMode === 'advanced' ? 5 : 0 // Max 5 images per 1 generation
+            const estimatedCost = Math.ceil(estimatedImageCount / 5)
+
+            const useAdvanced = appMode === 'advanced' && statusData.subscriptionStatus === 'active'
+            const availableGenerations = useAdvanced
+              ? statusData.advancedGenerationsRemaining
+              : statusData.freeGenerationsRemaining
+
+            if (availableGenerations < estimatedCost) {
+              addMessage({
+                role: 'assistant',
+                content: `⚠️ Недостаточно генераций!\n\nНеобходимо: ${estimatedCost} генерации\nДоступно: ${availableGenerations} генераций\n\n${useAdvanced ? 'Подождите обновления подписки или переключитесь на FREE режим.' : 'Переключитесь на ADVANCED режим или дождитесь пополнения баланса.'}`
+              })
+              return
+            }
           }
         } catch (error) {
-          console.error('❌ Error checking generation limits:', error)
-          // Continue with generation even if check fails
+          console.error('Failed to check generation balance:', error)
         }
-      } else {
-        console.log('ℹ️ Skipping generation limit check (guest or trial user)')
       }
-      
+
+      const fullPrompt = contentPrompt
+        ? `${contentPrompt}${websiteContext}${contextInfo}${planContext}${historyContext}${documentContext}${imagesContext}${selectedElementContext}\n\n📝 ТЕКУЩИЙ ЗАПРОС ПОЛЬЗОВАТЕЛЯ: ${userMsg}`
+        : `${userMsg}${websiteContext}${contextInfo}${planContext}${historyContext}${documentContext}${imagesContext}${selectedElementContext}`
+
       const result = await generateDocumentWithMode({
         prompt: fullPrompt,
         docType,
@@ -1030,99 +1003,7 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
       }
       
       setHtmlPreview(result.html)
-      
-      // Debug: Check which flow will be executed
-      console.log('🔍 Generation flow check:', {
-        isGuestMode,
-        isCreationRequest,
-        shouldCheckGenerationLimits,
-        userState: currentUser ? 'authenticated' : 'guest/unknown'
-      })
 
-      // Consume generation ONLY for authenticated users (non-guest)
-      if (shouldCheckGenerationLimits) {
-        try {
-          const imageCount = result.generatedImages.length || planningData.imageCount || 10
-          const consumeResult = await consumeGeneration(imageCount)
-          
-          console.log(`✅ Consumed ${consumeResult.consumedGenerations} generation(s), remaining: ${consumeResult.remainingGenerations}`)
-          
-          // Dispatch event to update Sidebar counter
-          window.dispatchEvent(new Event('generationConsumed'))
-          
-          if (consumeResult.remainingGenerations <= 5) {
-            addMessage({
-              role: 'assistant',
-              content: `⚠️ У вас осталось ${consumeResult.remainingGenerations} ${consumeResult.remainingGenerations === 1 ? 'генерация' : consumeResult.remainingGenerations < 5 ? 'генерации' : 'генераций'} до конца месяца.`
-            })
-          }
-        } catch (error) {
-          console.error('❌ Error consuming generation:', error)
-        }
-      }
-      
-      // Increment generation counter
-      if (isGuestMode && isCreationRequest) {
-        // Check if this was the first generation from welcome (ADVANCED demo)
-        const wasFirstGeneration = sessionStorage.getItem('first_generation_advanced') === 'true'
-        
-        if (wasFirstGeneration) {
-          // Remove flag and switch to FREE mode
-          sessionStorage.removeItem('first_generation_advanced')
-          console.log('🎁 First ADVANCED generation complete! Switching to FREE mode')
-          useStore.setState({ appMode: 'free' })
-          
-          // Increment guest counter for first demo generation (counts as used)
-          incrementGuestGenerations()
-          
-          const fingerprint = getBrowserFingerprint()
-          try {
-            await fetch('/api/check-generation-limit', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fingerprint })
-            })
-          } catch (error) {
-            console.error('Error incrementing backend limit:', error)
-          }
-          
-          console.log('✅ First generation used (1/1). Limit reached.')
-          
-          // Show welcome upgrade modal after a short delay
-          setTimeout(() => {
-            setShowWelcomeUpgradeModal(true)
-          }, 1500)
-        } else {
-          // Regular guest generation - increment counter
-          incrementGuestGenerations()
-          
-          const fingerprint = getBrowserFingerprint()
-          try {
-            await fetch('/api/check-generation-limit', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fingerprint })
-            })
-          } catch (error) {
-            console.error('Error incrementing backend limit:', error)
-          }
-          
-          const remaining = getRemainingGenerations()
-          console.log(`✅ Guest generation counted. Remaining: ${remaining}/1`)
-          
-          if (remaining === 0) {
-            addMessage({
-              role: 'assistant',
-              content: '⚡ Это была ваша бесплатная генерация! Зарегистрируйтесь, чтобы получить 30 генераций в месяц.'
-            })
-            setTimeout(() => setShowWelcomeUpgradeModal(true), 2000)
-          }
-        }
-      }
-      // НОВАЯ МОДЕЛЬ: Trial consumption удален - используется только consumeGeneration() выше
-      
-      // Сохраняем выделение для возможности дальнейшего редактирования
-      
       addMessage({ 
         role: 'assistant', 
         content: '✅ Готово! Проверьте превью справа. Можете сохранить в файлы или попросить изменить.' 
@@ -1135,7 +1016,59 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           content: '📋 План использован. Для нового документа с планом вернитесь в режим Plan.'
         })
       }
-      
+
+      // ============================================
+      // POST-GENERATION: Consume generations based on mode and image count
+      // ============================================
+      if (!isGuestMode && session?.user) {
+        const imageCount = result.generatedImages.length
+        const generationCost = Math.ceil(imageCount / 5) || 1 // Minimum 1 generation
+
+        if (appMode === 'advanced') {
+          // Try to consume ADVANCED generations
+          try {
+            const consumeResponse = await fetch('/api/user/consume-advanced-generation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ count: generationCost })
+            })
+
+            if (consumeResponse.ok) {
+              const consumeData = await consumeResponse.json()
+              const remainingMsg = consumeData.type === 'advanced'
+                ? `Использовано ${consumeData.consumed} ADVANCED генераций. Осталось: ${consumeData.remaining}/${consumeData.total}`
+                : `Использовано ${consumeData.consumed} FREE генераций. Осталось: ${consumeData.remaining}/${consumeData.total}`
+
+              addMessage({
+                role: 'assistant',
+                content: `💳 ${remainingMsg}`
+              })
+              console.log(`✅ Generation consumed: ${consumeData.type}, cost: ${generationCost}, remaining: ${consumeData.remaining}`)
+            } else {
+              console.error('Failed to consume generation:', await consumeResponse.text())
+            }
+          } catch (error) {
+            console.error('Error consuming generation:', error)
+          }
+        } else if (appMode === 'free') {
+          // Consume FREE generation
+          const success = await consumeFreeGeneration()
+          if (success) {
+            console.log(`✅ Free generation consumed. Remaining: ${freeGenerationsRemaining - 1}`)
+          }
+        }
+      }
+
+      // 🎯 Show registration modal for guest users after demo
+      if (isGuestMode && !guestGenerationCompleted.current) {
+        guestGenerationCompleted.current = true
+        console.log('🎯 Guest demo completed, showing registration modal in 3 seconds...')
+
+        setTimeout(() => {
+          setShowGuestDemoModal(true)
+        }, 3000)
+      }
+
     } catch (error) {
       console.error('Generation error:', error)
 
@@ -1229,6 +1162,22 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
       </div>
 
       <div className="border-t border-border flex-shrink-0 bg-background/80 backdrop-blur-sm shadow-sm">
+        {/* Guest Mode Banner */}
+        {isGuestMode && htmlPreview && htmlPreview.trim().length > 0 && (
+          <div className="px-3 py-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-b border-purple-500/20">
+            <div className="text-center">
+              <p className="text-sm font-semibold mb-2">🎉 Вы создали свой первый документ!</p>
+              <p className="text-xs text-muted-foreground mb-3">Зарегистрируйтесь, чтобы создавать и редактировать больше документов</p>
+              <button
+                onClick={() => router.push('/login')}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-all"
+              >
+                Зарегистрироваться
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Переключатель режимов */}
         <div className="p-2 sm:p-3 border-b border-border flex items-center justify-center" data-tour="mode-switcher">
           <ModeSwitcher />
@@ -1292,14 +1241,17 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleRun()}
             data-tour="chat-input"
+            disabled={!!(isGuestMode && htmlPreview && htmlPreview.trim().length > 0)}
             placeholder={
-              workMode === 'plan'
+              isGuestMode && htmlPreview && htmlPreview.trim().length > 0
+                ? '🔒 Зарегистрируйтесь для продолжения...'
+                : workMode === 'plan'
                 ? '💬 Опишите что хотите...'
                 : loading
                 ? '⚠️ Напишите "стой" для остановки...'
                 : '🚀 Опишите задачу...'
             }
-            className="flex-1 min-h-[40px] sm:min-h-[44px] lg:min-h-[48px] px-2 sm:px-3 lg:px-4 py-2 text-xs sm:text-sm lg:text-base bg-background text-foreground border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            className="flex-1 min-h-[40px] sm:min-h-[44px] lg:min-h-[48px] px-2 sm:px-3 lg:px-4 py-2 text-xs sm:text-sm lg:text-base bg-background text-foreground border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           />
           
           {/* Кнопка выбора области */}
@@ -1334,9 +1286,15 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
           
           <button
             onClick={loading ? handleStop : handleRun}
-            disabled={!loading && !input.trim()}
+            disabled={!!((!loading && !input.trim()) || (isGuestMode && htmlPreview && htmlPreview.trim().length > 0))}
             data-auto-run="true"
-            title={loading ? 'Остановить генерацию' : 'Отправить сообщение'}
+            title={
+              isGuestMode && htmlPreview && htmlPreview.trim().length > 0
+                ? 'Доступно после регистрации'
+                : loading
+                ? 'Остановить генерацию'
+                : 'Отправить сообщение'
+            }
             className={`min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] px-2.5 sm:px-3 lg:px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center ${
               loading
                 ? 'bg-red-600 text-white hover:bg-red-700'
@@ -1367,50 +1325,17 @@ HTML: ${selectedElement.innerHTML.substring(0, 500)}${selectedElement.innerHTML.
         }}
         onAction={handleWebsiteAction}
       />
-      
-      {/* Generation Limit Modal for Guests */}
-      <GenerationLimitModal
+
+      {/* Free Generations Limit Modal */}
+      <FreeGenerationsLimitModal
         isOpen={showLimitModal}
         onClose={() => setShowLimitModal(false)}
-        remaining={getRemainingGenerations()}
       />
-      
-      {/* Trial Expired Modal for Registered Users */}
-      <TrialExpiredModal
-        isOpen={showTrialExpiredModal}
-        onClose={() => setShowTrialExpiredModal(false)}
-        trialGenerations={currentUser?.trialGenerations || 0}
-        trialDays={3 - (currentUser?.trialDaysLeft || 0)}
-      />
-      
-      {/* Buy Generations Modal */}
-      <BuyGenerationsModal
-        isOpen={showBuyGenerationsModal}
-        onClose={() => setShowBuyGenerationsModal(false)}
-        currentGenerations={availableGenerations}
-        onSuccess={() => {
-          console.log('✅ Generations purchased successfully')
-          setShowBuyGenerationsModal(false)
-        }}
-      />
-      
-      {/* Welcome Upgrade Modal (after first ADVANCED demo generation) */}
-      <WelcomeUpgradeModal
-        isOpen={showWelcomeUpgradeModal}
-        onClose={() => setShowWelcomeUpgradeModal(false)}
-      />
-      
-      {/* Enhanced Generation Limit Modal for Authenticated Users */}
-      <GenerationLimitModal
-        isOpen={showLimitModal && !isGuestMode}
-        onClose={() => setShowLimitModal(false)}
-        remaining={availableGenerations}
-        isAuthenticated={!isGuestMode}
-        appMode={currentUser?.appMode || 'FREE'}
-        onBuyPack={() => {
-          setShowLimitModal(false)
-          setShowBuyGenerationsModal(false)
-        }}
+
+      {/* Guest Demo Complete Modal */}
+      <GuestDemoCompleteModal
+        isOpen={showGuestDemoModal}
+        onClose={() => setShowGuestDemoModal(false)}
       />
     </div>
   )

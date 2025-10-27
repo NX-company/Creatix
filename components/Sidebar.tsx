@@ -3,90 +3,50 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, LogOut, User, LogIn, Package, Sparkles, Zap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, LogOut, User, LogIn } from 'lucide-react'
 import { useStore, type DocType } from '@/lib/store'
 import { cn } from '@/lib/cn'
 import ModeSelector from './ModeSelector'
 import Logo from './Logo'
+import GenerationsCounter from './GenerationsCounter'
 import { DOC_CATEGORIES, migrateOldDocType } from '@/lib/docTypesConfig'
-import BuyGenerationsModal from './BuyGenerationsModal'
-import UpgradeModal from './UpgradeModal'
-import { BONUS_PACK_PRICE } from '@/lib/generationLimits'
-
-interface GenerationsInfo {
-  appMode: string
-  monthlyGenerations: number
-  generationLimit: number
-  bonusGenerations: number
-  availableGenerations: number
-  nextResetDate: string
-  freeMonthlyGenerations?: number
-  advancedMonthlyGenerations?: number
-  purchasedGenerations?: number
-  balance?: number
-  autoRenewEnabled?: boolean
-  subscriptionEndsAt?: Date | null
-  subscriptionStartedAt?: Date | null
-}
 
 interface SidebarProps {
   onCollapseChange?: (collapsed: boolean) => void
+  onPurchaseClick?: () => void
 }
 
-export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
+export default function Sidebar({ onCollapseChange, onPurchaseClick }: SidebarProps = {}) {
   const router = useRouter()
-  const { data: session, update: updateSession } = useSession()
-  const { 
-    docType, 
-    setDocType, 
+  const { data: session } = useSession()
+  const {
+    docType,
+    setDocType,
     isGuestMode,
-    guestGenerationsUsed,
-    guestGenerationsLimit,
-    getRemainingGenerations,
+    clearMessages,
     appMode
   } = useStore()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedCategory, setExpandedCategory] = useState<string | null>('presentation')
-  const [showBuyModal, setShowBuyModal] = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [generationsInfo, setGenerationsInfo] = useState<GenerationsInfo | null>(null)
-  const [isLoadingGenerations, setIsLoadingGenerations] = useState(false)
 
   const currentUser = isGuestMode ? {
     username: 'Гость',
     role: 'GUEST'
   } : session?.user ? {
     username: session.user.name || session.user.email || 'Пользователь',
-    role: session.user.role || 'USER',
-    // ИСПРАВЛЕНО: Пользователь в пробном периоде только если:
-    // 1. НЕТ активной подписки (проверяем generationsInfo)
-    // 2. appMode = FREE
-    // 3. trialEndsAt не истек
-    isInTrial: (() => {
-      // Проверяем активную подписку из generationsInfo
-      const hasActiveSubscription = generationsInfo?.subscriptionEndsAt &&
-        new Date(generationsInfo.subscriptionEndsAt) > new Date()
-
-      // Если есть подписка - НЕ в триале
-      if (hasActiveSubscription) return false
-
-      // Если appMode не FREE - НЕ в триале
-      if (session.user.appMode !== 'FREE') return false
-
-      // Проверяем trialEndsAt
-      return session.user.trialEndsAt
-        ? new Date(session.user.trialEndsAt) > new Date()
-        : false
-    })(),
-    trialGenerations: session.user.trialGenerations || 0,
-    trialGenerationsLeft: Math.max(0, 30 - (session.user.trialGenerations || 0)),
-    trialDaysLeft: session.user.trialEndsAt ? Math.max(0, Math.ceil((new Date(session.user.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0,
+    role: session.user.role || 'USER'
   } : null
 
   const handleDocTypeChange = (newType: DocType) => {
     if (docType === newType) return
+
+    // Очищаем сообщения и создаем новый проект при смене типа документа
+    clearMessages()
+
     const migratedType = migrateOldDocType(newType)
     setDocType(migratedType)
+
+    console.log(`📄 Document type changed to: ${migratedType}`)
   }
 
   const toggleCategory = (categoryId: string) => {
@@ -99,80 +59,12 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
     onCollapseChange?.(newState)
   }
 
-  const fetchGenerationsInfo = async () => {
-    // Загружаем данные только для зарегистрированных пользователей
-    // Для пробного периода (FREE) показываем упрощенный счетчик, поэтому не загружаем
-    // Для платных режимов (ADVANCED/PRO) всегда загружаем детальную информацию
-    if (isGuestMode || !session?.user) return
-
-    // Если пользователь в пробном периоде (FREE + активный trial), не загружаем данные
-    if (currentUser?.isInTrial) return
-
-    setIsLoadingGenerations(true)
-    try {
-      const response = await fetch('/api/user/generations')
-      if (response.ok) {
-        const data = await response.json()
-        setGenerationsInfo(data)
-      } else {
-        console.error('Failed to fetch generations info:', response.status)
-      }
-    } catch (error) {
-      console.error('Failed to fetch generations info:', error)
-    } finally {
-      setIsLoadingGenerations(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchGenerationsInfo()
-  }, [session, isGuestMode, currentUser?.isInTrial])
-  
-  // Listen for generation consumption events
-  useEffect(() => {
-    const handleGenerationConsumed = () => {
-      console.log('🔄 Generation consumed event received, refreshing counter...')
-      fetchGenerationsInfo()
-    }
-    
-    const handleTrialGenerationConsumed = async (event: any) => {
-      console.log('🔄 Trial generation consumed event received, refreshing session...')
-      
-      // Update NextAuth session to reflect new trial data
-      try {
-        await updateSession()
-        console.log('✅ Session updated successfully')
-      } catch (error) {
-        console.error('Failed to update session:', error)
-        // Fallback: reload page if session update fails
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      }
-    }
-    
-    const handleModeSwitched = () => {
-      console.log('🔄 Mode switched, refreshing counter...')
-      fetchGenerationsInfo()
-    }
-    
-    window.addEventListener('generationConsumed', handleGenerationConsumed)
-    window.addEventListener('trialGenerationConsumed', handleTrialGenerationConsumed)
-    window.addEventListener('mode-switched', handleModeSwitched)
-    
-    return () => {
-      window.removeEventListener('generationConsumed', handleGenerationConsumed)
-      window.removeEventListener('trialGenerationConsumed', handleTrialGenerationConsumed)
-      window.removeEventListener('mode-switched', handleModeSwitched)
-    }
-  }, [session, isGuestMode, currentUser?.isInTrial])
-
   const handleLogout = async () => {
     try {
       // Clear all storage
       sessionStorage.clear()
       localStorage.clear()
-      
+
       // Sign out from NextAuth with redirect
       await signOut({ callbackUrl: '/login' })
     } catch (error) {
@@ -182,9 +74,18 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
     }
   }
 
-  const handleBuySuccess = () => {
-    fetchGenerationsInfo()
-  }
+  // Auto-expand category when docType changes (e.g., from welcome page)
+  useEffect(() => {
+    // Find which category contains the current docType
+    const categoryWithDocType = DOC_CATEGORIES.find(category =>
+      category.types.some(type => type.id === docType)
+    )
+
+    if (categoryWithDocType && expandedCategory !== categoryWithDocType.id) {
+      console.log(`📂 Auto-expanding category: ${categoryWithDocType.name} for docType: ${docType}`)
+      setExpandedCategory(categoryWithDocType.id)
+    }
+  }, [docType])
 
   return (
     <div className={cn(
@@ -225,7 +126,7 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
         {!isCollapsed && (
           <p className="text-base text-muted-foreground mb-2 px-2 font-medium">Что создаем?</p>
         )}
-        <div className="space-y-1.5" data-tour="doc-types">
+        <div className="space-y-1.5">
           {DOC_CATEGORIES.map((category) => {
             const CategoryIcon = category.icon
             const isExpanded = expandedCategory === category.id
@@ -234,6 +135,7 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
               <div key={category.id}>
                 {/* Category Header */}
                 <button
+                  type="button"
                   onClick={() => toggleCategory(category.id)}
                   className={cn(
                     'w-full flex items-center gap-2 rounded-md transition-all touch-manipulation min-h-[44px]',
@@ -249,7 +151,7 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
                     )}
                   </div>
                   {!isCollapsed && (
-                    isExpanded ? <ChevronUp className="w-4.5 h-4.5" /> : <ChevronDown className="w-4.5 h-4.5" />
+                    isExpanded ? <ChevronUp className="w-4 h-4 pointer-events-none" /> : <ChevronDown className="w-4 h-4 pointer-events-none" />
                   )}
                 </button>
 
@@ -269,7 +171,7 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
                               : 'hover:bg-accent hover:text-accent-foreground font-medium'
                           )}
                         >
-                          <TypeIcon className="w-4.5 h-4.5 flex-shrink-0" />
+                          <TypeIcon className="w-4 h-4 flex-shrink-0" />
                           <div className="flex-1 text-left">
                             <div className="truncate">{type.label}</div>
                             {type.dimensions && (
@@ -292,7 +194,25 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
           <ModeSelector />
         </div>
       )}
-      
+
+      {/* Generations Counter for FREE users */}
+      {!isCollapsed && <GenerationsCounter />}
+
+      {/* Purchase Subscription Button */}
+      {!isCollapsed && !isGuestMode && session?.user && onPurchaseClick && appMode !== 'ADVANCED' && (
+        <div className="px-3 pb-3">
+          <button
+            onClick={onPurchaseClick}
+            className="w-full flex items-center justify-center gap-2 rounded-lg text-sm font-bold transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl hover:shadow-purple-500/50 hover:-translate-y-0.5 hover:from-purple-700 hover:to-pink-700 active:scale-95 px-3 py-2.5"
+          >
+            <span>💎 Купить подписку ADVANCED</span>
+          </button>
+          <p className="text-[9px] text-muted-foreground text-center mt-1">
+            100 генераций на 30 дней — 10₽
+          </p>
+        </div>
+      )}
+
       {/* User info and logout/login button */}
       <div className={cn(
         "border-t border-border bg-background",
@@ -310,200 +230,7 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
             </div>
           </div>
         )}
-        
-        {/* Guest generation counter banner */}
-        {!isCollapsed && isGuestMode && (
-          <div className="mb-2 p-2 bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-lg">
-            <div className="flex items-center gap-1.5 mb-1">
-              <div className="bg-orange-500 p-0.5 rounded">
-                <span className="text-white text-[10px]">⚡</span>
-              </div>
-              <span className="text-[11px] font-semibold text-foreground">Бесплатные генерации</span>
-            </div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-base font-bold text-orange-600">{getRemainingGenerations()}/{guestGenerationsLimit}</span>
-              <span className="text-[9px] text-muted-foreground">осталось</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
-              <div 
-                className="bg-gradient-to-r from-orange-500 to-orange-600 h-full transition-all duration-500 rounded-full"
-                style={{ width: `${(getRemainingGenerations() / guestGenerationsLimit) * 100}%` }}
-              />
-            </div>
-            {getRemainingGenerations() === 0 && (
-              <button
-                onClick={() => router.push('/register')}
-                className="text-xs text-orange-600 hover:text-orange-700 mt-2 font-medium underline decoration-dotted underline-offset-2 transition-colors cursor-pointer w-full text-left"
-              >
-                Зарегистрируйтесь, чтобы продолжить!
-              </button>
-            )}
-            {getRemainingGenerations() === 1 && (
-              <p className="text-xs text-orange-600 mt-2">
-                Последняя бесплатная генерация!
-              </p>
-            )}
-          </div>
-        )}
-        
-        {/* Trial banner for registered users */}
-        {!isCollapsed && !isGuestMode && currentUser?.isInTrial && (
-          <div className="mb-2 p-2 bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-lg">
-            <div className="flex items-center gap-1.5 mb-1">
-              <div className="bg-green-500 p-0.5 rounded">
-                <span className="text-white text-[10px]">🎉</span>
-              </div>
-              <span className="text-[11px] font-semibold text-foreground">Пробный период</span>
-            </div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-base font-bold text-green-600">
-                {currentUser.trialGenerationsLeft}/30
-              </span>
-              <span className="text-[9px] text-muted-foreground">
-                {currentUser.trialDaysLeft} {currentUser.trialDaysLeft === 1 ? 'день' : 'дней'}
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-1 overflow-hidden mb-1.5">
-              <div 
-                className="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all duration-500 rounded-full"
-                style={{ width: `${((currentUser.trialGenerationsLeft || 0) / 30) * 100}%` }}
-              />
-            </div>
-            
-            {/* Кнопка апгрейда для пробного периода */}
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold py-1.5 px-2 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95 mb-1"
-            >
-              <Zap className="w-3 h-3" />
-              <span>Улучшить до Продвинутый</span>
-            </button>
-            
-            {(currentUser.trialGenerationsLeft || 0) === 0 && (
-              <p className="text-xs text-orange-600 text-center font-medium">
-                🔥 Пробный период закончился!
-              </p>
-            )}
-            {(currentUser.trialGenerationsLeft || 0) <= 10 && (currentUser.trialGenerationsLeft || 0) > 0 && (
-              <p className="text-xs text-orange-600 text-center font-medium">
-                🔥 Осталось мало генераций!
-              </p>
-            )}
-            {(currentUser.trialGenerationsLeft || 0) > 10 && (
-              <p className="text-xs text-green-600 text-center">
-                Осталось {currentUser.trialGenerationsLeft} генераций!
-              </p>
-            )}
-          </div>
-        )}
 
-        {/* Generations counter for registered users (non-trial) */}
-        {!isCollapsed && !isGuestMode && session?.user && !currentUser?.isInTrial && generationsInfo && (
-          <div className="mb-2 p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <div className="bg-blue-500 p-0.5 rounded">
-                  <Sparkles className="w-2.5 h-2.5 text-white" />
-                </div>
-                <span className="text-[11px] font-semibold text-foreground">Генерации</span>
-              </div>
-              <span className="text-[9px] text-muted-foreground">
-                {new Date(generationsInfo.nextResetDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-1.5 mb-1">
-              <span className="text-base font-bold text-blue-600">
-                {(() => {
-                  const currentMode = appMode.toLowerCase()
-                  // Новая модель: FREE=10, ADVANCED=80
-                  const limit = currentMode === 'free' ? 10 : 80
-                  const used = currentMode === 'free'
-                    ? (generationsInfo.freeMonthlyGenerations || 0)
-                    : (generationsInfo.advancedMonthlyGenerations || 0)
-                  // Купленные генерации (только для ADVANCED)
-                  const purchased = currentMode === 'free' ? 0 : (generationsInfo.purchasedGenerations || 0)
-                  const availableFromSubscription = Math.max(0, limit - used)
-                  return availableFromSubscription + purchased
-                })()}
-              </span>
-              <span className="text-[9px] text-muted-foreground">
-                / {appMode.toLowerCase() === 'free' ? '10' : '80'}
-                {appMode.toLowerCase() !== 'free' && (generationsInfo.purchasedGenerations || 0) > 0 && (
-                  <span className="text-green-500 ml-1">+{Math.floor(generationsInfo.purchasedGenerations || 0)}</span>
-                )}
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-1 overflow-hidden mb-1.5">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-500 rounded-full"
-                style={{
-                  width: `${(() => {
-                    const currentMode = appMode.toLowerCase()
-                    const limit = currentMode === 'free' ? 10 : 80
-                    const used = currentMode === 'free'
-                      ? (generationsInfo.freeMonthlyGenerations || 0)
-                      : (generationsInfo.advancedMonthlyGenerations || 0)
-                    const purchased = currentMode === 'free' ? 0 : (generationsInfo.purchasedGenerations || 0)
-                    const availableFromSubscription = Math.max(0, limit - used)
-                    const totalAvailable = availableFromSubscription + purchased
-                    return Math.min(100, (totalAvailable / limit) * 100)
-                  })()}%` 
-                }}
-              />
-            </div>
-            
-            {/* Кнопки действий */}
-            <div className="space-y-1.5">
-              {appMode.toLowerCase() === 'free' && (() => {
-                // Проверяем, есть ли активная подписка
-                const hasPaidSubscription = generationsInfo.subscriptionEndsAt && 
-                  new Date(generationsInfo.subscriptionEndsAt) > new Date()
-                
-                // Кнопка "Улучшить" только для НЕоплаченных пользователей
-                if (!hasPaidSubscription) {
-                  return (
-                    <>
-                      <button
-                        onClick={() => setShowUpgradeModal(true)}
-                        className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-xs font-bold py-1.5 px-2 rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95"
-                      >
-                        <Zap className="w-3 h-3" />
-                        <span>Улучшить до Продвинутый</span>
-                      </button>
-                      {(() => {
-                        const used = generationsInfo.freeMonthlyGenerations || 0
-                        const available = Math.max(0, 10 - used)
-                        return available <= 3 && (
-                          <p className="text-[10px] text-center text-orange-600 font-medium">
-                            🔥 Осталось {available} генераций!
-                          </p>
-                        )
-                      })()}
-                    </>
-                  )
-                }
-                
-                // Для оплаченных пользователей - просто показываем сообщение
-                return (
-                  <p className="text-[10px] text-center text-muted-foreground">
-                    Вы можете переключиться на ⚡ Продвинутый режим
-                  </p>
-                )
-              })()}
-              
-              {(appMode.toLowerCase() === 'advanced' || appMode.toLowerCase() === 'pro') && (
-                <button
-                  onClick={() => setShowBuyModal(true)}
-                  className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-1.5 px-2 rounded-lg transition-all shadow-sm hover:shadow-md active:scale-95"
-                >
-                  <Package className="w-3 h-3" />
-                  <span>Купить +30 за {BONUS_PACK_PRICE}₽</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        
         {isGuestMode ? (
           <button
             onClick={() => router.push('/login')}
@@ -535,33 +262,6 @@ export default function Sidebar({ onCollapseChange }: SidebarProps = {}) {
         )}
       </div>
 
-      {/* Buy Generations Modal */}
-      {generationsInfo && (
-        <BuyGenerationsModal
-          isOpen={showBuyModal}
-          onClose={() => setShowBuyModal(false)}
-          currentGenerations={(() => {
-            const currentMode = appMode.toLowerCase()
-            const limit = currentMode === 'free' ? 30 : currentMode === 'advanced' ? 100 : 300
-            const used = currentMode === 'free' 
-              ? (generationsInfo.freeMonthlyGenerations || 0)
-              : currentMode === 'advanced'
-                ? (generationsInfo.advancedMonthlyGenerations || 0)
-                : (generationsInfo.monthlyGenerations || 0)
-            // Бонусы только для платных режимов
-            const bonus = currentMode === 'free' ? 0 : (generationsInfo.bonusGenerations || 0)
-            return Math.max(0, limit - used + bonus)
-          })()}
-          onSuccess={handleBuySuccess}
-        />
-      )}
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        currentMode={generationsInfo?.appMode || 'FREE'}
-      />
     </div>
   )
 }

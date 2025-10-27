@@ -182,9 +182,9 @@ export async function processPlanningMode(
 ): Promise<{ response: string; updatedData: Partial<PlanningData>; isComplete: boolean }> {
   
   const modelByMode: Record<AppMode, string> = {
+    guest: 'google/gemini-2.0-flash-001',
     free: 'google/gemini-2.5-flash-lite',
-    advanced: 'google/gemini-2.0-flash-001',
-    pro: 'openai/gpt-4o'
+    advanced: 'google/gemini-2.0-flash-001'
   }
   
   const selectedModel = modelByMode[appMode]
@@ -387,9 +387,9 @@ export async function processSmartDialogMode(
 ): Promise<{ response: string; updatedData: Partial<PlanningData>; isComplete: boolean; smartDialog?: SmartDialogResult }> {
   
   const modelByMode: Record<AppMode, string> = {
+    guest: 'google/gemini-2.0-flash-001',
     free: 'google/gemini-2.5-flash-lite',
-    advanced: 'google/gemini-2.0-flash-001',
-    pro: 'openai/gpt-4o'
+    advanced: 'google/gemini-2.0-flash-001'
   }
   
   const selectedModel = modelByMode[appMode]

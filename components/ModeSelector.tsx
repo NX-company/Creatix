@@ -4,20 +4,46 @@ import { useStore, type AppMode } from '@/lib/store'
 import { MODE_CONFIG } from '@/lib/config/modes'
 import { cn } from '@/lib/cn'
 import { useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 
 export default function ModeSelector() {
   const { appMode, setAppMode } = useStore()
   const { data: session, update: updateSession } = useSession()
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
 
-  const modes: AppMode[] = ['free', 'advanced', 'pro']
-  
+  const modes: AppMode[] = ['free', 'advanced']
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (!session?.user) return
+
+      try {
+        const response = await fetch('/api/user/subscription-status')
+        if (response.ok) {
+          const data = await response.json()
+          setSubscriptionStatus(data.subscriptionStatus)
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription status:', error)
+      }
+    }
+
+    fetchStatus()
+  }, [session])
+
   const handleModeClick = async (mode: AppMode) => {
+    // Check if trying to switch to ADVANCED without active subscription
+    if (mode === 'advanced' && subscriptionStatus !== 'active') {
+      alert('⚠️ Для использования ADVANCED режима необходима активная подписка.\n\nАктивируйте тестовую подписку через кнопку ниже или оформите полную подписку.')
+      return
+    }
+
     // Для гостей просто меняем локальный state
     if (!session?.user) {
       setAppMode(mode)
       return
     }
-    
+
     // Для аутентифицированных пользователей обновляем режим в базе данных
     try {
       const response = await fetch('/api/user/switch-mode', {
@@ -33,13 +59,13 @@ export default function ModeSelector() {
       }
 
       console.log(`✅ Mode switched to ${mode} in database`)
-      
+
       // Обновляем NextAuth session из базы данных
       await updateSession()
-      
+
       // Обновляем локальный state
       setAppMode(mode)
-      
+
       // Триггерим обновление счетчика генераций
       window.dispatchEvent(new CustomEvent('mode-switched', { detail: { mode } }))
     } catch (error) {
@@ -54,21 +80,18 @@ export default function ModeSelector() {
         {modes.map((mode) => {
           const config = MODE_CONFIG[mode]
           const isActive = appMode === mode
-          const isProMode = mode === 'pro'
 
           return (
             <button
               key={mode}
               onClick={() => handleModeClick(mode)}
-              disabled={isProMode}
               className={cn(
                 'w-full flex items-center gap-2 rounded-md text-sm transition-all px-2.5 py-1.5 text-left',
-                isProMode && 'hidden',
-                !isProMode && isActive
+                isActive
                   ? mode === 'advanced'
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg border-2 border-blue-400 ring-2 ring-blue-500/30'
                     : 'bg-primary text-primary-foreground shadow-lg border-2 border-primary/50 ring-2 ring-primary/30'
-                  : !isProMode && 'hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
+                  : 'hover:bg-accent hover:text-accent-foreground hover:shadow-sm'
               )}
             >
               <span className="text-xl">{config.icon}</span>

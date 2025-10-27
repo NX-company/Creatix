@@ -14,7 +14,6 @@ function RegisterForm() {
   const plan = searchParams.get('plan') || 'free'
   
   const setIsGuestMode = useStore((state) => state.setIsGuestMode)
-  const resetGuestGenerations = useStore((state) => state.resetGuestGenerations)
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -62,12 +61,11 @@ function RegisterForm() {
       }
 
       setSuccess(true)
-      
-      // Clear guest mode and reset generation counter on successful registration
+
+      // Clear guest mode on successful registration
       sessionStorage.removeItem('isGuestMode')
       setIsGuestMode(false)
-      resetGuestGenerations()
-      console.log('✅ Guest mode and generation counter reset after registration')
+      console.log('✅ Guest mode cleared after registration')
       
       setTimeout(() => {
         router.push('/login')
@@ -95,7 +93,7 @@ function RegisterForm() {
                   <span className="text-sm font-semibold text-blue-500">ADVANCED план</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  100 генераций с AI изображениями за 1000₽/мес
+                  100 генераций с AI изображениями за 10₽/мес
                 </p>
               </div>
             )}

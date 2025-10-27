@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Новая модель: сразу FREE режим с 10 генерациями/месяц
+    // Создаем пользователя с базовыми настройками
     const user = await prisma.user.create({
       data: {
         email,
@@ -43,12 +43,8 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         role: 'USER',
         appMode: 'FREE',
-        generationLimit: 10,
-        monthlyGenerations: 0,
-        freeMonthlyGenerations: 0,
-        advancedMonthlyGenerations: 0,
-        bonusGenerations: 0,
-        lastResetDate: new Date()
+        freeGenerationsRemaining: 20,
+        freeGenerationsUsed: 0,
       },
       select: {
         id: true,
@@ -56,9 +52,6 @@ export async function POST(req: NextRequest) {
         username: true,
         role: true,
         appMode: true,
-        generationLimit: true,
-        monthlyGenerations: true,
-        freeMonthlyGenerations: true,
         createdAt: true
       }
     })

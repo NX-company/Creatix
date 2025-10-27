@@ -16,8 +16,9 @@ function PaymentSuccessContent() {
   const [activationMessage, setActivationMessage] = useState('')
   const [pollingAttempts, setPollingAttempts] = useState(0)
 
-  const paymentType = searchParams.get('type')
+  const paymentType = searchParams.get('type') // 'subscription' | 'package'
   const mode = searchParams.get('mode')
+  const packageCode = searchParams.get('code') // Для type=package
 
   // Логируем ВСЕ параметры URL чтобы понять что приходит от Точка Банка
   console.log('🔍 All URL params from Tochka Bank:', Object.fromEntries(searchParams.entries()))
@@ -51,11 +52,7 @@ function PaymentSuccessContent() {
         console.log('✅ Latest payment activated successfully:', data)
         setActivationStatus('success')
 
-        if (data.type === 'BONUS_PACK') {
-          setActivationMessage('+30 генераций добавлено на ваш аккаунт!')
-        } else {
-          setActivationMessage(`Подписка ${data.targetMode} успешно активирована!`)
-        }
+        setActivationMessage(`Подписка ${data.targetMode || 'ADVANCED'} успешно активирована!`)
 
         // Обновляем NextAuth сессию
         try {
@@ -106,14 +103,9 @@ function PaymentSuccessContent() {
           setActivationStatus('success')
 
           // Формируем понятное сообщение
-          let message = ''
-          if (paymentType === 'subscription') {
-            const modeText = mode === 'ADVANCED' ? 'ADVANCED' : mode === 'ADVANCED' ? 'ADVANCED' : mode
-            message = `Подписка ${modeText} успешно активирована!`
-          } else if (paymentType === 'bonus_pack') {
-            message = '+30 генераций добавлено на ваш аккаунт!'
-          } else {
-            message = data.message || 'Подписка успешно активирована!'
+          let message = 'Подписка ADVANCED успешно активирована!'
+          if (paymentType === 'package') {
+            message = 'Пакет ADVANCED успешно активирован! 100 генераций с изображениями доступны на 30 дней.'
           }
           setActivationMessage(message)
 
@@ -160,14 +152,9 @@ function PaymentSuccessContent() {
           setActivationStatus('success')
 
           // Формируем сообщение
-          let message = ''
-          if (paymentType === 'subscription') {
-            const modeText = mode === 'ADVANCED' ? 'ADVANCED' : mode === 'ADVANCED' ? 'ADVANCED' : mode
-            message = `Подписка ${modeText} успешно активирована!`
-          } else if (paymentType === 'bonus_pack') {
-            message = '+30 генераций добавлено на ваш аккаунт!'
-          } else {
-            message = 'Платёж успешно обработан!'
+          let message = 'Подписка ADVANCED успешно активирована!'
+          if (paymentType === 'package') {
+            message = 'Пакет ADVANCED успешно активирован! 100 генераций с изображениями доступны на 30 дней.'
           }
           setActivationMessage(message)
 
@@ -249,26 +236,12 @@ function PaymentSuccessContent() {
         {/* Детали активации */}
         {activationStatus === 'success' && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            {paymentType === 'subscription' && (
-              <>
-                <p className="text-sm font-semibold text-green-700 mb-1">
-                  Подписка активирована
-                </p>
-                <p className="text-sm text-gray-600">
-                  Месячный лимит генераций сброшен. Можете начинать работу!
-                </p>
-              </>
-            )}
-            {paymentType === 'bonus_pack' && (
-              <>
-                <p className="text-sm font-semibold text-green-700 mb-1">
-                  Бонусные генерации добавлены
-                </p>
-                <p className="text-sm text-gray-600">
-                  +30 дополнительных генераций доступны для использования
-                </p>
-              </>
-            )}
+            <p className="text-sm font-semibold text-green-700 mb-1">
+              Подписка активирована
+            </p>
+            <p className="text-sm text-gray-600">
+              100 ADVANCED генераций доступны для использования в течение 30 дней!
+            </p>
           </div>
         )}
 

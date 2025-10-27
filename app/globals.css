@@ -73,12 +73,24 @@
 .driver-active-element {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
   outline: none !important;
+  pointer-events: auto !important;
+}
+
+/* Разрешаем клики на всех дочерних элементах driver-active-element */
+.driver-active-element * {
+  pointer-events: auto !important;
 }
 
 .driver-overlay {
   transition: opacity 0.4s ease-out !important;
   backdrop-filter: blur(3px);
   background: rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none !important;
+}
+
+/* Разрешаем клики через popover */
+.driver-popover {
+  pointer-events: auto !important;
 }
 
 /* Подсветка элемента */
@@ -90,6 +102,12 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative !important;
   z-index: 10000 !important;
+  pointer-events: auto !important;
+}
+
+/* Разрешаем клики на всех дочерних элементах подсвеченного элемента */
+.driver-highlighted-element * {
+  pointer-events: auto !important;
 }
 
 /* Анимация появления */

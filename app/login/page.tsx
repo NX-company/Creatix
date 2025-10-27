@@ -11,7 +11,6 @@ import Logo from '@/components/Logo'
 export default function LoginPage() {
   const router = useRouter()
   const setIsGuestMode = useStore((state) => state.setIsGuestMode)
-  const resetGuestGenerations = useStore((state) => state.resetGuestGenerations)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -37,10 +36,9 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        // Clear guest mode and reset generation counter on successful login
+        // Clear guest mode on successful login
         sessionStorage.removeItem('isGuestMode')
         setIsGuestMode(false)
-        resetGuestGenerations()
         console.log('✅ Login successful via NextAuth Credentials')
         
         router.push('/')

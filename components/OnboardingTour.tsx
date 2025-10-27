@@ -65,12 +65,11 @@ export default function OnboardingTour() {
           },
         },
         {
-          element: '[data-tour="doc-types"]',
           popover: {
             title: '📄 Шаг 1: Выберите тип дизайна',
             description: `
               <div class="text-sm space-y-2">
-                <p class="mb-2 font-medium">Выберите что создать:</p>
+                <p class="mb-2 font-medium">В левом меню выберите что создать:</p>
                 <div class="grid grid-cols-2 gap-2 text-xs">
                   <div>📄 КП</div>
                   <div>📊 Презентация</div>
@@ -78,10 +77,9 @@ export default function OnboardingTour() {
                   <div>🎨 Логотип</div>
                 </div>
                 <p class="text-xs text-purple-600 mt-2">💡 Каждый тип имеет свой стиль и структуру</p>
+                <p class="text-xs text-gray-500 mt-2">Нажмите на категорию чтобы увидеть типы документов</p>
               </div>
             `,
-            side: 'right',
-            align: 'start',
           },
         },
         {

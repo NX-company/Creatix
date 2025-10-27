@@ -23,9 +23,9 @@ export async function processConversationalPlanning(
 ): Promise<ConversationalResponse> {
   
   const modelByMode: Record<AppMode, string> = {
+    guest: 'google/gemini-2.0-flash-001',
     free: 'google/gemini-2.5-flash-lite',
-    advanced: 'google/gemini-2.0-flash-001',
-    pro: 'openai/gpt-4o'
+    advanced: 'google/gemini-2.0-flash-001'
   }
   
   const selectedModel = modelByMode[appMode]

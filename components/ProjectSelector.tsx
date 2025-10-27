@@ -6,13 +6,14 @@ import { FolderOpen, Plus, Trash2, Edit2, Check, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ProjectSelector() {
-  const { 
-    projects, 
-    currentProjectId, 
-    createProject, 
-    deleteProject, 
+  const {
+    projects,
+    currentProjectId,
+    createProject,
+    deleteProject,
     switchProject,
-    renameProject 
+    renameProject,
+    isGuestMode
   } = useStore()
   
   const [isOpen, setIsOpen] = useState(false)
@@ -108,14 +109,16 @@ export default function ProjectSelector() {
             <div className="p-3 border-b border-border flex items-center justify-between">
               <h3 className="font-semibold text-sm">Проекты ({projects.length})</h3>
               <button
-                onClick={() => setIsCreating(!isCreating)}
-                className="p-1 hover:bg-accent rounded"
+                onClick={() => !isGuestMode && setIsCreating(!isCreating)}
+                disabled={isGuestMode}
+                title={isGuestMode ? "Доступно после регистрации" : "Создать новый проект"}
+                className={`p-1 rounded ${isGuestMode ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent'}`}
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
 
-            {isCreating && (
+            {isCreating && !isGuestMode && (
               <div className="p-3 border-b border-border bg-muted/30 space-y-2">
                 <input
                   type="text"

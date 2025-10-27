@@ -5,7 +5,6 @@ import { useStore } from '@/lib/store'
 import { Download, Trash2, FileText, Archive, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import JSZip from 'jszip'
-import GenerationLimitModal from './GenerationLimitModal'
 
 const fileTypeIcons: Record<string, string> = {
   pdf: '📄',
@@ -14,23 +13,15 @@ const fileTypeIcons: Record<string, string> = {
 }
 
 export default function FilesList() {
-  const { 
-    generatedFiles, 
-    removeGeneratedFile, 
+  const {
+    generatedFiles,
+    removeGeneratedFile,
     addMessage,
-    isGuestMode,
-    getRemainingGenerations
+    isGuestMode
   } = useStore()
   const [downloadingAll, setDownloadingAll] = useState(false)
-  const [showLimitModal, setShowLimitModal] = useState(false)
 
   const handleDownload = (url: string, name: string) => {
-    if (isGuestMode) {
-      console.log('🚫 Guest users cannot download files')
-      setShowLimitModal(true)
-      return
-    }
-    
     const link = document.createElement('a')
     link.href = url
     link.download = name
@@ -39,12 +30,6 @@ export default function FilesList() {
 
   const handleDownloadAll = async () => {
     if (generatedFiles.length === 0) return
-    
-    if (isGuestMode) {
-      console.log('🚫 Guest users cannot download files')
-      setShowLimitModal(true)
-      return
-    }
 
     setDownloadingAll(true)
     
@@ -175,13 +160,6 @@ export default function FilesList() {
           </motion.div>
         ))}
       </div>
-      
-      {/* Generation Limit Modal */}
-      <GenerationLimitModal
-        isOpen={showLimitModal}
-        onClose={() => setShowLimitModal(false)}
-        remaining={getRemainingGenerations()}
-      />
     </div>
   )
 }

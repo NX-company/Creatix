@@ -7,16 +7,16 @@ declare module "next-auth" {
       id: string
       role: Role
       appMode: AppMode
-      trialEndsAt: Date | null
-      trialGenerations: number
+      freeGenerationsRemaining: number
+      freeGenerationsUsed: number
     } & DefaultSession["user"]
   }
 
   interface User extends DefaultUser {
     role: Role
     appMode: AppMode
-    trialEndsAt: Date | null
-    trialGenerations: number
+    freeGenerationsRemaining: number
+    freeGenerationsUsed: number
   }
 }
 
@@ -25,8 +25,8 @@ declare module "next-auth/jwt" {
     id: string
     role: Role
     appMode: AppMode
-    trialEndsAt: Date | null
-    trialGenerations: number
+    freeGenerationsRemaining: number
+    freeGenerationsUsed: number
   }
 }
 

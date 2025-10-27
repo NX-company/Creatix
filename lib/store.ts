@@ -42,7 +42,7 @@ export type DocType =
   | 'email'     // -> email-template
   | 'product-card' // -> wildberries-card
 
-export type AppMode = 'free' | 'advanced' | 'pro'
+export type AppMode = 'guest' | 'free' | 'advanced'
 
 export type WorkMode = 'plan' | 'build'
 
@@ -234,14 +234,7 @@ type Store = {
   
   isGuestMode: boolean
   setIsGuestMode: (isGuest: boolean) => void
-  
-  guestGenerationsUsed: number
-  guestGenerationsLimit: number
-  incrementGuestGenerations: () => void
-  resetGuestGenerations: () => void
-  getRemainingGenerations: () => number
-  hasRemainingGenerations: () => boolean
-  
+
   parsedWebsiteData: {
     url: string
     title: string
@@ -265,10 +258,15 @@ type Store = {
   appMode: AppMode
   setAppMode: (mode: AppMode) => void
   isFeatureAvailable: (feature: string) => boolean
-  
+
+  freeGenerationsRemaining: number
+  freeGenerationsUsed: number
+  setFreeGenerations: (remaining: number, used: number) => void
+  consumeFreeGeneration: () => Promise<boolean>
+
   workMode: WorkMode
   setWorkMode: (mode: WorkMode) => void
-  
+
   planningData: PlanningData
   setPlanningData: (data: Partial<PlanningData>) => void
   resetPlanningData: () => void
@@ -759,42 +757,7 @@ export const useStore = create<Store>()(
       
       isGuestMode: false,
       setIsGuestMode: (isGuest) => set({ isGuestMode: isGuest }),
-      
-      guestGenerationsUsed: 0,
-      guestGenerationsLimit: 1,
-      incrementGuestGenerations: () => {
-        const { guestGenerationsUsed, guestGenerationsLimit } = get()
-        const newUsed = Math.min(guestGenerationsUsed + 1, guestGenerationsLimit)
-        set({ guestGenerationsUsed: newUsed })
-        
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('creatix_guest_generations', newUsed.toString())
-          } catch (error) {
-            console.error('Error saving guest generations:', error)
-          }
-        }
-      },
-      resetGuestGenerations: () => {
-        set({ guestGenerationsUsed: 0 })
-        
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.removeItem('creatix_guest_generations')
-          } catch (error) {
-            console.error('Error resetting guest generations:', error)
-          }
-        }
-      },
-      getRemainingGenerations: () => {
-        const { guestGenerationsUsed, guestGenerationsLimit } = get()
-        return Math.max(0, guestGenerationsLimit - guestGenerationsUsed)
-      },
-      hasRemainingGenerations: () => {
-        const { guestGenerationsUsed, guestGenerationsLimit } = get()
-        return guestGenerationsUsed < guestGenerationsLimit
-      },
-      
+
       parsedWebsiteData: null,
       setParsedWebsiteData: (data) => set({ parsedWebsiteData: data }),
       clearParsedWebsiteData: () => set({ parsedWebsiteData: null }),
@@ -808,8 +771,14 @@ export const useStore = create<Store>()(
         const { appMode } = get()
         const normalizedMode = (appMode?.toLowerCase() || 'free') as AppMode
         const FEATURE_ACCESS: Record<AppMode, Record<string, boolean>> = {
+          guest: {
+            uploadImages: false,
+            parseWebsite: false,
+            uploadVideo: false,
+            aiImageGeneration: true,
+          },
           free: {
-            uploadImages: true,
+            uploadImages: false,
             parseWebsite: false,
             uploadVideo: false,
             aiImageGeneration: false,
@@ -820,17 +789,46 @@ export const useStore = create<Store>()(
             uploadVideo: false,
             aiImageGeneration: true,
           },
-          pro: {
-            uploadImages: true,
-            parseWebsite: true,
-            uploadVideo: true,
-            aiImageGeneration: true,
-            multimodalAnalysis: true,
-          },
         }
         return FEATURE_ACCESS[normalizedMode]?.[feature] ?? false
       },
-      
+
+      freeGenerationsRemaining: 0,
+      freeGenerationsUsed: 0,
+      setFreeGenerations: (remaining, used) => set({
+        freeGenerationsRemaining: remaining,
+        freeGenerationsUsed: used
+      }),
+      consumeFreeGeneration: async () => {
+        try {
+          const response = await fetch('/api/user/consume-free-generation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+
+          if (!response.ok) {
+            console.error('Failed to consume generation:', response.statusText)
+            return false
+          }
+
+          const data = await response.json()
+
+          if (data.success) {
+            set({
+              freeGenerationsRemaining: data.remaining,
+              freeGenerationsUsed: data.used,
+            })
+            console.log(`✅ Generation consumed. Remaining: ${data.remaining}`)
+            return true
+          }
+
+          return false
+        } catch (error) {
+          console.error('Error consuming generation:', error)
+          return false
+        }
+      },
+
       workMode: 'plan',
       setWorkMode: (mode) => set({ workMode: mode }),
       

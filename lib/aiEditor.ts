@@ -106,8 +106,8 @@ ${isContextualEdit
 }`
 
     // Выбираем модель в зависимости от режима
-    const aiModel = (mode === 'advanced' || mode === 'pro') 
-      ? 'openai/gpt-4o'  // Умная модель для Advanced и PRO
+    const aiModel = mode === 'advanced'
+      ? 'openai/gpt-4o'  // Умная модель для ADVANCED
       : 'google/gemini-2.5-flash-lite'  // Быстрая модель для FREE
 
     console.log(`🤖 AI Editor using model: ${aiModel} (contextual: ${isContextualEdit}, mode: ${mode})`)

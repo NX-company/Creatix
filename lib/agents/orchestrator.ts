@@ -1,3 +1,36 @@
+/**
+ * ============================================
+ * DOCUMENT GENERATION ORCHESTRATOR
+ * ============================================
+ *
+ * Главный оркестратор генерации документов.
+ * Управляет процессом создания документов в зависимости от режима работы.
+ *
+ * РЕЖИМЫ РАБОТЫ:
+ *
+ * 1. ADVANCED (Продвинутый):
+ *    - Текст: Claude/Gemini (продвинутая модель)
+ *    - Изображения: Flux 1.1 Pro (высокое качество)
+ *    - QA проверка: Включена
+ *    - Использование: 100 генераций/месяц (подписка)
+ *
+ * 2. FREE (Бесплатный):
+ *    - Текст: Gemini Flash (быстрая модель)
+ *    - Изображения: Нет
+ *    - QA проверка: Отключена
+ *    - Использование: 30 генераций/месяц (регистрация)
+ *
+ * СХЕМА РАБОТЫ:
+ * 1. Генерация текстового контента (режим зависит от appMode)
+ * 2. Анализ контента для изображений (только ADVANCED)
+ * 3. Генерация AI изображений через Flux (только ADVANCED)
+ * 4. Сборка HTML с применением стиля
+ * 5. Вставка изображений в плейсхолдеры
+ * 6. QA проверка и улучшения (только ADVANCED)
+ *
+ * @module orchestrator
+ */
+
 import type { AppMode, DocType, UploadedImage } from '../store'
 import { generateContent, generateContentWithImages, generateHTML } from '../api'
 import { generateHTMLWithGPT4o } from '../api-openai'
@@ -54,6 +87,7 @@ export async function generateDocumentWithMode(params: {
   }
 
   const modeNames = {
+    guest: 'гостевом',
     free: 'бесплатном',
     advanced: 'продвинутом',
     pro: 'ADVANCED'
@@ -100,8 +134,8 @@ export async function generateDocumentWithMode(params: {
         const textPrompt = previousFeedback 
           ? `${prompt}\n\nIMPROVEMENT REQUIRED:\n${previousFeedback}` 
           : prompt
-        // Используем GPT-4o для анализа изображений в Advanced и PRO режимах
-        const analysisModel = (mode === 'advanced' || mode === 'pro') 
+        // Используем GPT-4o для анализа изображений в ADVANCED режиме
+        const analysisModel = mode === 'advanced'
           ? 'openai/gpt-4o'  // Лучший multimodal анализ
           : config.models.text.model
         console.log(`🔍 Image analysis using model: ${analysisModel}`)
@@ -122,34 +156,43 @@ export async function generateDocumentWithMode(params: {
         notify(`✅ Текст готов`)
       }
 
-      if (mode === 'advanced') {
+      // ============================================
+      // ADVANCED РЕЖИМ: Генерация с изображениями
+      // ============================================
+      if (mode === 'advanced' || mode === 'guest') {
+        const isGuest = mode === 'guest'
+
+        if (isGuest) {
+          notify(`🎭 Демонстрирую возможности ADVANCED режима с изображениями...`)
+        }
+
         notify(`🎨 Планирую AI изображения для документа...`)
-        
+
         const planImageCountMatch = prompt.match(/📄 КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: (\d+)/)
         const userRequestedCount = planImageCountMatch ? parseInt(planImageCountMatch[1]) : undefined
-        
+
         contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, false, uploadedImages.length, userRequestedCount)
 
         const imageCount = contentAnalysis.imagePrompts.length
         if (imageCount > 0) {
           notify(`🖼️ Создаю ${imageCount} ${imageCount === 1 ? 'изображение' : imageCount < 5 ? 'изображения' : 'изображений'}...`)
-          
-          // Advanced режим: Flux Schnell (быстрая, бесплатная)
-          const fluxModel = 'black-forest-labs/flux-schnell'
-          
+
+          // ADVANCED и GUEST режимы: Flux 1.1 Pro (высокое качество)
+          const fluxModel = 'black-forest-labs/flux-1.1-pro'
+
           const images: GeneratedImage[] = []
           for (let i = 0; i < contentAnalysis.imagePrompts.length; i++) {
             const plan = contentAnalysis.imagePrompts[i]
-            const shortPrompt = plan.prompt.length > 50 
+            const shortPrompt = plan.prompt.length > 50
               ? plan.prompt.substring(0, 50) + '...'
               : plan.prompt
             notify(`🎨 Рисую изображение ${i + 1}/${imageCount}: "${shortPrompt}"`)
-            
+
             const singleImage = await generateImagesFromPlan([plan], previousFeedback, fluxModel)
             images.push(...singleImage)
           }
           generatedImages = images
-          
+
           notify(`✅ Все изображения готовы!`)
         } else {
           notify(`ℹ️ Изображения не требуются для этого документа`)
@@ -157,20 +200,20 @@ export async function generateDocumentWithMode(params: {
 
         // ВАЖНО: Загруженные изображения идут ПЕРВЫМИ (IMAGE_0, IMAGE_1, ...), затем AI изображения
         const uploadedImagesCount = uploadedImages.length
-        
+
         // Преобразуем загруженные изображения в формат GeneratedImage для замены плейсхолдеров
         const uploadedAsGenerated: GeneratedImage[] = uploadedImages.map((img, index) => ({
           prompt: `Uploaded: ${img.name}`,
           dataUrl: img.base64,
           slot: index
         }))
-        
+
         // Обновляем slot у AI изображений, чтобы они шли ПОСЛЕ загруженных
         const adjustedGeneratedImages = generatedImages.map((img, index) => ({
           ...img,
           slot: uploadedImagesCount + index
         }))
-        
+
         const allImages = [
           ...uploadedImages,
           ...adjustedGeneratedImages.map((img) => ({
@@ -189,125 +232,40 @@ export async function generateDocumentWithMode(params: {
         // Передаем сначала загруженные, потом AI изображения
         const allImagesForReplacement = [...uploadedAsGenerated, ...adjustedGeneratedImages]
         html = replaceImagePlaceholders(html, allImagesForReplacement)
-        
-        notify(`🔍 Проверяю качество документа...`)
-        qaReport = await reviewDocument(prompt, content, generatedImages, html, docType, iteration)
-        
-        if (qaReport.approved && qaReport.score >= QA_CONFIG.approvalThreshold) {
-          qaApproved = true
-          notify(`🎉 Проверка пройдена! Оценка: ${qaReport.score}/100`)
-        } else {
-          notify(`⚠️ Нужны улучшения (оценка ${qaReport.score}/100)`)
-          
-          if (iteration < QA_CONFIG.maxIterations) {
-            previousFeedback = buildFeedbackForAgents(qaReport)
+
+        // Для ADVANCED режима проверяем качество
+        if (!isGuest) {
+          notify(`🔍 Проверяю качество документа...`)
+          qaReport = await reviewDocument(prompt, content, generatedImages, html, docType, iteration)
+
+          if (qaReport.approved && qaReport.score >= QA_CONFIG.approvalThreshold) {
+            qaApproved = true
+            notify(`🎉 Проверка пройдена! Оценка: ${qaReport.score}/100`)
           } else {
-            notify(`⏱️ Достигнут лимит попыток, использую текущий результат`)
+            notify(`⚠️ Нужны улучшения (оценка ${qaReport.score}/100)`)
+
+            if (iteration < QA_CONFIG.maxIterations) {
+              previousFeedback = buildFeedbackForAgents(qaReport)
+            } else {
+              notify(`⏱️ Достигнут лимит попыток, использую текущий результат`)
+            }
           }
+        } else {
+          // Для GUEST режима - сразу одобряем без проверки
+          qaApproved = true
+          notify(`✨ Демо готово!`)
         }
+      // ============================================
+      // FREE РЕЖИМ: Только текст, без AI изображений
+      // ============================================
       } else if (mode === 'free') {
+        // FREE режим: только текст, без AI генерации изображений
+        // Используется для:
+        // - Гостей после первой ADVANCED генерации (генерации 2-4)
+        // - Зарегистрированных пользователей без подписки (30 генераций/месяц)
         notify(`🏗️ Оформляю документ...`)
         html = await generateHTML(content, docType, styleConfig, uploadedImages)
         notify(`✅ Документ готов`)
-        qaApproved = true
-      } else if (mode === 'pro') {
-        notify(`💎 Использую PRO режим с максимальным качеством`)
-        
-        if (uploadedImages.length > 0) {
-          notify(`👀 Анализирую ваши ${uploadedImages.length} ${uploadedImages.length === 1 ? 'изображение' : uploadedImages.length < 5 ? 'изображения' : 'изображений'}...`)
-          content = await generateContentWithImages(prompt, docType, uploadedImages, 'openai/gpt-4o')
-          notify(`✅ Изображения проанализированы`)
-        } else {
-          notify(`📝 Пишу текст документа...`)
-          content = await generateContent(prompt, docType, 'openai/gpt-4o')
-          notify(`✅ Текст готов`)
-        }
-
-        // 🔍 НОВОЕ: Проверяем, есть ли загруженные изображения с actionType='use-as-is'
-        const imagesToUseAsIs = uploadedImages.filter(img => img.actionType === 'use-as-is')
-        
-        if (imagesToUseAsIs.length > 0) {
-          // Пользователь хочет использовать загруженные изображения как есть
-          notify(`✅ Использую ${imagesToUseAsIs.length} загруженных ${imagesToUseAsIs.length === 1 ? 'изображение' : 'изображений'}`)
-          
-          // Преобразуем загруженные изображения в формат GeneratedImage
-          generatedImages = imagesToUseAsIs.map((img, index) => ({
-            prompt: `Uploaded image: ${img.name}`,
-            dataUrl: img.base64,
-            slot: index
-          }))
-          
-          notify(`✅ Изображения готовы к использованию!`)
-        } else {
-          // Нет загруженных "use-as-is" изображений - генерируем через AI
-          notify(`🎨 Планирую PRO изображения (Flux 1.1 Pro)...`)
-          
-          const planImageCountMatch = prompt.match(/📄 КОЛИЧЕСТВО ИЗОБРАЖЕНИЙ: (\d+)/)
-          const userRequestedCount = planImageCountMatch ? parseInt(planImageCountMatch[1]) : undefined
-          
-          contentAnalysis = await analyzeContentForImages(prompt, content, docType, previousFeedback, true, uploadedImages.length, userRequestedCount)
-          
-          const imageCount = contentAnalysis.imagePrompts.length
-          if (imageCount > 0) {
-            notify(`🖼️ Создаю ${imageCount} PRO ${imageCount === 1 ? 'изображение' : imageCount < 5 ? 'изображения' : 'изображений'}...`)
-            
-            // PRO режим: Flux 1.1 Pro (лучшее качество, в 6 раз быстрее Flux Pro)
-            const fluxProModel = 'black-forest-labs/flux-1.1-pro'
-            
-            const images: GeneratedImage[] = []
-            for (let i = 0; i < contentAnalysis.imagePrompts.length; i++) {
-              const plan = contentAnalysis.imagePrompts[i]
-              const shortPrompt = plan.prompt.length > 50 
-                ? plan.prompt.substring(0, 50) + '...'
-                : plan.prompt
-              notify(`🎨 Создаю PRO изображение ${i + 1}/${imageCount}: "${shortPrompt}"`)
-              
-              const singleImage = await generateImagesFromPlan([plan], previousFeedback, fluxProModel)
-              images.push(...singleImage)
-            }
-            generatedImages = images
-            
-            notify(`✅ Все PRO изображения готовы!`)
-          }
-        }
-
-        // ВАЖНО: Загруженные изображения идут ПЕРВЫМИ (IMAGE_0, IMAGE_1, ...), затем AI изображения
-        const uploadedImagesCount = uploadedImages.length
-        
-        // Преобразуем загруженные изображения в формат GeneratedImage для замены плейсхолдеров
-        const uploadedAsGenerated: GeneratedImage[] = uploadedImages.map((img, index) => ({
-          prompt: `Uploaded: ${img.name}`,
-          dataUrl: img.base64,
-          slot: index
-        }))
-        
-        // Обновляем slot у AI изображений, чтобы они шли ПОСЛЕ загруженных
-        const adjustedGeneratedImages = generatedImages.map((img, index) => ({
-          ...img,
-          slot: uploadedImagesCount + index
-        }))
-        
-        const allImages = [
-          ...uploadedImages,
-          ...adjustedGeneratedImages.map((img) => ({
-            id: `ai-dalle-${img.slot}`,
-            name: `PRO Generated ${img.slot - uploadedImagesCount + 1}`,
-            base64: img.dataUrl,
-            type: 'image/png',
-          })),
-        ]
-
-        notify(`🏗️ Собираю PRO документ с дизайном...`)
-        // PRO режим: используем OpenRouter GPT-4o вместо прямого OpenAI API (чтобы избежать квоты)
-        html = await generateHTML(content, docType, styleConfig, allImages, 'openai/gpt-4o')
-        notify(`✅ PRO дизайн применён`)
-
-        notify(`🔧 Вставляю изображения в нужные места...`)
-        // Передаем сначала загруженные, потом AI изображения
-        const allImagesForReplacement = [...uploadedAsGenerated, ...adjustedGeneratedImages]
-        html = replaceImagePlaceholders(html, allImagesForReplacement)
-        
-        notify(`✅ PRO документ готов!`)
         qaApproved = true
       }
     }

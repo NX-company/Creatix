@@ -8,68 +8,41 @@ datasource db {
 }
 
 model User {
-  id                         String    @id @default(uuid())
-  email                      String    @unique
-  name                       String?
-  username                   String?   @unique
-  password                   String?
-  role                       Role      @default(USER)
-  appMode                    AppMode   @default(FREE)
-  isActive                   Boolean   @default(true)
-
-  // Подписка и баланс
-  balance                    Float     @default(0)          // Баланс в рублях
-  autoRenewEnabled           Boolean   @default(false)      // Автопродление подписки
-  subscriptionEndsAt         DateTime?                      // Когда заканчивается ADVANCED подписка
-  subscriptionStartedAt      DateTime?                      // Когда купили ADVANCED
-
-  // Счетчики генераций (сколько ИСПОЛЬЗОВАНО)
-  freeMonthlyGenerations     Int       @default(0)          // 0→10 (FREE режим)
-  advancedMonthlyGenerations Int       @default(0)          // 0→80 (ADVANCED из подписки)
-  purchasedGenerations       Float     @default(0)          // Купленные доп. генерации (бессрочные)
-
-  // Лимиты
-  generationLimit            Int       @default(10)         // 10 для FREE, 80 для ADVANCED
-
-  // Даты сброса
-  lastResetDate              DateTime?                      // Последний сброс FREE режима
-
-  // DEPRECATED (для обратной совместимости, удалим позже)
-  trialEndsAt                DateTime?
-  trialGenerations           Int       @default(0)
-  monthlyGenerations         Int       @default(0)
-  bonusGenerations           Int       @default(0)
-
-  // Token Usage Tracking
-  totalTokensUsed Int @default(0) // Общий расход токенов пользователем
-  totalApiCost    Float @default(0) // Общая стоимость API вызовов
-
-  // S3 Storage Limits
-  projectsCount Int @default(0) // Текущее количество проектов
-  projectsLimit Int @default(5) // Лимит: 5 проектов
-  filesCount    Int @default(0) // Текущее количество файлов (общий на все проекты)
-  filesLimit    Int @default(70) // Лимит: 70 файлов на все проекты
-
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  sessions     Session[]
-  apiUsage     ApiUsage[]
-  transactions Transaction[]
-  projects     Project[]
-  accounts     Account[]
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-enum AppMode {
-  FREE
-  ADVANCED
+  id                           String        @id @default(uuid())
+  email                        String        @unique
+  name                         String?
+  username                     String?       @unique
+  password                     String?
+  role                         Role          @default(USER)
+  appMode                      AppMode       @default(FREE)
+  isActive                     Boolean       @default(true)
+  balance                      Float         @default(0)
+  autoRenewEnabled             Boolean       @default(false)
+  subscriptionEndsAt           DateTime?
+  subscriptionStartedAt        DateTime?
+  totalTokensUsed              Int           @default(0)
+  totalApiCost                 Float         @default(0)
+  projectsCount                Int           @default(0)
+  projectsLimit                Int           @default(5)
+  filesCount                   Int           @default(0)
+  filesLimit                   Int           @default(70)
+  emailVerified                DateTime?
+  image                        String?
+  lastIpAddress                String?
+  freeGenerationsRemaining     Int           @default(20)
+  freeGenerationsUsed          Int           @default(0)
+  advancedGenerationsTotal     Int           @default(0)
+  advancedGenerationsRemaining Int           @default(0)
+  advancedGenerationsUsed      Int           @default(0)
+  inpaintOperationsCount       Int           @default(0)
+  subscriptionStatus           String        @default("none")
+  createdAt                    DateTime      @default(now())
+  updatedAt                    DateTime      @updatedAt
+  accounts                     Account[]
+  apiUsage                     ApiUsage[]
+  projects                     Project[]
+  sessions                     Session[]
+  transactions                 Transaction[]
 }
 
 model Account {
@@ -85,8 +58,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -112,25 +84,25 @@ model VerificationToken {
 model ApiUsage {
   id         String   @id @default(uuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider   String
   model      String
   endpoint   String
   tokensUsed Int      @default(0)
   cost       Float    @default(0)
   createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount    Float
-  type      String   // 'SUBSCRIPTION' или 'BONUS_PACK'
-  status    String   // 'PENDING', 'COMPLETED', 'FAILED'
-  metadata  Json?    // Дополнительные данные: paymentId, targetMode, paymentType
+  type      String
+  status    String
+  metadata  Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ModeSettings {
@@ -142,55 +114,48 @@ model ModeSettings {
 }
 
 model Project {
-  id          String  @id @default(uuid())
-  userId      String
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  docType     String
-  workMode    String  @default("plan")
-  styleConfig String?
-  sections    String?
-  priceItems  String?
-
-  // S3 Storage
-  s3Key    String? // Путь в S3: documents/user-{userId}/{projectId}.html
-  s3Url    String? // Полный URL для доступа к файлу
-  fileSize Int? // Размер HTML файла в байтах
-  isSaved  Boolean @default(false) // Сохранен ли проект в S3
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  messages     ProjectMessage[]
+  id           String               @id @default(uuid())
+  userId       String
+  name         String
+  docType      String
+  workMode     String               @default("plan")
+  styleConfig  String?
+  sections     String?
+  priceItems   String?
+  s3Key        String?
+  s3Url        String?
+  fileSize     Int?
+  isSaved      Boolean              @default(false)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   files        ProjectFile[]
+  messages     ProjectMessage[]
   planningData ProjectPlanningData?
 
-  @@index([userId, createdAt]) // Индекс для быстрой сортировки по дате создания
+  @@index([userId, createdAt])
 }
 
 model ProjectMessage {
   id        String   @id @default(uuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   role      String
   content   String
   type      String?
   timestamp DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ProjectFile {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  fileName  String
-  fileType  String // image/png, image/jpeg, etc.
-  fileSize  Int // Размер в байтах
-
-  // S3 Storage
-  s3Key String // Путь в S3: images/user-{userId}/uploads/{fileId}.{ext}
-  s3Url String // Полный URL для доступа
-
+  id         String   @id @default(uuid())
+  projectId  String
+  fileName   String
+  fileType   String
+  fileSize   Int
+  s3Key      String
+  s3Url      String
   uploadedAt DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
 }
@@ -198,7 +163,6 @@ model ProjectFile {
 model ProjectPlanningData {
   id                   String  @id @default(uuid())
   projectId            String  @unique
-  project              Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   theme                String?
   targetAudience       String?
   goals                String?
@@ -211,4 +175,16 @@ model ProjectPlanningData {
   answerMode           String?
   collectedAnswers     String?
   isComplete           Boolean @default(false)
+  project              Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AppMode {
+  FREE
+  ADVANCED
+  GUEST
 }

@@ -21,6 +21,8 @@ export default function FileUploader() {
   
   const { addMessage, addUploadedImage, appMode, isFeatureAvailable } = useStore()
 
+  const canUploadImages = isFeatureAvailable('uploadImages')
+
   const handleImageAction = (action: 'use-as-is' | 'generate-similar' | 'use-as-reference') => {
     if (!pendingImageData) return
     
@@ -146,7 +148,7 @@ export default function FileUploader() {
           })
           
         } else if (fileType.startsWith('video/')) {
-          const canAnalyzeVideo = appMode === 'pro'
+          const canAnalyzeVideo = appMode === 'advanced'
           
           addMessage({
             role: 'user',
@@ -166,12 +168,12 @@ export default function FileUploader() {
             
             addMessage({
               role: 'assistant',
-              content: `💎 PRO: Принял видео "${fileName}". GPT-4o проанализирует видео и создаст документ на его основе.\n\nОпиши какой документ нужно создать из видео:\n- Презентация с ключевыми кадрами\n- Коммерческое предложение\n- Карточка товара\n- Описание продукта`
+              content: `💎 ADVANCED: Принял видео "${fileName}". GPT-4o проанализирует видео и создаст документ на его основе.\n\nОпиши какой документ нужно создать из видео:\n- Презентация с ключевыми кадрами\n- Коммерческое предложение\n- Карточка товара\n- Описание продукта`
             })
           } else {
             addMessage({
               role: 'assistant',
-              content: `⚠️  Анализ видео доступен только в PRO режиме!\n\n💎 Включите PRO режим для:\n- Автоматического анализа видео с GPT-4o\n- Извлечения ключевых кадров\n- Создания документов на основе видео\n\nСейчас могу создать документ, если опишете содержание видео вручную.`
+              content: `⚠️ Анализ видео доступен только в ADVANCED режиме!\n\n💎 Включите ADVANCED режим для:\n- Автоматического анализа видео с GPT-4o\n- Извлечения ключевых кадров\n- Создания документов на основе видео\n\nСейчас могу создать документ, если опишете содержание видео вручную.`
             })
           }
           
@@ -223,9 +225,13 @@ export default function FileUploader() {
 
   return (
     <>
-      <label 
-        className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-[44px] min-h-[44px] px-2 sm:px-3 md:px-4 py-2 bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:shadow-blue-500/50 hover:-translate-y-0.5 active:scale-95 cursor-pointer transition-all text-xs sm:text-sm font-semibold"
-        title="Загрузить изображения или файлы"
+      <label
+        className={`flex items-center justify-center gap-1.5 sm:gap-2 min-w-[44px] min-h-[44px] px-2 sm:px-3 md:px-4 py-2 bg-gradient-to-r from-blue-600 via-blue-500 to-purple-600 text-white rounded-lg shadow-md transition-all text-xs sm:text-sm font-semibold ${
+          canUploadImages && !uploading
+            ? 'hover:shadow-lg hover:shadow-blue-500/50 hover:-translate-y-0.5 active:scale-95 cursor-pointer'
+            : 'opacity-50 cursor-not-allowed'
+        }`}
+        title={canUploadImages ? 'Загрузить изображения или файлы' : 'Доступно в платной версии'}
       >
         <ImagePlus className={`w-4 h-4 sm:w-5 sm:h-5 ${uploading ? 'animate-pulse' : ''}`} />
         <span className="hidden sm:inline">{uploading ? 'Загрузка...' : 'Импорт'}</span>
@@ -235,7 +241,7 @@ export default function FileUploader() {
           accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,text/*"
           onChange={handleFileUpload}
           className="hidden"
-          disabled={uploading}
+          disabled={uploading || !canUploadImages}
         />
       </label>
       

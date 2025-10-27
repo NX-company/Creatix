@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
         id: true,
         appMode: true,
         balance: true,
-        purchasedGenerations: true,
         subscriptionEndsAt: true,
       },
     })
@@ -77,20 +76,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Списание с баланса и добавление генераций
+    // Списание с баланса
     const newBalance = user.balance - totalCost
-    const newPurchasedGenerations = user.purchasedGenerations + count
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         balance: newBalance,
-        purchasedGenerations: newPurchasedGenerations,
       },
     })
 
     console.log(
-      `💳 [BUY GENERATIONS] User ${session.user.email} bought ${count} generations for ${totalCost}₽. Balance: ${user.balance}₽ → ${newBalance}₽, Purchased: ${user.purchasedGenerations} → ${newPurchasedGenerations}`
+      `💳 [BUY GENERATIONS] User ${session.user.email} bought ${count} generations for ${totalCost}₽. Balance: ${user.balance}₽ → ${newBalance}₽`
     )
 
     return NextResponse.json({
@@ -98,7 +95,6 @@ export async function POST(request: NextRequest) {
       count,
       totalCost,
       newBalance,
-      newPurchasedGenerations,
       pricePerGeneration,
     })
   } catch (error) {

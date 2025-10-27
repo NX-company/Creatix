@@ -1,12 +1,37 @@
 import type { AppMode, DocType } from '../store'
 
 export const MODE_CONFIG = {
+  guest: {
+    name: 'Гостевой',
+    icon: '👤',
+    description: 'Демо-версия с изображениями',
+    features: {
+      uploadImages: false,
+      parseWebsite: false,
+      uploadVideo: false,
+      aiImageGeneration: true,
+    },
+    models: {
+      text: {
+        provider: 'openrouter',
+        model: 'google/gemini-2.0-flash-001',
+        temperature: 0.7,
+        multimodal: true,
+      },
+      image: {
+        provider: 'replicate',
+        model: 'black-forest-labs/flux-1.1-pro',
+        width: 1024,
+        height: 1024,
+      },
+    },
+  },
   free: {
     name: 'Бесплатный',
     icon: '🆓',
     description: 'Базовая генерация документов',
     features: {
-      uploadImages: true,
+      uploadImages: false,
       parseWebsite: false,
       uploadVideo: false,
       aiImageGeneration: false,

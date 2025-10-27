@@ -23,11 +23,8 @@ export async function GET(request: NextRequest) {
         role: true,
         appMode: true,
         isActive: true,
-        trialEndsAt: true,
-        trialGenerations: true,
-        monthlyGenerations: true,
-        bonusGenerations: true,
-        generationLimit: true,
+        balance: true,
+        subscriptionEndsAt: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -41,12 +38,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const usersWithTrialStatus = users.map(user => ({
-      ...user,
-      isInTrial: user.trialEndsAt ? new Date(user.trialEndsAt) > new Date() : false
-    }))
-
-    return NextResponse.json({ users: usersWithTrialStatus })
+    return NextResponse.json({ users })
   } catch (error) {
     console.error('Users fetch error:', error)
     return NextResponse.json(
@@ -162,11 +154,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         appMode: appMode || 'FREE',
         role: 'USER',
-        isActive: true,
-        trialGenerations: 3,
-        monthlyGenerations: 0,
-        bonusGenerations: 0,
-        generationLimit: 100
+        isActive: true
       }
     })
 

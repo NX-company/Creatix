@@ -735,7 +735,7 @@ export const comprehensiveScenarios: TestScenario[] = [
 
   {
     id: 'ui-mode-switch',
-    name: 'Переключение режимов (Free/Advanced/PRO)',
+    name: 'Переключение режимов (Free/Advanced)',
     category: 'UI/UX',
     severity: 'high',
     run: async (page, baseUrl) => {

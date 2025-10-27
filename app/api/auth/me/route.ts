@@ -1,26 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserFromRequest } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+import { prisma } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getUserFromRequest(req)
+    // Используем NextAuth вместо JWT токенов
+    const session = await getServerSession(authOptions)
 
-    if (!user) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Не авторизован' },
         { status: 401 }
       )
     }
 
-    const now = new Date()
+    // Получаем полные данные пользователя из БД
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
 
-    // Проверяем активна ли подписка
-    const hasActiveSubscription = user.subscriptionEndsAt ? now < user.subscriptionEndsAt : false
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Пользователь не найден' },
+        { status: 404 }
+      )
+    }
 
-    // НОВАЯ МОДЕЛЬ: Trial больше НЕ используется
-    // FREE: 10 генераций/месяц (freeMonthlyGenerations)
-    // ADVANCED: 80 генераций/месяц + купленные (advancedMonthlyGenerations + purchasedGenerations)
-
+    // Возвращаем базовую информацию о пользователе
     return NextResponse.json({
       user: {
         id: user.id,
@@ -29,19 +36,10 @@ export async function GET(req: NextRequest) {
         role: user.role,
         appMode: user.appMode,
         isActive: user.isActive,
-        generationLimit: user.generationLimit,
-        freeMonthlyGenerations: user.freeMonthlyGenerations || 0,
-        advancedMonthlyGenerations: user.advancedMonthlyGenerations || 0,
-        purchasedGenerations: user.purchasedGenerations || 0,
         balance: user.balance || 0,
-        autoRenewEnabled: user.autoRenewEnabled || false,
         subscriptionEndsAt: user.subscriptionEndsAt,
-        subscriptionStartedAt: user.subscriptionStartedAt,
-        hasActiveSubscription,
-        // DEPRECATED: trial не используется
-        isInTrial: false,
-        trialDaysLeft: 0,
-        trialGenerationsLeft: 0
+        freeGenerationsRemaining: user.freeGenerationsRemaining || 0,
+        freeGenerationsUsed: user.freeGenerationsUsed || 0,
       }
     })
   } catch (error) {
