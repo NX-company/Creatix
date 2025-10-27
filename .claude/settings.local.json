@@ -22,7 +22,10 @@
       "Bash(taskkill //F //PID 25884)",
       "Bash(npx tsc:*)",
       "Bash(npx tsx:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"curl -X POST http://localhost:3000/api/admin/init -H ''Content-Type: application/json'' -d ''{}''\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && source .env.production && npx tsx scripts/check-payment-status.ts 0c6ce5c1-bbca-4601-a314-e30458029d53\")",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
