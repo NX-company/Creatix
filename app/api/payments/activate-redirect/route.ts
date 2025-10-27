@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.email) {
       console.log('⚠️  No session found, redirecting to payment-success with error')
       return NextResponse.redirect(
-        new URL('/payment-success?error=unauthorized', request.url)
+        'https://aicreatix.ru/payment-success?error=unauthorized'
       )
     }
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       console.log('❌ User not found in database')
       return NextResponse.redirect(
-        new URL('/payment-success?error=user_not_found', request.url)
+        'https://aicreatix.ru/payment-success?error=user_not_found'
       )
     }
 
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (!pendingTransaction) {
       console.log('⚠️  No pending transaction found, redirecting anyway')
       return NextResponse.redirect(
-        new URL('/payment-success?error=no_pending', request.url)
+        'https://aicreatix.ru/payment-success?error=no_pending'
       )
     }
 
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
       // Редирект на payment-success с флагом успеха
       return NextResponse.redirect(
-        new URL('/payment-success?activated=true&mode=ADVANCED', request.url)
+        'https://aicreatix.ru/payment-success?activated=true&mode=ADVANCED'
       )
 
     } catch (activationError) {
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       // Даже если активация не удалась, редиректим на success
       // Cron endpoint подхватит и активирует позже
       return NextResponse.redirect(
-        new URL('/payment-success?pending=true', request.url)
+        'https://aicreatix.ru/payment-success?pending=true'
       )
     }
 
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
     // В любом случае редиректим на payment-success
     // Это лучше чем показывать ошибку 500
     return NextResponse.redirect(
-      new URL('/payment-success?error=server', request.url)
+      'https://aicreatix.ru/payment-success?error=server'
     )
   }
 }
