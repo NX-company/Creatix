@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       prisma.user.update({
         where: { id: user.id },
         data: {
-          appMode: targetMode.toLowerCase() as any, // 'advanced'
+          appMode: targetMode as any, // 'ADVANCED' - enum requires UPPERCASE
           advancedGenerationsRemaining: {
             increment: generationsToAdd,
           },
