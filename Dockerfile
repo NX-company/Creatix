@@ -18,12 +18,27 @@ RUN npm ci && \
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Install Playwright dependencies for Chromium
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto-emoji
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma Client
 RUN npx prisma generate
+
+# Install Playwright browsers (Chromium only)
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+RUN npx playwright install chromium
 
 # Build Next.js application
 # Disable telemetry during build
@@ -34,11 +49,23 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl
+# Install runtime dependencies (OpenSSL for Prisma + Chromium for Playwright)
+RUN apk add --no-cache \
+    openssl \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto-emoji
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Playwright environment variables
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -50,6 +77,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copy Playwright cache from builder
+COPY --from=builder /root/.cache /root/.cache
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./
