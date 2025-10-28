@@ -35,11 +35,6 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Install Playwright browsers (Chromium only)
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
-ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
-RUN npx playwright install chromium
-
 # Build Next.js application
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -82,12 +77,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Copy Playwright cache from builder to nextjs home directory
-RUN mkdir -p /home/nextjs/.cache
-COPY --from=builder /root/.cache/ms-playwright /home/nextjs/.cache/ms-playwright
-
 # Change ownership to nextjs user
-RUN chown -R nextjs:nodejs /app /home/nextjs/.cache
+RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 

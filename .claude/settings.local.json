@@ -4,7 +4,10 @@
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"docker exec creatix-postgres psql -U postgres -d creatix_db -c \"\"SELECT email, \\\"\"appMode\\\"\" FROM \\\"\"User\\\"\" WHERE email LIKE ''%frctlai%'';\"\"\")",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"docker exec creatix-postgres psql -U postgres -d creatix_db -c \"\"SELECT t.id, t.\\\"\"userId\\\"\", u.email, u.\\\"\"appMode\\\"\" FROM \\\"\"Transaction\\\"\" t LEFT JOIN \\\"\"User\\\"\" u ON t.\\\"\"userId\\\"\" = u.id WHERE t.id = ''e2c0be7f-ecc3-4dd7-930f-59490d643fb9'';\"\"\")",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"docker exec creatix-postgres psql -U postgres -d creatix_db -c \"\"SELECT t.id, t.status, u.email, t.\\\"\"createdAt\\\"\" FROM \\\"\"Transaction\\\"\" t LEFT JOIN \\\"\"User\\\"\" u ON t.\\\"\"userId\\\"\" = u.id ORDER BY t.\\\"\"createdAt\\\"\" DESC LIMIT 5;\"\"\")",
-      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && git pull origin main\")"
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && git pull origin main\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && rm -f scripts/configure-webhook.ts scripts/setup-webhook-simple.ts && git pull origin main && docker compose build app && docker compose up -d app\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"sleep 40 && docker ps | grep creatix-app\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"sleep 30 && docker ps | grep creatix-app\")"
     ],
     "deny": [],
     "ask": []

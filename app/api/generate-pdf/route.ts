@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`Generating PDF for ${docType}...`)
 
-    // Запускаем браузер
+    // Запускаем браузер (используем системный Chromium для Alpine Linux)
     browser = await chromium.launch({
       headless: true,
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
     })
 
     const page = await browser.newPage()
