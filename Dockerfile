@@ -78,15 +78,16 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Copy Playwright cache from builder
-COPY --from=builder /root/.cache /root/.cache
-
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
+# Copy Playwright cache from builder to nextjs home directory
+RUN mkdir -p /home/nextjs/.cache
+COPY --from=builder /root/.cache/ms-playwright /home/nextjs/.cache/ms-playwright
+
 # Change ownership to nextjs user
-RUN chown -R nextjs:nodejs /app
+RUN chown -R nextjs:nodejs /app /home/nextjs/.cache
 
 USER nextjs
 
