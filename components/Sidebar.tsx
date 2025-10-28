@@ -208,7 +208,7 @@ export default function Sidebar({ onCollapseChange, onPurchaseClick }: SidebarPr
             <span>💎 Купить подписку ADVANCED</span>
           </button>
           <p className="text-[9px] text-muted-foreground text-center mt-1">
-            100 генераций на 30 дней — 1000₽
+            100 генераций на 30 дней — 350₽
           </p>
         </div>
       )}
