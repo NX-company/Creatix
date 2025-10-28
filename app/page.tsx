@@ -126,6 +126,42 @@ export default function Home() {
     syncGenerations()
   }, [mounted, session, status, setFreeGenerations])
 
+  // Auto-check for pending payments (Level 3 protection)
+  useEffect(() => {
+    if (!mounted || status === 'loading') return
+    if (!session?.user || isGuestMode) return
+
+    const checkPendingPayment = async () => {
+      try {
+        const response = await fetch('/api/user/check-pending-payment', {
+          method: 'POST',
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data.activated) {
+            console.log('✅ [Auto-check] Pending payment activated!', data.subscription)
+            // Refresh session to update appMode
+            window.location.reload()
+          } else if (data.hasPendingPayment) {
+            console.log('⏳ [Auto-check] Payment is still pending:', data.message)
+          }
+        }
+      } catch (error) {
+        console.error('[Auto-check] Failed to check pending payment:', error)
+      }
+    }
+
+    // Check immediately on mount
+    checkPendingPayment()
+
+    // Then check every 30 seconds
+    const intervalId = setInterval(checkPendingPayment, 30000)
+
+    return () => clearInterval(intervalId)
+  }, [mounted, session, status, isGuestMode])
+
   useEffect(() => {
     if (!mounted) return
 

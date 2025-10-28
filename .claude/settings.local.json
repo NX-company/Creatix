@@ -7,7 +7,8 @@
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && git pull origin main\")",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"cd /root/Creatix && rm -f scripts/configure-webhook.ts scripts/setup-webhook-simple.ts && git pull origin main && docker compose build app && docker compose up -d app\")",
       "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"sleep 40 && docker ps | grep creatix-app\")",
-      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"sleep 30 && docker ps | grep creatix-app\")"
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"sleep 30 && docker ps | grep creatix-app\")",
+      "Bash(\"C:\\Program Files\\PuTTY\\plink.exe\" -ssh root@45.129.128.121 -pw \"pzaNtMznbq@hw3\" -batch \"docker exec creatix-postgres psql -U postgres -d creatix_db -c \"\"UPDATE \\\"\"Transaction\\\"\" SET status = ''COMPLETED'', \\\"\"updatedAt\\\"\" = NOW() WHERE id IN (''9dbbc70f-2f79-4e87-b70a-d7ec2eca3cc0'', ''1886271d-bcf4-4f5f-a57b-a517b80b7ac2''); UPDATE \\\"\"User\\\"\" u SET \\\"\"appMode\\\"\" = ''ADVANCED'', \\\"\"advancedGenerationsRemaining\\\"\" = \\\"\"advancedGenerationsRemaining\\\"\" + 100, \\\"\"advancedGenerationsTotal\\\"\" = \\\"\"advancedGenerationsTotal\\\"\" + 100, \\\"\"subscriptionStatus\\\"\" = ''active'', \\\"\"subscriptionStartedAt\\\"\" = NOW(), \\\"\"subscriptionEndsAt\\\"\" = NOW() + INTERVAL ''30 days'', \\\"\"updatedAt\\\"\" = NOW() WHERE email IN (''elena.matecka@yandex.ru'', ''mun9755@gmail.com'');\"\"\")"
     ],
     "deny": [],
     "ask": []
