@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { verifyTokenForMiddleware } from '@/lib/auth'
 
-const publicPaths = ['/login', '/register', '/welcome', '/legal']
+const publicPaths = ['/login', '/register', '/welcome', '/legal', '/payment-success', '/payment-failure']
 const adminPaths = ['/admin']
 const adminPublicPaths = ['/admin/login']
 
