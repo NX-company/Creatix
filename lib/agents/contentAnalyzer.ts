@@ -92,9 +92,12 @@ ${previousFeedback ? `\n📋 PREVIOUS QA FEEDBACK:\n${previousFeedback}\n` : ''}
 🎨 IMAGE PROMPT GUIDELINES:
 
 For LOGOS:
-- Include company name, industry, style (minimal/playful/professional)
-- Specify colors if mentioned
-- Reflect brand personality
+- ⚠️ CRITICAL: ALWAYS add "WITHOUT ANY TEXT, LETTERS OR WORDS" to every logo prompt
+- AI models cannot generate readable text, especially Cyrillic/Russian text
+- Generate SYMBOL/ICON ONLY designs (no company name in the image)
+- Include industry, style (minimal/playful/professional), colors
+- Reflect brand personality through symbols, not text
+- Example: "modern minimal geometric symbol for cleaning company, blue and white colors, WITHOUT ANY TEXT OR LETTERS"
 
 For PRODUCTS:
 - Describe the product accurately
@@ -256,12 +259,12 @@ function getImageCountForDocType(docType: DocType): number {
 function getDefaultImagePrompts(docType: DocType): ImagePromptPlan[] {
   const defaults: Record<DocType, ImagePromptPlan[]> = {
     proposal: [
-      { type: 'logo', prompt: 'professional company logo, minimal design', reasoning: 'fallback', slot: 0 },
+      { type: 'logo', prompt: 'professional company logo symbol, minimal design icon, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 0 },
       { type: 'hero', prompt: 'business product photography, clean background', reasoning: 'fallback', slot: 1 },
       { type: 'illustration', prompt: 'business team collaboration illustration', reasoning: 'fallback', slot: 2 },
     ],
     presentation: [
-      { type: 'logo', prompt: 'presentation title logo, modern design', reasoning: 'fallback', slot: 0 },
+      { type: 'logo', prompt: 'presentation title logo symbol, modern design icon, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 0 },
       { type: 'background', prompt: 'presentation background, professional style', reasoning: 'fallback', slot: 1 },
       { type: 'illustration', prompt: 'corporate illustration, modern flat design', reasoning: 'fallback', slot: 2 },
     ],
@@ -271,18 +274,18 @@ function getDefaultImagePrompts(docType: DocType): ImagePromptPlan[] {
       { type: 'product', prompt: 'product in use, lifestyle photography, natural lighting', reasoning: 'fallback', slot: 2 },
     ],
     invoice: [
-      { type: 'logo', prompt: 'company logo, minimal design, corporate identity', reasoning: 'fallback', slot: 0 },
+      { type: 'logo', prompt: 'company logo symbol, minimal design icon, corporate identity, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 0 },
       { type: 'product', prompt: 'professional product photography, clean background, high quality', reasoning: 'fallback', slot: 1 },
       { type: 'product', prompt: 'business product image, professional lighting, clean white background', reasoning: 'fallback', slot: 2 },
     ],
     email: [
-      { type: 'logo', prompt: 'email logo, minimal design', reasoning: 'fallback', slot: 0 },
+      { type: 'logo', prompt: 'email logo symbol, minimal design icon, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 0 },
       { type: 'hero', prompt: 'email banner, modern style', reasoning: 'fallback', slot: 1 },
     ],
     logo: [
-      { type: 'logo', prompt: 'modern minimal logo design', reasoning: 'fallback', slot: 0 },
-      { type: 'logo', prompt: 'creative brand logo design', reasoning: 'fallback', slot: 1 },
-      { type: 'logo', prompt: 'elegant business logo', reasoning: 'fallback', slot: 2 },
+      { type: 'logo', prompt: 'modern minimal logo symbol design, abstract geometric shape, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 0 },
+      { type: 'logo', prompt: 'creative brand icon symbol, unique shape design, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 1 },
+      { type: 'logo', prompt: 'elegant business logo symbol, professional icon, WITHOUT ANY TEXT OR LETTERS', reasoning: 'fallback', slot: 2 },
     ],
     'commercial-proposal': [],
     'business-card': [],
