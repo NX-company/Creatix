@@ -123,7 +123,7 @@ export default function SubscriptionPurchaseModal({ isOpen, onClose }: Subscript
         {/* Price */}
         <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20 mb-4 text-center">
           <p className="text-sm text-muted-foreground mb-1">Стоимость:</p>
-          <p className="text-3xl font-bold text-green-600">1000₽</p>
+          <p className="text-3xl font-bold text-green-600">350₽</p>
           <p className="text-xs text-muted-foreground mt-1">на 30 календарных дней</p>
         </div>
 
@@ -174,7 +174,7 @@ export default function SubscriptionPurchaseModal({ isOpen, onClose }: Subscript
             ) : (
               <>
                 <CreditCard className="w-5 h-5" />
-                Оплатить 1000₽
+                Оплатить 350₽
               </>
             )}
           </button>

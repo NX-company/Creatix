@@ -5,7 +5,7 @@ import { createTochkaClient } from '@/lib/tochka'
 import { prisma } from '@/lib/db'
 
 // Subscription price (moved from generationLimits)
-const ADVANCED_SUBSCRIPTION_PRICE = 1000 // 1000 rubles for 100 ADVANCED generations (30 days)
+const ADVANCED_SUBSCRIPTION_PRICE = 350 // 350 rubles for 100 ADVANCED generations (30 days)
 
 /**
  * POST /api/payments/create-payment
