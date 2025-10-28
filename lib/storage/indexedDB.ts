@@ -29,30 +29,132 @@ interface StudioDB extends DBSchema {
 }
 
 let dbInstance: IDBPDatabase<StudioDB> | null = null
+let indexedDBAvailable: boolean | null = null
+
+// Максимальный размер для хранения в localStorage (30 MB)
+const MAX_LOCALSTORAGE_SIZE = 30 * 1024 * 1024
+const LOCALSTORAGE_PREFIX = 'nx-html-'
+
+/**
+ * Проверка доступности IndexedDB
+ */
+export function isIndexedDBAvailable(): boolean {
+  if (indexedDBAvailable !== null) {
+    return indexedDBAvailable
+  }
+
+  try {
+    // Проверяем что IndexedDB существует
+    if (typeof indexedDB === 'undefined') {
+      console.warn('⚠️ IndexedDB is not available in this browser')
+      indexedDBAvailable = false
+      return false
+    }
+
+    // Проверяем что не в режиме инкогнито (Safari блокирует)
+    const test = indexedDB.open('test')
+    test.onerror = () => {
+      console.warn('⚠️ IndexedDB blocked (possibly private/incognito mode)')
+      indexedDBAvailable = false
+    }
+    test.onsuccess = () => {
+      indexedDB.deleteDatabase('test')
+      indexedDBAvailable = true
+    }
+
+    indexedDBAvailable = true
+    return true
+  } catch (e) {
+    console.warn('⚠️ IndexedDB check failed:', e)
+    indexedDBAvailable = false
+    return false
+  }
+}
 
 export async function getDB(): Promise<IDBPDatabase<StudioDB>> {
   if (dbInstance) {
     return dbInstance
   }
 
-  dbInstance = await openDB<StudioDB>('nx-studio-db', 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('htmlPreviews')) {
-        db.createObjectStore('htmlPreviews')
-      }
-      if (!db.objectStoreNames.contains('images')) {
-        db.createObjectStore('images')
-      }
-      if (!db.objectStoreNames.contains('generatedImages')) {
-        db.createObjectStore('generatedImages')
-      }
-    },
-  })
+  if (!isIndexedDBAvailable()) {
+    throw new Error('IndexedDB is not available')
+  }
 
-  return dbInstance
+  try {
+    dbInstance = await openDB<StudioDB>('nx-studio-db', 2, {
+      upgrade(db, oldVersion) {
+        // Увеличена версия до 2 для поддержки больших данных (до 30MB)
+        if (!db.objectStoreNames.contains('htmlPreviews')) {
+          db.createObjectStore('htmlPreviews')
+        }
+        if (!db.objectStoreNames.contains('images')) {
+          db.createObjectStore('images')
+        }
+        if (!db.objectStoreNames.contains('generatedImages')) {
+          db.createObjectStore('generatedImages')
+        }
+        console.log(`📦 IndexedDB upgraded from v${oldVersion} to v2 (supports up to 30MB per project)`)
+      },
+    })
+
+    console.log('✅ IndexedDB initialized successfully')
+    return dbInstance
+  } catch (error) {
+    console.error('❌ Failed to open IndexedDB:', error)
+    indexedDBAvailable = false
+    throw error
+  }
 }
 
+/**
+ * Fallback: Сохранение в localStorage
+ */
+function saveHTMLToLocalStorage(projectId: string, html: string): boolean {
+  try {
+    const key = `${LOCALSTORAGE_PREFIX}${projectId}`
+    const sizeInBytes = html.length * 2 // UTF-16 = 2 bytes per char
+
+    if (sizeInBytes > MAX_LOCALSTORAGE_SIZE) {
+      console.warn(`⚠️ HTML too large for localStorage: ${(sizeInBytes / 1024 / 1024).toFixed(2)} MB (max: 30 MB)`)
+      // Сохраняем только первые 30MB
+      const maxChars = MAX_LOCALSTORAGE_SIZE / 2
+      const truncated = html.substring(0, maxChars)
+      localStorage.setItem(key, truncated)
+      console.log(`💾 HTML truncated and saved to localStorage (${(maxChars * 2 / 1024 / 1024).toFixed(2)} MB)`)
+      return true
+    }
+
+    localStorage.setItem(key, html)
+    console.log(`💾 HTML saved to localStorage for project ${projectId} (${(sizeInBytes / 1024 / 1024).toFixed(2)} MB)`)
+    return true
+  } catch (error) {
+    console.error('❌ Failed to save HTML to localStorage:', error)
+    return false
+  }
+}
+
+/**
+ * Fallback: Загрузка из localStorage
+ */
+function getHTMLFromLocalStorage(projectId: string): string | null {
+  try {
+    const key = `${LOCALSTORAGE_PREFIX}${projectId}`
+    const html = localStorage.getItem(key)
+    if (html) {
+      console.log(`📂 HTML loaded from localStorage for project ${projectId} (${(html.length * 2 / 1024 / 1024).toFixed(2)} MB)`)
+    }
+    return html
+  } catch (error) {
+    console.error('❌ Failed to load HTML from localStorage:', error)
+    return null
+  }
+}
+
+/**
+ * Сохранение HTML с автоматическим fallback
+ */
 export async function saveHTMLPreview(projectId: string, html: string): Promise<void> {
+  // Сначала пробуем IndexedDB
   try {
     const db = await getDB()
     await db.put('htmlPreviews', {
@@ -60,34 +162,65 @@ export async function saveHTMLPreview(projectId: string, html: string): Promise<
       html,
       timestamp: Date.now()
     }, projectId)
-    console.log(`💾 HTML saved to IndexedDB for project ${projectId} (${html.length} chars)`)
+    console.log(`✅ HTML saved to IndexedDB for project ${projectId} (${(html.length * 2 / 1024 / 1024).toFixed(2)} MB)`)
+    return
   } catch (error) {
-    console.error('Error saving HTML to IndexedDB:', error)
+    console.warn('⚠️ IndexedDB save failed, trying localStorage fallback:', error)
+  }
+
+  // Fallback: Пробуем localStorage
+  const saved = saveHTMLToLocalStorage(projectId, html)
+  if (!saved) {
+    console.error('❌ CRITICAL: Failed to save HTML to both IndexedDB and localStorage!')
   }
 }
 
+/**
+ * Загрузка HTML с автоматическим fallback
+ */
 export async function getHTMLPreview(projectId: string): Promise<string | null> {
+  // Сначала пробуем IndexedDB
   try {
     const db = await getDB()
     const data = await db.get('htmlPreviews', projectId)
     if (data) {
-      console.log(`📂 HTML loaded from IndexedDB for project ${projectId} (${data.html.length} chars)`)
+      console.log(`✅ HTML loaded from IndexedDB for project ${projectId} (${(data.html.length * 2 / 1024 / 1024).toFixed(2)} MB)`)
       return data.html
     }
-    return null
   } catch (error) {
-    console.error('Error loading HTML from IndexedDB:', error)
-    return null
+    console.warn('⚠️ IndexedDB load failed, trying localStorage fallback:', error)
   }
+
+  // Fallback: Пробуем localStorage
+  const html = getHTMLFromLocalStorage(projectId)
+  if (html) {
+    return html
+  }
+
+  console.log(`📭 No HTML found for project ${projectId} in either storage`)
+  return null
 }
 
+/**
+ * Удаление HTML из обоих хранилищ
+ */
 export async function deleteHTMLPreview(projectId: string): Promise<void> {
+  // Удаляем из IndexedDB
   try {
     const db = await getDB()
     await db.delete('htmlPreviews', projectId)
     console.log(`🗑️  HTML deleted from IndexedDB for project ${projectId}`)
   } catch (error) {
-    console.error('Error deleting HTML from IndexedDB:', error)
+    console.warn('⚠️ Failed to delete from IndexedDB:', error)
+  }
+
+  // Удаляем из localStorage
+  try {
+    const key = `${LOCALSTORAGE_PREFIX}${projectId}`
+    localStorage.removeItem(key)
+    console.log(`🗑️  HTML deleted from localStorage for project ${projectId}`)
+  } catch (error) {
+    console.warn('⚠️ Failed to delete from localStorage:', error)
   }
 }
 
