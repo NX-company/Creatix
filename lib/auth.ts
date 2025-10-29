@@ -86,34 +86,6 @@ export async function verifyAdmin(req: NextRequest) {
   return user
 }
 
-// For API routes (Node.js runtime, can use getServerSession)
-export async function verifyAdminFromNextAuth() {
-  const { getServerSession } = require('next-auth')
-  const { authOptions } = require('./auth-options')
-
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.email) {
-      return null
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!dbUser || dbUser.role !== 'ADMIN') {
-      return null
-    }
-
-    console.log('✅ [verifyAdminFromNextAuth] NextAuth admin:', dbUser.email)
-    return dbUser
-  } catch (error) {
-    console.log('❌ [verifyAdminFromNextAuth] Error:', error)
-    return null
-  }
-}
-
 export async function deleteSession(token: string) {
   await prisma.session.deleteMany({
     where: { sessionToken: token },

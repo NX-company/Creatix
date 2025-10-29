@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdmin, verifyAdminFromNextAuth } from '@/lib/auth'
+import { verifyAdmin } from '@/lib/auth'
+import { verifyAdminFromNextAuth } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
