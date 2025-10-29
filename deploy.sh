@@ -16,6 +16,15 @@ echo -e "${BLUE}📦 Step 1/10: Creating database backup...${NC}"
 /root/backup-db.sh
 echo -e "${GREEN}✅ Database backup completed${NC}"
 
+# Загрузить бэкап в S3 (если настроено)
+if [ -f /root/.s3-credentials ]; then
+  echo -e "${BLUE}📤 Uploading backup to S3...${NC}"
+  source /root/.s3-credentials && /root/backup-to-s3.sh
+  echo -e "${GREEN}✅ Backup uploaded to S3${NC}"
+else
+  echo -e "${RED}⚠️  S3 not configured - skipping remote backup${NC}"
+fi
+
 echo -e "${BLUE}📦 Step 2/10: Stopping PM2...${NC}"
 pm2 stop creatix || echo "App not running"
 
