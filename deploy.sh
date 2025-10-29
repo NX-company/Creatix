@@ -12,16 +12,20 @@ NC='\033[0m' # No Color
 
 cd /root/Creatix
 
-echo -e "${BLUE}📦 Step 1/9: Stopping PM2...${NC}"
+echo -e "${BLUE}📦 Step 1/10: Creating database backup...${NC}"
+/root/backup-db.sh
+echo -e "${GREEN}✅ Database backup completed${NC}"
+
+echo -e "${BLUE}📦 Step 2/10: Stopping PM2...${NC}"
 pm2 stop creatix || echo "App not running"
 
-echo -e "${BLUE}📦 Step 2/9: Pulling latest code from GitHub...${NC}"
+echo -e "${BLUE}📦 Step 3/10: Pulling latest code from GitHub...${NC}"
 git pull origin main
 
-echo -e "${BLUE}📦 Step 3/9: Installing dependencies...${NC}"
+echo -e "${BLUE}📦 Step 4/10: Installing dependencies...${NC}"
 npm install
 
-echo -e "${BLUE}📦 Step 4/9: Copying .env file...${NC}"
+echo -e "${BLUE}📦 Step 5/10: Copying .env file...${NC}"
 if [ -f server.env ]; then
   cp server.env .env
   echo -e "${GREEN}✅ .env file copied${NC}"
@@ -29,16 +33,16 @@ else
   echo -e "${RED}⚠️  server.env not found, using existing .env${NC}"
 fi
 
-echo -e "${BLUE}📦 Step 5/9: Generating Prisma Client...${NC}"
+echo -e "${BLUE}📦 Step 6/10: Generating Prisma Client...${NC}"
 npx prisma generate
 
-echo -e "${BLUE}📦 Step 6/9: Running database migrations...${NC}"
-npx prisma db push --accept-data-loss
+echo -e "${BLUE}📦 Step 7/10: Syncing database schema (NO data loss)...${NC}"
+npx prisma db push --skip-generate
 
-echo -e "${BLUE}📦 Step 7/9: Building production bundle (this may take 2-3 minutes)...${NC}"
+echo -e "${BLUE}📦 Step 8/10: Building production bundle (this may take 2-3 minutes)...${NC}"
 ESLINT_NO_DEV_ERRORS=true npm run build
 
-echo -e "${BLUE}📦 Step 8/9: Verifying build...${NC}"
+echo -e "${BLUE}📦 Step 9/10: Verifying build...${NC}"
 if [ ! -f ".next/BUILD_ID" ]; then
   echo -e "${RED}❌ Build failed - BUILD_ID not found!${NC}"
   exit 1
@@ -47,7 +51,7 @@ fi
 BUILD_ID=$(cat .next/BUILD_ID)
 echo -e "${GREEN}✅ Build successful! BUILD_ID: $BUILD_ID${NC}"
 
-echo -e "${BLUE}📦 Step 9/9: Restarting PM2...${NC}"
+echo -e "${BLUE}📦 Step 10/10: Restarting PM2...${NC}"
 pm2 restart creatix || pm2 start npm --name "creatix" -- start
 pm2 save
 
