@@ -5,9 +5,15 @@ import bcrypt from 'bcryptjs'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 [GET /api/admin/users] Начало запроса')
+    const token = request.cookies.get('auth-token')?.value
+    console.log('🔍 [GET /api/admin/users] Token:', token ? `${token.substring(0, 20)}...` : 'НЕТ ТОКЕНА')
+
     const admin = await verifyAdmin(request)
+    console.log('🔍 [GET /api/admin/users] Admin:', admin ? `ID: ${admin.id}, Role: ${admin.role}` : 'НЕТ АДМИНА')
 
     if (!admin) {
+      console.log('❌ [GET /api/admin/users] Unauthorized - нет админа')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -38,9 +44,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log(`✅ [GET /api/admin/users] Найдено пользователей: ${users.length}`)
     return NextResponse.json({ users })
   } catch (error) {
-    console.error('Users fetch error:', error)
+    console.error('❌ [GET /api/admin/users] Users fetch error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
