@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession, signOut, signIn } from 'next-auth/react'
 import TypewriterEffect from '@/components/TypewriterEffect'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import { useStore } from '@/lib/store'
