@@ -15,6 +15,11 @@ type User = {
   isActive: boolean
   balance: number
   subscriptionEndsAt: string | null
+  lastActive: string | null
+  freeGenerationsUsed: number
+  freeGenerationsRemaining: number
+  advancedGenerationsUsed: number
+  advancedGenerationsRemaining: number
   createdAt: string
   _count: {
     projects: number
@@ -36,6 +41,14 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [newUser, setNewUser] = useState({ email: '', username: '', password: '', appMode: 'FREE' })
+
+  const isUserOnline = (lastActive: string | null) => {
+    if (!lastActive) return false
+    const lastActiveTime = new Date(lastActive).getTime()
+    const now = Date.now()
+    const fiveMinutes = 5 * 60 * 1000
+    return (now - lastActiveTime) < fiveMinutes
+  }
 
   useEffect(() => {
     fetchUsers()
@@ -166,6 +179,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-medium">Пользователь</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Режим</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium">Генерации</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Баланс</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Проекты</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Статус</th>
@@ -176,9 +190,14 @@ export default function AdminUsersPage() {
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-muted/30 transition">
                     <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium">{user.username}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <div className="flex items-center gap-2">
+                        {isUserOnline(user.lastActive) && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Онлайн" />
+                        )}
+                        <div>
+                          <p className="font-medium">{user.username || 'Без имени'}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -189,6 +208,21 @@ export default function AdminUsersPage() {
                       }`}>
                         {user.appMode}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        {user.appMode === 'ADVANCED' ? (
+                          <div>
+                            <span className="font-medium text-purple-600">{user.advancedGenerationsUsed}</span>
+                            <span className="text-muted-foreground text-xs"> / {user.advancedGenerationsRemaining}</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-medium text-blue-600">{user.freeGenerationsUsed}</span>
+                            <span className="text-muted-foreground text-xs"> / {user.freeGenerationsRemaining}</span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium">{user.balance.toFixed(2)} ₽</div>

@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react'
 import TypewriterEffect from '@/components/TypewriterEffect'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import { useStore } from '@/lib/store'
-import { Sparkles, FileText, Presentation, Mail, Image, ShoppingBag, Receipt, Loader2 } from 'lucide-react'
+import { Sparkles, FileText, Presentation, Mail, Image, ShoppingBag, Receipt, Loader2, FolderOpen } from 'lucide-react'
 import type { DocType } from '@/lib/store'
 import Logo from '@/components/Logo'
 import SimpleLogo from '@/components/SimpleLogo'
@@ -200,9 +200,26 @@ export default function WelcomePage() {
         {/* Header */}
         <div className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8 py-4 bg-black/20 backdrop-blur-lg border-b border-white/10">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
+            {/* Left: Logo */}
             <div className="flex items-center">
               <Logo size="md" />
             </div>
+
+            {/* Center: Кнопка "Перейти к проектам" (только для авторизованных) */}
+            {session && (
+              <div className="hidden md:flex flex-1 justify-center px-4">
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-purple-500/50 flex items-center gap-2 min-h-[44px] touch-manipulation text-sm"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  <span className="hidden lg:inline">Перейти к проектам</span>
+                  <span className="lg:hidden">Проекты</span>
+                </button>
+              </div>
+            )}
+
+            {/* Right: User info & buttons */}
             {session ? (
               <div className="flex items-center gap-2 sm:gap-4">
                 <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">

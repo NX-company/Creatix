@@ -31,6 +31,11 @@ export async function GET(request: NextRequest) {
         isActive: true,
         balance: true,
         subscriptionEndsAt: true,
+        lastActive: true,
+        freeGenerationsUsed: true,
+        freeGenerationsRemaining: true,
+        advancedGenerationsUsed: true,
+        advancedGenerationsRemaining: true,
         createdAt: true,
         updatedAt: true,
         _count: {

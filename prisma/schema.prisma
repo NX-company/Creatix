@@ -29,6 +29,7 @@ model User {
   emailVerified                DateTime?
   image                        String?
   lastIpAddress                String?
+  lastActive                   DateTime?
   freeGenerationsRemaining     Int           @default(20)
   freeGenerationsUsed          Int           @default(0)
   advancedGenerationsTotal     Int           @default(0)

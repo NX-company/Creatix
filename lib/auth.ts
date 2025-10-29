@@ -78,13 +78,33 @@ export async function getUserFromRequest(req: NextRequest) {
 }
 
 export async function verifyAdmin(req: NextRequest) {
+  // Сначала пробуем кастомный токен (для admin API)
   const user = await getUserFromRequest(req)
-
-  if (!user || user.role !== 'ADMIN') {
-    return null
+  if (user && user.role === 'ADMIN') {
+    return user
   }
 
-  return user
+  // Затем пробуем NextAuth токен
+  try {
+    const { getServerSession } = await import('next-auth')
+    const { authOptions } = await import('./auth-options')
+    const session = await getServerSession(authOptions)
+
+    if (session?.user?.email) {
+      const dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+      })
+
+      if (dbUser && dbUser.role === 'ADMIN') {
+        console.log('✅ [verifyAdmin] NextAuth admin:', dbUser.email)
+        return dbUser
+      }
+    }
+  } catch (error) {
+    console.log('❌ [verifyAdmin] NextAuth error:', error)
+  }
+
+  return null
 }
 
 export async function deleteSession(token: string) {
