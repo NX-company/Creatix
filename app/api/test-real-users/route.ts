@@ -1,29 +1,37 @@
 import { NextResponse } from 'next/server'
-import { Pool } from 'pg'
+import { prisma } from '@/lib/db'
 
 export async function GET() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
-  })
-
   try {
-    const result = await pool.query(`
+    // Raw SQL query bypassing Prisma models
+    const result: any[] = await prisma.$queryRaw`
       SELECT id, email, username, "createdAt"
       FROM "User"
       ORDER BY "createdAt" DESC
-    `)
+    `
 
-    await pool.end()
+    // Also get via Prisma to compare
+    const prismaUsers = await prisma.user.findMany({
+      select: { id: true, email: true, username: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    })
 
     return NextResponse.json({
-      total: result.rows.length,
-      users: result.rows,
-      timestamp: new Date().toISOString()
+      rawSQL: {
+        total: result.length,
+        users: result
+      },
+      prisma: {
+        total: prismaUsers.length,
+        users: prismaUsers
+      },
+      timestamp: new Date().toISOString(),
+      match: result.length === prismaUsers.length
     })
   } catch (error: any) {
     return NextResponse.json({
       error: error.message,
-      db_url: process.env.DATABASE_URL?.split('@')[1] || 'hidden'
+      stack: error.stack
     }, { status: 500 })
   }
 }
