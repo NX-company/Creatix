@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdmin } from '@/lib/auth'
+import { verifyAdmin, verifyAdminFromNextAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 [GET /api/admin/users] Начало запроса')
-    const token = request.cookies.get('auth-token')?.value
-    console.log('🔍 [GET /api/admin/users] Token:', token ? `${token.substring(0, 20)}...` : 'НЕТ ТОКЕНА')
 
-    const admin = await verifyAdmin(request)
+    // Try custom token first
+    let admin = await verifyAdmin(request)
+
+    // If no custom token, try NextAuth session
+    if (!admin) {
+      admin = await verifyAdminFromNextAuth()
+    }
+
     console.log('🔍 [GET /api/admin/users] Admin:', admin ? `ID: ${admin.id}, Role: ${admin.role}` : 'НЕТ АДМИНА')
 
     if (!admin) {
@@ -62,7 +67,10 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const admin = await verifyAdmin(request)
+    let admin = await verifyAdmin(request)
+    if (!admin) {
+      admin = await verifyAdminFromNextAuth()
+    }
 
     if (!admin) {
       return NextResponse.json(
@@ -120,7 +128,10 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await verifyAdmin(request)
+    let admin = await verifyAdmin(request)
+    if (!admin) {
+      admin = await verifyAdminFromNextAuth()
+    }
 
     if (!admin) {
       return NextResponse.json(
@@ -192,7 +203,10 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const admin = await verifyAdmin(request)
+    let admin = await verifyAdmin(request)
+    if (!admin) {
+      admin = await verifyAdminFromNextAuth()
+    }
 
     if (!admin) {
       return NextResponse.json(

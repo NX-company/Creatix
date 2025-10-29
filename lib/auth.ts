@@ -77,34 +77,41 @@ export async function getUserFromRequest(req: NextRequest) {
   return await verifyToken(token)
 }
 
+// For middleware (Edge Runtime compatible)
 export async function verifyAdmin(req: NextRequest) {
-  // Сначала пробуем кастомный токен (для admin API)
   const user = await getUserFromRequest(req)
-  if (user && user.role === 'ADMIN') {
-    return user
+  if (!user || user.role !== 'ADMIN') {
+    return null
   }
+  return user
+}
 
-  // Затем пробуем NextAuth токен
+// For API routes (Node.js runtime, can use getServerSession)
+export async function verifyAdminFromNextAuth() {
+  const { getServerSession } = require('next-auth')
+  const { authOptions } = require('./auth-options')
+
   try {
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('./auth-options')
     const session = await getServerSession(authOptions)
 
-    if (session?.user?.email) {
-      const dbUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
-      })
-
-      if (dbUser && dbUser.role === 'ADMIN') {
-        console.log('✅ [verifyAdmin] NextAuth admin:', dbUser.email)
-        return dbUser
-      }
+    if (!session?.user?.email) {
+      return null
     }
-  } catch (error) {
-    console.log('❌ [verifyAdmin] NextAuth error:', error)
-  }
 
-  return null
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
+
+    if (!dbUser || dbUser.role !== 'ADMIN') {
+      return null
+    }
+
+    console.log('✅ [verifyAdminFromNextAuth] NextAuth admin:', dbUser.email)
+    return dbUser
+  } catch (error) {
+    console.log('❌ [verifyAdminFromNextAuth] Error:', error)
+    return null
+  }
 }
 
 export async function deleteSession(token: string) {
