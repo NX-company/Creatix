@@ -41,27 +41,36 @@ export async function verifyTokenForMiddleware(token: string) {
 
 export async function verifyToken(token: string) {
   try {
+    console.log('🔍 [verifyToken] Проверка токена:', token.substring(0, 20) + '...')
     const { payload } = await jwtVerify(token, JWT_SECRET)
-    
+    console.log('✅ [verifyToken] JWT валиден, payload:', payload)
+
     const session = await prisma.session.findUnique({
       where: { sessionToken: token },
       include: { user: true },
     })
 
+    console.log('🔍 [verifyToken] Сессия из БД:', session ? `Найдена, expires: ${session.expires}` : 'НЕ НАЙДЕНА')
+
     if (!session || session.expires < new Date()) {
+      console.log('❌ [verifyToken] Сессия невалидна или истекла')
       return null
     }
 
+    console.log('✅ [verifyToken] Пользователь:', session.user.email, 'Role:', session.user.role)
     return session.user
   } catch (error) {
+    console.log('❌ [verifyToken] Ошибка:', error)
     return null
   }
 }
 
 export async function getUserFromRequest(req: NextRequest) {
   const token = req.cookies.get('auth-token')?.value
+  console.log('🔍 [getUserFromRequest] Token из cookies:', token ? `${token.substring(0, 20)}...` : 'НЕТ')
 
   if (!token) {
+    console.log('❌ [getUserFromRequest] Токен отсутствует')
     return null
   }
 
