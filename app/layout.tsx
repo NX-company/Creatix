@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import SessionProvider from '@/components/SessionProvider'
+import UserActivityTracker from '@/components/UserActivityTracker'
 
 export const metadata: Metadata = {
   title: 'Creatix - AI Document Generation',
@@ -31,7 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <UserActivityTracker />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   )
