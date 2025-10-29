@@ -33,7 +33,7 @@ echo -e "${BLUE}📦 Step 5/9: Generating Prisma Client...${NC}"
 npx prisma generate
 
 echo -e "${BLUE}📦 Step 6/9: Running database migrations...${NC}"
-npx prisma migrate deploy
+npx prisma db push --accept-data-loss
 
 echo -e "${BLUE}📦 Step 7/9: Building production bundle (this may take 2-3 minutes)...${NC}"
 ESLINT_NO_DEV_ERRORS=true npm run build
