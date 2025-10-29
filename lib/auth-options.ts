@@ -1,12 +1,10 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/db"
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -110,7 +108,7 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       console.log('🔐 Sign in attempt:', {
         provider: account?.provider,
         email: user.email,
@@ -119,29 +117,100 @@ export const authOptions: NextAuthOptions = {
 
       if (account?.provider === "google" && user.email) {
         try {
-          const dbUser = await prisma.user.findUnique({
+          let dbUser = await prisma.user.findUnique({
             where: { email: user.email }
           })
 
-          console.log('👤 Found user in DB:', dbUser ? 'Yes' : 'No')
+          if (!dbUser) {
+            // Create new Google user with proper defaults
+            dbUser = await prisma.user.create({
+              data: {
+                email: user.email,
+                name: user.name || null,
+                username: user.email.split('@')[0],
+                image: user.image || null,
+                role: 'USER',
+                appMode: 'FREE',
+                freeGenerationsRemaining: 20,
+                freeGenerationsUsed: 0,
+                emailVerified: new Date()
+              }
+            })
+            console.log('✅ Created new Google user:', user.email)
 
-          // Set up new Google users with FREE mode and 20 generations
-          if (dbUser && dbUser.freeGenerationsRemaining === null) {
+            // Create Account record
+            await prisma.account.create({
+              data: {
+                userId: dbUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                refresh_token: account.refresh_token,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state as string | null
+              }
+            })
+          } else {
+            // Update existing user data
             await prisma.user.update({
               where: { id: dbUser.id },
               data: {
-                freeGenerationsRemaining: 20,
-                freeGenerationsUsed: 0,
-                role: 'USER',
-                appMode: 'FREE',
-                username: dbUser.username || user.email.split('@')[0]
+                name: user.name || dbUser.name,
+                image: user.image || dbUser.image,
+                username: dbUser.username || user.email.split('@')[0],
+                role: dbUser.role || 'USER',
+                appMode: dbUser.appMode || 'FREE',
+                freeGenerationsRemaining: dbUser.freeGenerationsRemaining ?? 20,
+                freeGenerationsUsed: dbUser.freeGenerationsUsed ?? 0
               }
             })
 
-            console.log('✅ Free generations set for Google user:', user.email)
+            // Update or create Account record
+            await prisma.account.upsert({
+              where: {
+                provider_providerAccountId: {
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId
+                }
+              },
+              create: {
+                userId: dbUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                refresh_token: account.refresh_token,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state as string | null
+              },
+              update: {
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                refresh_token: account.refresh_token,
+                id_token: account.id_token,
+                session_state: account.session_state as string | null
+              }
+            })
+            console.log('✅ Updated Google user:', user.email)
           }
+
+          // Update user object for JWT
+          user.id = dbUser.id
+          user.role = dbUser.role as any
+          user.appMode = dbUser.appMode as any
+          user.freeGenerationsRemaining = dbUser.freeGenerationsRemaining
+          user.freeGenerationsUsed = dbUser.freeGenerationsUsed
+          user.subscriptionStatus = dbUser.subscriptionStatus
         } catch (error) {
           console.error('❌ Error setting up Google user:', error)
+          return false
         }
       }
       return true
